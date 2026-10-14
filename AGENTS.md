@@ -31,6 +31,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ### 5. 報告の書き方
 - 冒頭に、このアプリの名前を書く。各項目は短くする(貼り付けが切れないように)。
+- このアプリは『たまりびより』(リポジトリ名 mimamori-point-app)。報告の冒頭には、『たまりびより』と書く。
+  『まもりびより』は、別のアプリ(mimamori-hoken-app)なので、間違えない。
 
 ### 6. 状況の正本
 - 状況の正本は、ハブのリポジトリの BRAND.md 26章「引き継ぎメモ」。このリポジトリからは読めないので、報告の4項目を、利用者がハブへ伝える。
