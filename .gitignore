@@ -45,3 +45,6 @@ next-env.d.ts
 
 # firebase admin service account keys
 *firebase-adminsdk*.json
+
+# 生成物(scripts/generate-sw.mjs が作る)
+/public/firebase-messaging-sw.js
