@@ -8,8 +8,8 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthProvider";
 import { goToHubLogin } from "@/lib/hubLogin";
 
-const HUB_TERMS_URL = "https://okizukibiyori.com/terms#たまりびより";
-const HUB_PRIVACY_URL = "https://okizukibiyori.com/privacy#たまりびより";
+const HUB_TERMS_URL = "https://okizukibiyori.com/terms#おさいふびより";
+const HUB_PRIVACY_URL = "https://okizukibiyori.com/privacy#おさいふびより";
 
 export default function LoginGuide() {
   const { handoffFailed } = useAuth();
@@ -35,7 +35,7 @@ export default function LoginGuide() {
         }}
       >
         <h1 className="appbar-title" style={{ color: "var(--brand)", fontSize: 26 }}>
-          たまりびより
+          おさいふびより
         </h1>
 
         {handoffFailed && (

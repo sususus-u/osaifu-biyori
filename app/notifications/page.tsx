@@ -80,7 +80,7 @@ function PushToggle() {
         <div className="settings-row">
           <div>
             <div className="label">通知</div>
-            <div className="sub">たまりびよりからのお知らせを受け取る</div>
+            <div className="sub">おさいふびよりからのお知らせを受け取る</div>
           </div>
           <button
             type="button"

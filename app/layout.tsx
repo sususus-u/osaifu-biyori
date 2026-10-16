@@ -4,7 +4,7 @@ import { AuthProvider } from "@/contexts/AuthProvider";
 import AppShell from "@/components/AppShell";
 
 export const metadata: Metadata = {
-  title: "たまりびより",
+  title: "おさいふびより",
   description: "ポイント・電子マネーの期限管理アプリ",
 };
 

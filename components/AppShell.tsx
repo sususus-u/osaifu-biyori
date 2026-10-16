@@ -39,7 +39,7 @@ export function useHasNewAnnouncement(): boolean {
 function getTitle(pathname: string): string {
   if (SCREEN_TITLES[pathname]) return SCREEN_TITLES[pathname];
   if (pathname.startsWith("/accounts/") && pathname.endsWith("/edit")) return "サービスを編集";
-  return "たまりびより";
+  return "おさいふびより";
 }
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
@@ -140,7 +140,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <div className="app-shell">
         <header className="appbar">
           <div>
-            <p className="appbar-brand">たまりびより</p>
+            <p className="appbar-brand">おさいふびより</p>
             <h1 className="appbar-title">{getTitle(pathname)}</h1>
           </div>
           <Link href="/" className="appbar-home" aria-label="ログイン案内に戻る">
@@ -172,7 +172,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     <div className="app-shell">
       <header className="appbar">
         <div>
-          <p className="appbar-brand">たまりびより</p>
+          <p className="appbar-brand">おさいふびより</p>
           <h1 className="appbar-title">{getTitle(pathname)}</h1>
         </div>
         <div style={{ display: "flex", alignItems: "center" }}>

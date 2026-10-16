@@ -3,8 +3,8 @@ import { BarChart3, ChevronRight, ExternalLink, FileText, User } from "lucide-re
 import AccountSettings from "@/components/AccountSettings";
 import LogoutButton from "@/components/LogoutButton";
 
-const HUB_TERMS_URL = "https://okizukibiyori.com/terms#たまりびより";
-const HUB_PRIVACY_URL = "https://okizukibiyori.com/privacy#たまりびより";
+const HUB_TERMS_URL = "https://okizukibiyori.com/terms#おさいふびより";
+const HUB_PRIVACY_URL = "https://okizukibiyori.com/privacy#おさいふびより";
 
 export default function MenuPage() {
   return (
