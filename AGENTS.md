@@ -36,3 +36,15 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ### 6. 状況の正本
 - 状況の正本は、ハブのリポジトリの BRAND.md 26章「引き継ぎメモ」。このリポジトリからは読めないので、報告の4項目を、利用者がハブへ伝える。
+
+## 名前の決まり
+
+- ブランド(正式): おきづきびより。ドメイン okizukibiyori.com。
+- ハブ: 画面の名前「おきづきびより」。リポジトリ kizuki-biyori-hub。Claude Code の名乗り「ハブ」。
+- まもりびより: 画面の名前「まもりびより」。リポジトリ mimamori-hoken-app。名乗り「まもりびより」。旧名: みまもり保険手帳。
+- たべびより: 画面の名前「たべびより」。リポジトリ tabegoro-app。名乗り「たべびより」。旧名: たべゴロっとチェック。
+- おさいふびより: 画面の名前「おさいふびより」。リポジトリ mimamori-point-app。名乗り「おさいふびより」。旧名: たまりびより、まもりポイント。
+- 注意: mimamori-hoken-app(まもりびより)と mimamori-point-app(おさいふびより)は、名前が似ているので、取り違えない。
+- 内部の識別子(tamari-biyori、usage_counts_tamari、tamari:、tabegoro:、tabe-biyori など)は、旧名のまま変えない。
+  変えると保存データの移行が要るため。画面の名前とは、別物。
+- 報告の冒頭には、このアプリの「名乗り」を書く。
