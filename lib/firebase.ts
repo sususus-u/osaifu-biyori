@@ -5,6 +5,7 @@ import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth, signInWithCustomToken } from "firebase/auth";
 import { extractAuthToken } from "@/lib/authToken";
+import { consumeState } from "@/lib/handoffState";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -49,8 +50,22 @@ export const customTokenSignInReady: Promise<void> = (async () => {
   if (typeof window === "undefined") return;
 
   // 読んだらすぐ、アドレスから消す(クエリもフラグメントも。成否を待たない)
-  const { token, rejected } = extractAuthToken(window.location.href);
+  const { token, rejected, state } = extractAuthToken(window.location.href);
   removeAuthTokenFromUrl();
+  if (token !== null || rejected || state !== null) {
+    // state の照合(控えは必ず消える)。state なしは、段階1の間は通す
+    let stateOk = false;
+    try {
+      stateOk = consumeState(state, window.sessionStorage);
+    } catch {
+      stateOk = state === null;
+    }
+    if (!stateOk) {
+      customTokenHandoffFailed = true;
+      console.error("照合用の値(state)が合わないため、ログインを行いませんでした");
+      return;
+    }
+  }
   if (rejected) {
     customTokenHandoffFailed = true;
     console.error("カスタムトークンが長すぎるため、ログインを行いませんでした");

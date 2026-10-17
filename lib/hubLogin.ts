@@ -3,8 +3,10 @@
 // ログイン画面: https://okizukibiyori.com/login?return=<元のURL>
 // ログイン後、ハブは return のURLに ?authToken= を付けて戻す。
 // return には ?authToken= を含めない(含めるとハブ側で許可されない)。
+// 照合用の乱数 state は、ログイン画面の &state= に付ける(戻るときハブが # に付ける想定。段階1では、付かなくても通す)。
 
 import { stripAuthToken } from "@/lib/authToken";
+import { issueState } from "@/lib/handoffState";
 
 const HUB_LOGIN_URL = "https://okizukibiyori.com/login";
 
@@ -14,8 +16,9 @@ const REDIRECT_COUNT_KEY = "tamari:hubLoginRedirects";
 const MAX_REDIRECTS_PER_SESSION = 1;
 
 /** return に入れる今のURL。authToken は必ず外す */
-export function buildHubLoginUrl(currentHref: string): string {
-  return `${HUB_LOGIN_URL}?return=${encodeURIComponent(stripAuthToken(currentHref))}`;
+export function buildHubLoginUrl(currentHref: string, state?: string): string {
+  const base = `${HUB_LOGIN_URL}?return=${encodeURIComponent(stripAuthToken(currentHref))}`;
+  return state ? `${base}&state=${encodeURIComponent(state)}` : base;
 }
 
 function readCount(): number {
@@ -37,7 +40,9 @@ export function goToHubLogin(): boolean {
   } catch {
     return false;
   }
-  window.location.assign(buildHubLoginUrl(window.location.href));
+  const state = issueState(window.sessionStorage);
+  if (state === null) return false;
+  window.location.assign(buildHubLoginUrl(window.location.href, state));
   return true;
 }
 
