@@ -12,7 +12,7 @@ export const MAX_AUTH_TOKEN_LENGTH = 4096;
 export type AuthTokenExtraction = {
   /** 読み取れたトークン。なし・空・長すぎるときは null */
   token: string | null;
-  /** #state= の値(照合用の乱数)。なければ null。照合は handoffState.ts */
+  /** 戻り先のクエリ(?state=)の値(照合用の乱数)。なければ null。照合は handoffState.ts */
   state: string | null;
   /** 値が長すぎて拒否したか(引き継ぎの失敗として扱う) */
   rejected: boolean;
@@ -20,10 +20,9 @@ export type AuthTokenExtraction = {
   cleanedPath: string;
 };
 
-function readFragmentToken(hash: string): { value: string | null; state: string | null; rest: string } {
+function readFragmentToken(hash: string): { value: string | null; rest: string } {
   const parts = hash.replace(/^#/, "").split("&");
   let value: string | null = null;
-  let state: string | null = null;
   const kept: string[] = [];
   for (const part of parts) {
     const eq = part.indexOf("=");
@@ -35,24 +34,18 @@ function readFragmentToken(hash: string): { value: string | null; state: string 
           value = "";
         }
       }
-    } else if ((eq === -1 ? part : part.slice(0, eq)) === STATE_PARAM) {
-      if (state === null && eq !== -1) {
-        try {
-          state = decodeURIComponent(part.slice(eq + 1));
-        } catch {
-          state = "";
-        }
-      }
     } else if (part !== "") {
       kept.push(part);
     }
   }
-  return { value, state, rest: kept.join("&") };
+  return { value, rest: kept.join("&") };
 }
 
 export function extractAuthToken(href: string): AuthTokenExtraction {
   const url = new URL(href);
   url.searchParams.delete(AUTH_TOKEN_PARAM);
+  const state = url.searchParams.get(STATE_PARAM);
+  url.searchParams.delete(STATE_PARAM);
   const fragment = readFragmentToken(url.hash);
   url.hash = fragment.rest;
 
@@ -60,7 +53,7 @@ export function extractAuthToken(href: string): AuthTokenExtraction {
   const rejected = candidate !== null && candidate.length > MAX_AUTH_TOKEN_LENGTH;
   return {
     token: candidate !== null && !rejected ? candidate : null,
-    state: fragment.state,
+    state,
     rejected,
     cleanedPath: url.pathname + url.search + url.hash,
   };

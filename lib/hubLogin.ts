@@ -3,9 +3,10 @@
 // ログイン画面: https://okizukibiyori.com/login?return=<元のURL>
 // ログイン後、ハブは return のURLに ?authToken= を付けて戻す。
 // return には ?authToken= を含めない(含めるとハブ側で許可されない)。
-// 照合用の乱数 state は、ログイン画面の &state= に付ける(戻るときハブが # に付ける想定。段階1では、付かなくても通す)。
+// 照合用の乱数 state は、return の中に ?state= で足す(ハブは return のクエリをそのまま返す。まもりびよりと同じ形)。
+// ログイン画面のアドレスの外側には付けない(ハブは無視する)。
 
-import { stripAuthToken } from "@/lib/authToken";
+import { stripAuthToken, STATE_PARAM } from "@/lib/authToken";
 import { issueState } from "@/lib/handoffState";
 
 const HUB_LOGIN_URL = "https://okizukibiyori.com/login";
@@ -17,8 +18,13 @@ const MAX_REDIRECTS_PER_SESSION = 1;
 
 /** return に入れる今のURL。authToken は必ず外す */
 export function buildHubLoginUrl(currentHref: string, state?: string): string {
-  const base = `${HUB_LOGIN_URL}?return=${encodeURIComponent(stripAuthToken(currentHref))}`;
-  return state ? `${base}&state=${encodeURIComponent(state)}` : base;
+  let returnUrl = stripAuthToken(currentHref);
+  if (state) {
+    const u = new URL(returnUrl);
+    u.searchParams.set(STATE_PARAM, state);
+    returnUrl = u.toString();
+  }
+  return `${HUB_LOGIN_URL}?return=${encodeURIComponent(returnUrl)}`;
 }
 
 function readCount(): number {

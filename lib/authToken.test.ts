@@ -55,12 +55,18 @@ test("長すぎる # の値は拒否する。? の値は読まないので拒否
   assert.equal(q.cleanedPath, "/p");
   assert.equal(extractAuthToken(`${B}#authToken=${"a".repeat(MAX_AUTH_TOKEN_LENGTH)}`).rejected, false);
 });
-test("# の state を読み、URL から取り除く。? の state は読まない", () => {
-  const r = extractAuthToken(`${B}?state=q#authToken=t&state=s1&sec`);
+test("? の後ろの state を読み、URL から取り除く。# の state は読まない", () => {
+  const r = extractAuthToken(`${B}?join=g&state=s1#authToken=t&sec`);
   assert.equal(r.token, "t");
   assert.equal(r.state, "s1");
-  assert.equal(r.cleanedPath, "/p?state=q#sec");
+  assert.equal(r.cleanedPath, "/p?join=g#sec");
   assert.equal(extractAuthToken(`${B}#authToken=t`).state, null);
+  const f = extractAuthToken(`${B}#authToken=t&state=s1`);
+  assert.equal(f.state, null);
+  assert.equal(f.cleanedPath, "/p#state=s1");
+});
+test("stripAuthToken は state も外す", () => {
+  assert.equal(stripAuthToken(`${B}?join=g&state=s1#authToken=t`), `${B}?join=g`);
 });
 test("stripAuthToken は戻り先 URL から両方外す", () => {
   assert.equal(stripAuthToken(`${B}?join=g&authToken=t#authToken=t`), `${B}?join=g`);
