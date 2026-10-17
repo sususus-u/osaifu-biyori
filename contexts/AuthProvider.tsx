@@ -1,6 +1,6 @@
 "use client";
 
-// ハブのログイン(?authToken= の引き継ぎ)で入った人だけを「ログイン済み」として扱い、
+// ハブのログイン(#authToken= の引き継ぎ)で入った人だけを「ログイン済み」として扱い、
 // どの画面からも useAuth() でログイン中のUIDを取得できるようにする。
 // 匿名ログインは使わない。ログインしていないときは uid が null のままで、
 // 画面側(AppShell)が案内の画面を出す。
@@ -28,7 +28,7 @@ interface AuthContextValue {
   isLoading: boolean;
   /** ログイン済み(匿名でない)ユーザーのUID。未ログイン・確認中は null */
   uid: string | null;
-  /** ハブからの引き継ぎ(?authToken=)に失敗したか。メモリ上だけの印 */
+  /** ハブからの引き継ぎ(#authToken=)に失敗したか。メモリ上だけの印 */
   handoffFailed: boolean;
 }
 

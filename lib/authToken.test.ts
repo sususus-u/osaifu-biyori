@@ -5,9 +5,10 @@ import { extractAuthToken, stripAuthToken, MAX_AUTH_TOKEN_LENGTH } from "./authT
 
 const B = "https://app.example/p";
 
-test("クエリだけ", () => {
+test("クエリだけ: 使わず、URL から取り除く", () => {
   const r = extractAuthToken(`${B}?authToken=abc`);
-  assert.equal(r.token, "abc");
+  assert.equal(r.token, null);
+  assert.equal(r.rejected, false);
   assert.equal(r.cleanedPath, "/p");
 });
 test("フラグメントだけ", () => {
@@ -15,7 +16,7 @@ test("フラグメントだけ", () => {
   assert.equal(r.token, "abc");
   assert.equal(r.cleanedPath, "/p");
 });
-test("両方あるときはフラグメントを優先し、両方消す", () => {
+test("両方あるときは # の後ろだけを使い、両方消す", () => {
   const r = extractAuthToken(`${B}?authToken=q#authToken=f`);
   assert.equal(r.token, "f");
   assert.equal(r.cleanedPath, "/p");
@@ -36,20 +37,22 @@ test("別のフラグメントは残す", () => {
   assert.equal(extractAuthToken(`${B}#authToken=t&sec`).cleanedPath, "/p#sec");
   assert.equal(extractAuthToken(`${B}?return=%2Fa#authToken=t`).cleanedPath, "/p?return=%2Fa");
 });
-test("値が空は引き継ぎなし。URL からは消す", () => {
-  const r = extractAuthToken(`${B}?authToken=#authToken=`);
+test("# の値が空なら、? の値があっても引き継ぎなし。URL からは消す", () => {
+  const r = extractAuthToken(`${B}?authToken=q#authToken=`);
   assert.equal(r.token, null);
   assert.equal(r.rejected, false);
   assert.equal(r.cleanedPath, "/p");
 });
-test("長すぎる値は拒否する(クエリ・フラグメントとも)", () => {
+test("長すぎる # の値は拒否する。? の値は読まないので拒否もしない", () => {
   const long = "a".repeat(MAX_AUTH_TOKEN_LENGTH + 1);
-  for (const u of [`${B}?authToken=${long}`, `${B}#authToken=${long}`]) {
-    const r = extractAuthToken(u);
-    assert.equal(r.token, null);
-    assert.equal(r.rejected, true);
-    assert.equal(r.cleanedPath, "/p");
-  }
+  const r = extractAuthToken(`${B}#authToken=${long}`);
+  assert.equal(r.token, null);
+  assert.equal(r.rejected, true);
+  assert.equal(r.cleanedPath, "/p");
+  const q = extractAuthToken(`${B}?authToken=${long}`);
+  assert.equal(q.token, null);
+  assert.equal(q.rejected, false);
+  assert.equal(q.cleanedPath, "/p");
   assert.equal(extractAuthToken(`${B}#authToken=${"a".repeat(MAX_AUTH_TOKEN_LENGTH)}`).rejected, false);
 });
 test("stripAuthToken は戻り先 URL から両方外す", () => {

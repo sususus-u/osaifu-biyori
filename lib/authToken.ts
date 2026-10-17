@@ -1,7 +1,7 @@
 // ハブからの引き継ぎ用 authToken を、URL から読み取り・取り除く部品(ブラウザに依存しない)。
 //
-// 渡し方は2通り: クエリ(?authToken=…)と、フラグメント(#authToken=…)。
-// フラグメントはサーバーに送られないため、両方あるときはフラグメントを優先する。
+// 読むのはフラグメント(#authToken=…)だけ。フラグメントはサーバーに送られない。
+// クエリ(?authToken=…)は履歴やログに残りやすいので、読まずに URL から取り除くだけにする。
 // 値はここでもログに出さない。
 
 export const AUTH_TOKEN_PARAM = "authToken";
@@ -40,12 +40,11 @@ function readFragmentToken(hash: string): { value: string | null; rest: string }
 
 export function extractAuthToken(href: string): AuthTokenExtraction {
   const url = new URL(href);
-  const fromQuery = url.searchParams.get(AUTH_TOKEN_PARAM);
   url.searchParams.delete(AUTH_TOKEN_PARAM);
   const fragment = readFragmentToken(url.hash);
   url.hash = fragment.rest;
 
-  const candidate = fragment.value || fromQuery || null;
+  const candidate = fragment.value || null;
   const rejected = candidate !== null && candidate.length > MAX_AUTH_TOKEN_LENGTH;
   return {
     token: candidate !== null && !rejected ? candidate : null,
@@ -54,7 +53,7 @@ export function extractAuthToken(href: string): AuthTokenExtraction {
   };
 }
 
-/** authToken(クエリ・フラグメントの両方)を取り除いた絶対URL */
+/** authToken(クエリ・フラグメントの両方。クエリの値は使わない)を取り除いた絶対URL */
 export function stripAuthToken(href: string): string {
   return new URL(href).origin + extractAuthToken(href).cleanedPath;
 }
