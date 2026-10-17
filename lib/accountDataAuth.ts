@@ -9,18 +9,18 @@ export function keyMatches(provided: string | null, expected: string | undefined
   return timingSafeEqual(a, b);
 }
 
-export type TokenVerdict = "no-token" | "ok" | "forbidden" | "invalid";
+export type TokenVerdict = "ok" | "forbidden" | "invalid";
 
 // authorization: Authorization ヘッダーの値(なければ null)
 // verifiedUid: そのヘッダーを IDトークンとして検証した結果の uid(確かめられなければ null)
 // bodyUid: 本文の uid
-// ヘッダーがあるのに空・形が違う・無効なときは、「トークンなし」にせず invalid にする。
+// ヘッダーがない・空・形が違う・無効なときは、すべて invalid(401)。段階3: トークンは必須。
 export function judgeToken(
   authorization: string | null,
   verifiedUid: string | null,
   bodyUid: string,
 ): TokenVerdict {
-  if (authorization === null) return "no-token";
+  if (authorization === null) return "invalid";
   if (verifiedUid === null) return "invalid";
   return verifiedUid === bodyUid ? "ok" : "forbidden";
 }

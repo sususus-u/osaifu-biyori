@@ -2,8 +2,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { judgeToken, keyMatches } from "./accountDataAuth.ts";
 
-test("トークンなし → no-token(今までどおり)", () => {
-  assert.equal(judgeToken(null, null, "u1"), "no-token");
+test("トークンなし → invalid(段階3: 必須)", () => {
+  assert.equal(judgeToken(null, null, "u1"), "invalid");
 });
 test("有効で uid 一致 → ok", () => {
   assert.equal(judgeToken("Bearer x", "u1", "u1"), "ok");

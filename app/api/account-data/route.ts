@@ -1,7 +1,7 @@
 // ハブから「このuidの人のデータをすべて削除してください」という依頼を受ける窓口
 // (利用者本人によるアカウント削除)。
 // x-dashboard-key ヘッダーが環境変数 DASHBOARD_API_KEY と一致する場合のみ処理する。
-// さらに Authorization: Bearer <IDトークン> があれば、その uid と本文の uid の一致も必要(段階1)。
+// さらに Authorization: Bearer <IDトークン> が必須で、その uid と本文の uid の一致も必要(段階3)。
 // 依頼は DELETE /api/account-data で、本文は {"uid": "..."}。
 // 消すもの: accounts(と、その中のupdates)・outcome_events・usage_counts_tamari・users/{uid}。
 // Firebase Authのログイン情報そのものは、姉妹アプリと同じプロジェクトを共用していて
@@ -30,17 +30,17 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "invalid uid" }, { status: 400, headers: NO_STORE });
   }
 
-  // 段階1: Authorization があれば、本人のIDトークンの uid と本文の uid の一致を確かめる。
+  // 段階3: Authorization（本人のIDトークン）が必須。その uid と本文の uid の一致を確かめる。
   // なければ今までどおり(段階3で必須にする)。ログは成否だけで、トークンも uid も出さない。
   const authorization = req.headers.get("authorization");
   const verifiedUid = authorization === null ? null : await verifyBearerIdToken(authorization);
   const verdict = judgeToken(authorization, verifiedUid, uid);
   if (verdict === "invalid") {
-    console.warn("account-data 段階1 トークン無効");
+    console.warn("account-data 段階3 トークン無効");
     return NextResponse.json({ error: "unauthorized" }, { status: 401, headers: NO_STORE });
   }
   if (verdict === "forbidden") {
-    console.warn("account-data 段階1 uid不一致");
+    console.warn("account-data 段階3 uid不一致");
     return NextResponse.json({ error: "forbidden" }, { status: 403, headers: NO_STORE });
   }
 
