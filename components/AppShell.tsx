@@ -187,7 +187,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             )}
             {hasNewAnnouncement && <span className="badge-dot" />}
           </Link>
-          <a href={HUB_URL} className="appbar-home" aria-label="きづきびより ハブに戻る">
+          <a href={HUB_URL} className="appbar-home" aria-label="おきづきびより ハブに戻る">
             <LayoutGrid size={20} />
           </a>
         </div>
