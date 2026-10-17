@@ -32,7 +32,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 ### 5. 報告の書き方
 - 冒頭に、このアプリの名前を書く。各項目は短くする(貼り付けが切れないように)。
 - このアプリは『おさいふびより』(旧名: たまりびより。リポジトリ名 osaifu-biyori、旧リポジトリ名 mimamori-point-app)。報告の冒頭には、『おさいふびより』と書く。
-  『まもりびより』は、別のアプリ(mimamori-hoken-app)なので、間違えない。
+  『まもりびより』は、別のアプリ(mamori-biyori。旧: mimamori-hoken-app)なので、間違えない。
 - 決まりの確認(型チェック、lint、ビルド、テスト、Ready、ヘッダー、ログインなしのAPIの401など)が、すべて予想どおりに通ったときは、報告は次の1行だけにする。
   「【名乗り】OK。コミット○○、デプロイReady。」
 - 予想と違うこと、確認できなかったこと、判断が要ることがあるときだけ、その点をくわしく書く(通ったものは、くり返さない)。
@@ -45,11 +45,11 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 ## 名前の決まり
 
 - ブランド(正式): おきづきびより。ドメイン okizukibiyori.com。
-- ハブ: 画面の名前「おきづきびより」。リポジトリ kizuki-biyori-hub。Claude Code の名乗り「ハブ」。
-- まもりびより: 画面の名前「まもりびより」。リポジトリ mimamori-hoken-app。名乗り「まもりびより」。旧名: みまもり保険手帳。
-- たべびより: 画面の名前「たべびより」。リポジトリ tabegoro-app。名乗り「たべびより」。旧名: たべゴロっとチェック。
-- おさいふびより: 画面の名前「おさいふびより」。リポジトリ osaifu-biyori。名乗り「おさいふびより」。旧名: たまりびより、まもりポイント(旧リポジトリ名 mimamori-point-app)。
-- 注意: mimamori-hoken-app(まもりびより)と osaifu-biyori(おさいふびより。旧 mimamori-point-app)は、名前が似ているので、取り違えない。
+- ハブ: 画面の名前「おきづきびより」。リポジトリ kizuki-biyori-hub(次に変える予定。変わったら、改めて直す)。Claude Code の名乗り「ハブ」。
+- まもりびより: 画面の名前「まもりびより」。リポジトリ mamori-biyori(旧: mimamori-hoken-app)。名乗り「まもりびより」。旧名: みまもり保険手帳。
+- たべびより: 画面の名前「たべびより」。リポジトリ tabe-biyori(旧: tabegoro-app)。名乗り「たべびより」。旧名: たべゴロっとチェック。
+- おさいふびより: 画面の名前「おさいふびより」。リポジトリ osaifu-biyori(旧: mimamori-point-app)。名乗り「おさいふびより」。旧名: たまりびより、まもりポイント。
+- 注意: 旧名が似ていたので、取り違えやすかった。現在は、まもりびより=mamori-biyori、おさいふびより=osaifu-biyori。
 - 内部の識別子(tamari-biyori、usage_counts_tamari、tamari:、tabegoro:、tabe-biyori など)は、旧名のまま変えない。
   変えると保存データの移行が要るため。画面の名前とは、別物。
 - 報告の冒頭には、このアプリの「名乗り」を書く。
