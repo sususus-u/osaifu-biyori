@@ -1,6 +1,7 @@
 // ハブから「このuidの人のデータをすべて削除してください」という依頼を受ける窓口
 // (利用者本人によるアカウント削除)。
 // x-dashboard-key ヘッダーが環境変数 DASHBOARD_API_KEY と一致する場合のみ処理する。
+// さらに Authorization: Bearer <IDトークン> があれば、その uid と本文の uid の一致も必要(段階1)。
 // 依頼は DELETE /api/account-data で、本文は {"uid": "..."}。
 // 消すもの: accounts(と、その中のupdates)・outcome_events・usage_counts_tamari・users/{uid}。
 // Firebase Authのログイン情報そのものは、姉妹アプリと同じプロジェクトを共用していて
@@ -8,12 +9,13 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
+import { judgeToken, keyMatches } from "@/lib/accountDataAuth";
+import { verifyBearerIdToken } from "@/lib/verifyIdToken";
 
 const NO_STORE = { "Cache-Control": "private, no-store" };
 
 export async function DELETE(req: NextRequest) {
-  const dashboardKey = req.headers.get("x-dashboard-key");
-  if (!process.env.DASHBOARD_API_KEY || dashboardKey !== process.env.DASHBOARD_API_KEY) {
+  if (!keyMatches(req.headers.get("x-dashboard-key"), process.env.DASHBOARD_API_KEY)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401, headers: NO_STORE });
   }
 
@@ -26,6 +28,20 @@ export async function DELETE(req: NextRequest) {
   // uidが空や、パスとして不正な値(「/」を含む等)のまま、意図しない場所を消さないようにする
   if (typeof uid !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(uid)) {
     return NextResponse.json({ error: "invalid uid" }, { status: 400, headers: NO_STORE });
+  }
+
+  // 段階1: Authorization があれば、本人のIDトークンの uid と本文の uid の一致を確かめる。
+  // なければ今までどおり(段階3で必須にする)。ログは成否だけで、トークンも uid も出さない。
+  const authorization = req.headers.get("authorization");
+  const verifiedUid = authorization === null ? null : await verifyBearerIdToken(authorization);
+  const verdict = judgeToken(authorization, verifiedUid, uid);
+  if (verdict === "invalid") {
+    console.warn("account-data 段階1 トークン無効");
+    return NextResponse.json({ error: "unauthorized" }, { status: 401, headers: NO_STORE });
+  }
+  if (verdict === "forbidden") {
+    console.warn("account-data 段階1 uid不一致");
+    return NextResponse.json({ error: "forbidden" }, { status: 403, headers: NO_STORE });
   }
 
   try {

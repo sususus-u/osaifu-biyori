@@ -9,7 +9,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --test lib/authToken.test.ts"
+    "test": "node --test lib/authToken.test.ts lib/accountDataAuth.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.120.0",
