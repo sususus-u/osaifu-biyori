@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Lightbulb } from "lucide-react";
 import { authFetch } from "@/lib/authFetch";
+import { prepareScanImage, readScanJson } from "@/lib/scanImage";
 import {
   collection,
   query,
@@ -109,7 +110,7 @@ export default function ScanUpload() {
     setIsProcessing(true);
 
     try {
-      const base64 = await fileToBase64(file);
+      const { base64, mediaType } = await prepareScanImage(file);
 
       setStatusMessage("画像を読み取っています...");
       // 1日の回数をアカウントごとに数えるため、本人のIDトークンを付けて送る。
@@ -117,13 +118,10 @@ export default function ScanUpload() {
       const res = await authFetch("/api/scan-account", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64: base64, mediaType: file.type }),
+        body: JSON.stringify({ imageBase64: base64, mediaType }),
       });
-      const data = await res.json();
-
-      if (!res.ok || data.error) {
-        throw new Error(data.error || "読み取りに失敗しました");
-      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = await readScanJson<any>(res);
 
       const serviceName: string | null = data.serviceName;
       const totalBalance: number | null = data.totalBalance;
@@ -554,16 +552,4 @@ export default function ScanUpload() {
       )}
     </div>
   );
-}
-
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      resolve(result.split(",")[1]);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
 }

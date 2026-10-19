@@ -53,3 +53,10 @@
 - 緩めたルール: react-hooks/set-state-in-effect を、eslint.config.mjs の overrides で、6ファイル(app/reports/page.tsx、AccountForm、AppShell、NotificationSetup、QuickUpdate、ScanPhysicalUpload)だけ切った。理由は、保存値や画面の大きさを描画後に読んで state に入れる作りで、直すと初期表示(ちらつき、ハイドレーション)が変わるおそれがあるため。新しいファイルには効いたまま。
 - 直さずに残したもの: 上の set-state-in-effect の12か所の書き方そのもの。直すなら、1か所ずつ、画面を確認しながら。
 - 注意: 新しい eslint-disable や overrides を足すときは、ここに理由を足す。
+
+## 写真読み取りの画像と応答
+- 送る前に、画像を長辺1600px・JPEG品質0.8に縮める(`lib/scanImage.ts` の `prepareScanImage`)。スマホの写真は数MBで、base64 にすると Vercel の本文上限(約4.5MB)を超えて 413 になっていたため。使う場所: ScanUpload(scan-account)、ScanPhysicalUpload(scan-physical-count)、AccountForm のカメラ起動(sessionStorage 経由)。縮小できない端末では、元の画像をそのまま送る(従来どおり)。
+- 応答は `readScanJson` で読む。413 は「写真が大きすぎて読み取れませんでした。もう一度、撮り直してください」。JSON でない応答は「読み取りに失敗しました」。上限到達などサーバーの案内文は、そのまま出す。
+- scan-physical-count の指示に、切手向けの説明(小さな額面、シートは行×列、期限なし)と、額面ごとの小計 breakdown(合計と一致させる、読めなければ null)を足した。scan-account の指示と、モデル(claude-haiku-4-5)は変えていない。
+- 戻し方: 画像の扱いに問題が出たら、`prepareScanImage` の中身を元のファイルの base64 化に戻す(1関数)。
+- テスト: `lib/scanImage.test.ts`(縮小サイズの計算、413 などの応答)。画面そのもののテストはない。

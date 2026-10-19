@@ -7,6 +7,7 @@
 import { useEffect, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { authFetch } from "@/lib/authFetch";
+import { prepareScanImage, readScanJson } from "@/lib/scanImage";
 import {
   collection,
   query,
@@ -86,12 +87,8 @@ export default function ScanPhysicalUpload() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ imageBase64: base64, mediaType }),
       });
-      const data: ScanResult & { error?: string } = await res.json();
-
-      if (!res.ok) {
-        // 上限に達した場合などは、サーバーからの案内文をそのまま表示する
-        throw new Error(data.error || "読み取りに失敗しました");
-      }
+      // 上限に達した場合などは、サーバーからの案内文をそのまま表示する。413 などは撮り直しの案内
+      const data = await readScanJson<ScanResult>(res);
 
       setName(data.name ?? "");
       setNameUnrecognized(!data.name);
@@ -131,8 +128,8 @@ export default function ScanPhysicalUpload() {
     if (!file || !uid) return;
 
     setPreviewUrl(URL.createObjectURL(file));
-    const base64 = await fileToBase64(file);
-    await processImage(base64, file.type);
+    const { base64, mediaType } = await prepareScanImage(file);
+    await processImage(base64, mediaType);
   }
 
   function handleApplyUnitCalc() {
@@ -372,16 +369,4 @@ export default function ScanPhysicalUpload() {
       )}
     </div>
   );
-}
-
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      resolve(result.split(",")[1]);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
 }

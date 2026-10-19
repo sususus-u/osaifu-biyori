@@ -26,6 +26,7 @@ import { db } from "@/lib/firebase";
 import { guessServiceInfo } from "@/lib/knownServices";
 import { getYenValue } from "@/lib/accountUtils";
 import { useAuth } from "@/contexts/AuthProvider";
+import { prepareScanImage } from "@/lib/scanImage";
 import {
   CATEGORY_DEFAULTS,
   type AccountCategory,
@@ -341,10 +342,10 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
     e.target.value = "";
     if (!file) return;
 
-    const base64 = await fileToBase64(file);
+    const { base64, mediaType } = await prepareScanImage(file);
     sessionStorage.setItem(
       "physical-scan-pending-image",
-      JSON.stringify({ base64, mediaType: file.type })
+      JSON.stringify({ base64, mediaType })
     );
     router.push("/accounts/scan-physical");
   }
@@ -1304,16 +1305,4 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
       )}
     </>
   );
-}
-
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      resolve(result.split(",")[1]);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
 }
