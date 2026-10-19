@@ -29,3 +29,9 @@
 ## アカウント削除の窓口
 
 /api/account-data は、段階3を本番に出した(本人のIDトークンと合言葉の両方が必須)。
+
+## CSP(Content-Security-Policy)
+- 報告専用(Content-Security-Policy-Report-Only)で入れた。強制はしていない。場所は next.config.ts の headers()。
+- script/style は 'unsafe-inline'(Next.js のインライン用)。nonce は使わない。
+- 強制へ切り替える手順: (1) 本番の画面(ログイン引き継ぎ、一覧、写真読み取り、通知)をブラウザの Console で開き、違反が出ないか見る。(2) 出た許可先を next.config.ts に足す。(3) 違反が無くなったら、キーを Content-Security-Policy に変える。(4) デプロイ後、同じ画面を確認。問題があれば戻す。
+- 報告の送り先(report-uri)は未設定。Console で確認する。
