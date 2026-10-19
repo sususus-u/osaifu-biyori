@@ -159,12 +159,26 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
   // グループ名に応じた名前欄の候補(該当サービスがなければ全サービスの一覧にフォールバック)
   const nameCandidates = SERVICE_ACCOUNT_NAME_VARIANTS[groupName.trim()] ?? KNOWN_ACCOUNT_NAMES;
 
+  // KNOWN_BALANCE_UNITS にある値ならそのまま選択、なければ「その他」+自由入力欄にセットする
+  function setBalanceUnitFromValue(unit: string) {
+    if (KNOWN_BALANCE_UNITS.includes(unit)) {
+      setBalanceUnitOption(unit);
+      setCustomBalanceUnit("");
+    } else {
+      setBalanceUnitOption("その他");
+      setCustomBalanceUnit(unit);
+    }
+  }
+
   // グループ名の候補が1つだけに定まる場合、名前が未入力なら自動でセットする
   useEffect(() => {
     const variants = SERVICE_ACCOUNT_NAME_VARIANTS[groupName.trim()];
     if (variants && variants.length === 1 && name === "") {
       setName(variants[0]);
     }
+    // name は groupName の変更時だけ読み、その時点の値は最新。依存に name を足すと、
+    // 名前を手で消したとき、自動入力が再発火して消せなくなるため、依存に含めない
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupName]);
 
   // 商品券・ギフトカードの場合、残高は額面×枚数から自動計算する(手入力させない)
@@ -363,17 +377,6 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
     }
   }
 
-  // KNOWN_BALANCE_UNITS にある値ならそのまま選択、なければ「その他」+自由入力欄にセットする
-  function setBalanceUnitFromValue(unit: string) {
-    if (KNOWN_BALANCE_UNITS.includes(unit)) {
-      setBalanceUnitOption(unit);
-      setCustomBalanceUnit("");
-    } else {
-      setBalanceUnitOption("その他");
-      setCustomBalanceUnit(unit);
-    }
-  }
-
   function handleCategoryChange(newCategory: AccountCategory) {
     setCategory(newCategory);
     const defaults = CATEGORY_DEFAULTS[newCategory];
@@ -490,6 +493,8 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
           );
           // 既に /accounts/new にいる場合、router.push だけでは再読み込みされないため
           // 画面を確実に作り直すよう window.location で遷移する
+          // 全画面で作り直すための遷移。router.push だと再読み込みされず動作が変わるため除外する
+          // eslint-disable-next-line @next/next/no-location-assign-relative-destination
           window.location.href = "/accounts/new";
           return;
         }
@@ -516,6 +521,8 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
         "scan-prefill-queue",
         JSON.stringify({ total: parsed.total, items: [previousItem, ...parsed.items] })
       );
+      // 全画面で作り直すための遷移。router.push だと再読み込みされず動作が変わるため除外する
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.href = "/accounts/new";
     } catch (error) {
       console.error(error);
@@ -534,6 +541,8 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
             "scan-prefill-queue",
             JSON.stringify({ total: parsed.total, items: restItems })
           );
+          // 全画面で作り直すための遷移。router.push だと再読み込みされず動作が変わるため除外する
+          // eslint-disable-next-line @next/next/no-location-assign-relative-destination
           window.location.href = "/accounts/new";
           return;
         }

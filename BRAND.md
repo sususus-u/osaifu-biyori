@@ -45,3 +45,11 @@
 - 読み込み: `app/layout.tsx` の metadata.icons、`app/manifest.ts`(theme/background は画面の背景 `#f7f1ec`)。画像は自分のドメインだけ(CSP に足したものはない)。
 - 画面の上のバー: `components/DropMark.tsx`(26px)を、appbar-brand の文字の左に置く。
 - 色や形を変えたら、assets の SVG を直して、generate-icons を実行し直す。
+
+## lint の整理の方針
+- 2026-10 に、lint の指摘18件を整理して、0件にした(動作は変えない)。
+- 直したもの: ScanPhysicalUpload の使わない変数 existingFaceValue(値を捨て、更新関数だけ残す)。AccountForm の setBalanceUnitFromValue を、effect より前へ移した(処理は同じ)。
+- 理由付きの除外(その行だけ eslint-disable): (1) AccountForm の exhaustive-deps(名前の自動入力の effect)。name は groupName の変更時だけ読み、その時点の値は最新。依存に足すと、名前を手で消したとき自動入力が再発火して消せなくなる。(2) AccountForm の no-location-assign-relative-destination(3か所)。/accounts/new を全画面で作り直すための遷移で、router.push に変えると再読み込みされず動作が変わる。
+- 緩めたルール: react-hooks/set-state-in-effect を、eslint.config.mjs の overrides で、6ファイル(app/reports/page.tsx、AccountForm、AppShell、NotificationSetup、QuickUpdate、ScanPhysicalUpload)だけ切った。理由は、保存値や画面の大きさを描画後に読んで state に入れる作りで、直すと初期表示(ちらつき、ハイドレーション)が変わるおそれがあるため。新しいファイルには効いたまま。
+- 直さずに残したもの: 上の set-state-in-effect の12か所の書き方そのもの。直すなら、1か所ずつ、画面を確認しながら。
+- 注意: 新しい eslint-disable や overrides を足すときは、ここに理由を足す。

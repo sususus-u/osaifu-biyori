@@ -39,7 +39,7 @@ export default function ScanPhysicalUpload() {
   // 確認フォームの状態
   const [matchedAccountId, setMatchedAccountId] = useState<string | null>(null);
   const [existingBalance, setExistingBalance] = useState<number | null>(null);
-  const [existingFaceValue, setExistingFaceValue] = useState<number | null>(null);
+  const [, setExistingFaceValue] = useState<number | null>(null);
   const [existingQuantity, setExistingQuantity] = useState<number | null>(null);
   const [name, setName] = useState("");
   const [totalAmount, setTotalAmount] = useState("");
