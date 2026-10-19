@@ -37,3 +37,11 @@
 - 報告の送り先(report-uri)は未設定。Console で確認する。
 - 2026-10 に強制へ切り替えた(キーは Content-Security-Policy。内容は報告専用のときと同じ)。
 - 問題が出たとき(画面が出ない、ログインできない、文字や画像が出ない)の戻し方: (1) 直前の本番デプロイ(報告専用だった f1e41e9 のデプロイ)を、Vercel で Promote(または `vercel rollback`)。これが最速。(2) 恒久的には、next.config.ts のキーを Content-Security-Policy-Report-Only に戻して push。(3) 戻したあと、Console の違反から、足りない許可先を調べる。
+
+## アイコンとロゴ
+- ハブのしずく(`TamariBiyoriIcon`。viewBox 24、線画、線幅1.5、丸端)と同じパス・同じ色。丸の背景 `#f3e1e3`、線 `#6e2a32`、右上の点 `#ad8a4c`(点は、ハブと同じく塗りの円)。
+- 元の絵: `assets/icon.svg`(丸)と `assets/icon-maskable.svg`(四角。maskable と apple 用)。点は viewBox の外に出るので、512の枠に拡大して中央に置き直している(拡大11倍)。
+- 作り方: `node scripts/generate-icons.mjs`(sharp)。`public/` の icon-192、icon-512、icon-maskable-512、apple-touch-icon(180)と、`app/favicon.ico`(16/32/48)ができる。生成物はコミットし、ビルドでは実行しない。
+- 読み込み: `app/layout.tsx` の metadata.icons、`app/manifest.ts`(theme/background は画面の背景 `#f7f1ec`)。画像は自分のドメインだけ(CSP に足したものはない)。
+- 画面の上のバー: `components/DropMark.tsx`(26px)を、appbar-brand の文字の左に置く。
+- 色や形を変えたら、assets の SVG を直して、generate-icons を実行し直す。
