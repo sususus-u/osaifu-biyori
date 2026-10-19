@@ -61,3 +61,9 @@
 - 戻し方: 画像の扱いに問題が出たら、`prepareScanImage` の中身を元のファイルの base64 化に戻す(1関数)。
 - テスト: `lib/scanImage.test.ts`(縮小サイズの計算、413 などの応答)。画面そのもののテストはない。
 - 切手の name: 切手の写真では、name を「切手」とする(指示に1文)。切手には名前が印刷されないため、これまでは name が null になり、「文字を読み取れませんでした」が出て、名前が空のまま保存が止まっていた。商品券・ギフトカードなど、切手以外の name の指示(自信がなければ null)は変えていない。指示の文面は `lib/physicalScanPrompt.ts`(route.ts から移した。テストは `lib/physicalScanPrompt.test.ts`。AI は呼ばない)。
+
+## 【一時的】切手の読み取りの診断ログ
+- 目的: 切手の読み取りで name が毎回 null になる原因を調べる。診断が済んだら取り消す。
+- 内容: `app/api/scan-physical-count/route.ts` が、AI の応答を読んだ直後に console.warn する(印「[scan-physical-count 診断]」)。出すのは、name が null か文字列か(文字列なら文字数と先頭5文字)、itemCount・totalAmount・faceValuePerItem が null か数値か(数値は出さない)、stop_reason だけ。応答全体、画像、uid、メールアドレスは出さない。応答が JSON として読めなかったときも、stop_reason を出す。
+- 見かた: 試した直後に、Vercel の Logs で「[scan-physical-count 診断]」を検索する(無料プランのログは約1時間で消える)。
+- 取り消す手順: (1) `lib/scanDiagnostic.ts` と `lib/scanDiagnostic.test.ts` を消す。(2) route.ts の「診断(一時的)」と書いた5行を消す(import 1、変数 1、代入 1、warn 2)。(3) package.json の test から scanDiagnostic.test.ts を外す。(4) このセクションを消す。(5) 型チェック・lint・ビルド・テストを通して push。
