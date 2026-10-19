@@ -60,3 +60,4 @@
 - scan-physical-count の指示に、切手向けの説明(小さな額面、シートは行×列、期限なし)と、額面ごとの小計 breakdown(合計と一致させる、読めなければ null)を足した。scan-account の指示と、モデル(claude-haiku-4-5)は変えていない。
 - 戻し方: 画像の扱いに問題が出たら、`prepareScanImage` の中身を元のファイルの base64 化に戻す(1関数)。
 - テスト: `lib/scanImage.test.ts`(縮小サイズの計算、413 などの応答)。画面そのもののテストはない。
+- 切手の name: 切手の写真では、name を「切手」とする(指示に1文)。切手には名前が印刷されないため、これまでは name が null になり、「文字を読み取れませんでした」が出て、名前が空のまま保存が止まっていた。商品券・ギフトカードなど、切手以外の name の指示(自信がなければ null)は変えていない。指示の文面は `lib/physicalScanPrompt.ts`(route.ts から移した。テストは `lib/physicalScanPrompt.test.ts`。AI は呼ばない)。
