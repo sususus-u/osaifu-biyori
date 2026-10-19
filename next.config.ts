@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
-// 報告専用(強制はしない)。強制へ切り替える手順は BRAND.md 参照。
-const cspReportOnly = [
+// 強制中。問題が出たときに報告専用へ戻す手順は BRAND.md 参照。
+const csp = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' https://www.gstatic.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
@@ -26,7 +26,7 @@ const nextConfig: NextConfig = {
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "X-Frame-Options", value: "DENY" },
-          { key: "Content-Security-Policy-Report-Only", value: cspReportOnly },
+          { key: "Content-Security-Policy", value: csp },
         ],
       },
     ];

@@ -35,3 +35,5 @@
 - script/style は 'unsafe-inline'(Next.js のインライン用)。nonce は使わない。
 - 強制へ切り替える手順: (1) 本番の画面(ログイン引き継ぎ、一覧、写真読み取り、通知)をブラウザの Console で開き、違反が出ないか見る。(2) 出た許可先を next.config.ts に足す。(3) 違反が無くなったら、キーを Content-Security-Policy に変える。(4) デプロイ後、同じ画面を確認。問題があれば戻す。
 - 報告の送り先(report-uri)は未設定。Console で確認する。
+- 2026-10 に強制へ切り替えた(キーは Content-Security-Policy。内容は報告専用のときと同じ)。
+- 問題が出たとき(画面が出ない、ログインできない、文字や画像が出ない)の戻し方: (1) 直前の本番デプロイ(報告専用だった f1e41e9 のデプロイ)を、Vercel で Promote(または `vercel rollback`)。これが最速。(2) 恒久的には、next.config.ts のキーを Content-Security-Policy-Report-Only に戻して push。(3) 戻したあと、Console の違反から、足りない許可先を調べる。
