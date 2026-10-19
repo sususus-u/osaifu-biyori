@@ -35,6 +35,8 @@ export default function ScanPhysicalUpload() {
   const { uid } = useAuth();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  // 撮った写真を縮めている間(読み取りの前)。待たされていることを利用者に伝える
+  const [isPreparing, setIsPreparing] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
   // 確認フォームの状態
@@ -128,8 +130,19 @@ export default function ScanPhysicalUpload() {
     if (!file || !uid) return;
 
     setPreviewUrl(URL.createObjectURL(file));
-    const { base64, mediaType } = await prepareScanImage(file);
-    await processImage(base64, mediaType);
+    setErrorMessage("");
+    setIsPreparing(true);
+    let prepared: { base64: string; mediaType: string };
+    try {
+      prepared = await prepareScanImage(file);
+    } catch (error) {
+      console.error(error);
+      setErrorMessage("画像を読み込めませんでした。もう一度、撮り直してください");
+      return;
+    } finally {
+      setIsPreparing(false);
+    }
+    await processImage(prepared.base64, prepared.mediaType);
   }
 
   function handleApplyUnitCalc() {
@@ -221,7 +234,7 @@ export default function ScanPhysicalUpload() {
         accept="image/*"
         capture="environment"
         onChange={handleFileChange}
-        disabled={isProcessing}
+        disabled={isProcessing || isPreparing}
         style={{ width: "100%", fontSize: 14, marginBottom: 16 }}
       />
 
@@ -236,6 +249,7 @@ export default function ScanPhysicalUpload() {
         </div>
       )}
 
+      {isPreparing && <p style={{ fontSize: 13, color: "#999" }}>画像を準備しています...</p>}
       {isProcessing && <p style={{ fontSize: 13, color: "#999" }}>画像を読み取っています...</p>}
       {errorMessage && <p style={{ fontSize: 13, color: "#b3261e" }}>{errorMessage}</p>}
       {savedMessage && <p style={{ fontSize: 13, color: "#2a7a3b" }}>{savedMessage}</p>}

@@ -67,3 +67,8 @@
 - 内容: `app/api/scan-physical-count/route.ts` が、AI の応答を読んだ直後に console.warn する(印「[scan-physical-count 診断]」)。出すのは、name が null か文字列か(文字列なら文字数と先頭5文字)、itemCount・totalAmount・faceValuePerItem が null か数値か(数値は出さない)、stop_reason だけ。応答全体、画像、uid、メールアドレスは出さない。応答が JSON として読めなかったときも、stop_reason を出す。
 - 見かた: 試した直後に、Vercel の Logs で「[scan-physical-count 診断]」を検索する(無料プランのログは約1時間で消える)。
 - 取り消す手順: (1) `lib/scanDiagnostic.ts` と `lib/scanDiagnostic.test.ts` を消す。(2) route.ts の「診断(一時的)」と書いた5行を消す(import 1、変数 1、代入 1、warn 2)。(3) package.json の test から scanDiagnostic.test.ts を外す。(4) このセクションを消す。(5) 型チェック・lint・ビルド・テストを通して push。
+
+## 写真を縮めている間の表示
+- 撮った写真を縮める間(数秒かかることがある)、「画像を準備しています...」を出す。登録フォームの「現物を撮影して登録」(AccountForm、縮小が終わるまで画面が変わらないため)と、切手画面(ScanPhysicalUpload)。縮小が終わる、または失敗すると消える(finally)。失敗したときは「画像を読み込めませんでした。もう一度、撮り直してください」を出す。
+- スクショ読み取り(ScanUpload)には、まだ付けていない。
+- 画面の描画のテストはない。確認は手で行う。

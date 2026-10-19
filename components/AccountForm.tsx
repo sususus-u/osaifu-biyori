@@ -131,6 +131,8 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
     CATEGORY_DEFAULTS.electronic_money.notificationDaysBefore[1]
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // 現物の写真を縮めている間(縮小が終わるまで画面が変わらないため、待たされていることを伝える)
+  const [isPreparingPhoto, setIsPreparingPhoto] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isFetchingExisting, setIsFetchingExisting] = useState(isEditMode);
   const [errorMessage, setErrorMessage] = useState("");
@@ -342,12 +344,21 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
     e.target.value = "";
     if (!file) return;
 
-    const { base64, mediaType } = await prepareScanImage(file);
-    sessionStorage.setItem(
-      "physical-scan-pending-image",
-      JSON.stringify({ base64, mediaType })
-    );
-    router.push("/accounts/scan-physical");
+    setErrorMessage("");
+    setIsPreparingPhoto(true);
+    try {
+      const { base64, mediaType } = await prepareScanImage(file);
+      sessionStorage.setItem(
+        "physical-scan-pending-image",
+        JSON.stringify({ base64, mediaType })
+      );
+      router.push("/accounts/scan-physical");
+    } catch (error) {
+      console.error(error);
+      setErrorMessage("画像を読み込めませんでした。もう一度、撮り直してください");
+    } finally {
+      setIsPreparingPhoto(false);
+    }
   }
 
   // 新規登録時のみ、名前欄からフォーカスが外れたタイミングで同名の既存サービスを検索する
@@ -714,11 +725,17 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
             <button
               type="button"
               onClick={() => physicalFileInputRef.current?.click()}
+              disabled={isPreparingPhoto}
               className="btn-primary"
               style={{ display: "block", width: "100%", textAlign: "center", marginTop: 12, background: "#8a5a62" }}
             >
               現物を撮影して登録
             </button>
+            {isPreparingPhoto && (
+              <p style={{ fontSize: 13, color: "#999", textAlign: "center", marginTop: 8 }}>
+                画像を準備しています...
+              </p>
+            )}
             <input
               ref={physicalFileInputRef}
               type="file"
