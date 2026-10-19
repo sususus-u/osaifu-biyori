@@ -55,7 +55,7 @@
 - 注意: 新しい eslint-disable や overrides を足すときは、ここに理由を足す。
 
 ## 写真読み取りの画像と応答
-- 送る前に、画像を長辺1600px・JPEG品質0.8に縮める(`lib/scanImage.ts` の `prepareScanImage`)。スマホの写真は数MBで、base64 にすると Vercel の本文上限(約4.5MB)を超えて 413 になっていたため。使う場所: ScanUpload(scan-account)、ScanPhysicalUpload(scan-physical-count)、AccountForm のカメラ起動(sessionStorage 経由)。縮小できない端末では、元の画像をそのまま送る(従来どおり)。
+- 送る前に、画像を長辺2000px・JPEG品質0.8に縮める(定数 SCAN_IMAGE_MAX_EDGE。最初は1600pxだったが、切手の細い額面や名前の文字が1600pxでつぶれ、name が null になった可能性があるため、2000pxに上げた。縮小後は、ノイズだらけの最悪の画像でも約1.3MB(base64で約1.7MB)で、本文の上限4.5MBに十分収まる)(`lib/scanImage.ts` の `prepareScanImage`)。スマホの写真は数MBで、base64 にすると Vercel の本文上限(約4.5MB)を超えて 413 になっていたため。使う場所: ScanUpload(scan-account)、ScanPhysicalUpload(scan-physical-count)、AccountForm のカメラ起動(sessionStorage 経由)。縮小できない端末では、元の画像をそのまま送る(従来どおり)。
 - 応答は `readScanJson` で読む。413 は「写真が大きすぎて読み取れませんでした。もう一度、撮り直してください」。JSON でない応答は「読み取りに失敗しました」。上限到達などサーバーの案内文は、そのまま出す。
 - scan-physical-count の指示に、切手向けの説明(小さな額面、シートは行×列、期限なし)と、額面ごとの小計 breakdown(合計と一致させる、読めなければ null)を足した。scan-account の指示と、モデル(claude-haiku-4-5)は変えていない。
 - 戻し方: 画像の扱いに問題が出たら、`prepareScanImage` の中身を元のファイルの base64 化に戻す(1関数)。

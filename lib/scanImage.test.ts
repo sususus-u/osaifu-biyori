@@ -2,18 +2,18 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { computeTargetSize, readScanJson, SCAN_TOO_LARGE_MESSAGE } from "./scanImage.ts";
 
-test("長辺が1600以下なら、そのまま(拡大しない)", () => {
+test("長辺が2000以下なら、そのまま(拡大しない)", () => {
   assert.deepEqual(computeTargetSize(800, 600), { width: 800, height: 600 });
-  assert.deepEqual(computeTargetSize(1600, 1200), { width: 1600, height: 1200 });
+  assert.deepEqual(computeTargetSize(2000, 1500), { width: 2000, height: 1500 });
 });
-test("横長を、長辺1600に縮める(縦横比を保つ)", () => {
-  assert.deepEqual(computeTargetSize(4000, 3000), { width: 1600, height: 1200 });
+test("横長を、長辺2000に縮める(縦横比を保つ)", () => {
+  assert.deepEqual(computeTargetSize(4000, 3000), { width: 2000, height: 1500 });
 });
-test("縦長を、長辺1600に縮める", () => {
-  assert.deepEqual(computeTargetSize(3024, 4032), { width: 1200, height: 1600 });
+test("縦長を、長辺2000に縮める", () => {
+  assert.deepEqual(computeTargetSize(3024, 4032), { width: 1500, height: 2000 });
 });
 test("極端な細長でも、0にならない", () => {
-  assert.deepEqual(computeTargetSize(10000, 1), { width: 1600, height: 1 });
+  assert.deepEqual(computeTargetSize(10000, 1), { width: 2000, height: 1 });
 });
 
 test("413(本文が JSON でない) → 撮り直しの文言", async () => {

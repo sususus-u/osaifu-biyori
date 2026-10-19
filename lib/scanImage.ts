@@ -2,7 +2,7 @@
 // スマホの写真は数MBあり、そのまま base64 で送ると Vercel の本文上限(約4.5MB)を超えて 413 になるため、
 // 送る前に縮小する。応答が JSON でなくても、生の例外(Unexpected token など)を画面に出さない。
 
-export const SCAN_IMAGE_MAX_EDGE = 1600;
+export const SCAN_IMAGE_MAX_EDGE = 2000;
 export const SCAN_IMAGE_QUALITY = 0.8;
 
 export const SCAN_TOO_LARGE_MESSAGE =
@@ -29,7 +29,7 @@ function blobToBase64(blob: Blob): Promise<string> {
   });
 }
 
-// 画像を長辺 1600px・JPEG 品質 0.8 に縮めて base64 にする。
+// 画像を長辺 2000px・JPEG 品質 0.8 に縮めて base64 にする。
 // 縮小できない場合(形式を読めない端末など)は、元のファイルをそのまま base64 にする(従来どおり)。
 export async function prepareScanImage(file: File): Promise<{ base64: string; mediaType: string }> {
   try {
