@@ -88,13 +88,12 @@ export function isBreakdownSuspect(r: PhysicalScanResponse): boolean {
 export interface ScanRow {
   faceValue: string;
   count: string;
+  // 手で付けた項目名(複数の額面のとき)。なければ、名前と額面から決まる(defaultRowName)
+  name?: string;
 }
 
 export const MAX_FACE_VALUE = 1_000_000; // 額面(1枚あたり)の上限(円)
 export const MAX_ROW_COUNT = 10_000; // 1行の枚数の上限
-
-export const MSG_MULTI_NOT_SAVABLE =
-  "複数の額面は、まだ保存できません。額面ごとに、1つずつ、読み取ってください";
 
 // 読み取り結果から、行の初期値を作る。
 // breakdown に読めた行があればそれ(同じ額面は枚数を足す)。なければ、今までどおり 1行(額面 faceValuePerItem × 枚数 itemCount)

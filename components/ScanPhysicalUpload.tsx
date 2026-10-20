@@ -24,7 +24,6 @@ import {
   removeRow,
   updateRow,
   validateRows,
-  MSG_MULTI_NOT_SAVABLE,
   MSG_NOTHING_READ,
   MSG_TOO_MANY,
   type PhysicalScanResponse,
@@ -42,6 +41,15 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthProvider";
+import {
+  defaultRowName,
+  isStampName,
+  stampSaveMessage,
+  validateStampRows,
+  type SaveRow,
+} from "@/lib/stampMerge";
+import { saveStamps } from "@/lib/stampSave";
+import { firestoreStampDeps } from "@/lib/stampSaveFirestore";
 
 export default function ScanPhysicalUpload() {
   const router = useRouter();
@@ -62,9 +70,17 @@ export default function ScanPhysicalUpload() {
   // 額面ごとの行(額面、枚数)。合計金額は、手で直していない間は、行から自動で計算する
   const [rows, setRows] = useState<ScanRow[]>([{ faceValue: "", count: "" }]);
   const [totalEdited, setTotalEdited] = useState(false);
-  // 保存(段階1では1行のときだけ)に使う、1行目の額面と枚数
+  // 額面が1種類のときの保存(今までの「額面×枚数」の1件)に使う、1行目の額面と枚数
   const unitAmount = rows.length === 1 ? rows[0].faceValue : "";
   const quantity = rows.length === 1 ? rows[0].count : "";
+  // 額面ごとの項目で保存する(足す/作る)のは、複数の額面のとき、または名前が「切手 N円」の形のとき。
+  // 額面が1種類で名前が「切手」などのときは、今までどおり1件(置き換える/追加する)
+  const stampMode = rows.length > 1 || isStampName(name);
+  // 1行のときは名前欄の名前そのもの。複数行のときは「名前 N円」(名前が「切手 N円」の形なら「切手 N円」)
+  const rowName = (r: ScanRow) =>
+    rows.length === 1
+      ? name
+      : (r.name ?? defaultRowName(isStampName(name) ? "切手" : name, r.faceValue));
   const [expiryDate, setExpiryDate] = useState("");
   const [itemCount, setItemCount] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -217,14 +233,13 @@ export default function ScanPhysicalUpload() {
       setErrorMessage("名前を入力してください。");
       return;
     }
-    // 段階1: 保存の仕組みはまだ1件分だけ。複数の額面は止める(段階2で、額面ごとに項目を作る)
-    if (rows.length > 1) {
-      setErrorMessage(MSG_MULTI_NOT_SAVABLE);
-      return;
-    }
     const rowsError = validateRows(rows);
     if (rowsError) {
       setErrorMessage(rowsError);
+      return;
+    }
+    if (stampMode) {
+      await handleSaveStamps();
       return;
     }
     if (unitAmount === "" || quantity === "") {
@@ -287,6 +302,34 @@ export default function ScanPhysicalUpload() {
     }
   }
 
+  // 額面ごとの項目で保存する。同じ名前・額面があれば足し、なければ作る(全部成功か、全部失敗)
+  async function handleSaveStamps() {
+    if (!uid) return;
+    const saveRows: SaveRow[] = rows.map((r) => ({
+      name: rowName(r).trim(),
+      faceValue: Number(r.faceValue),
+      count: Number(r.count),
+    }));
+    const stampError = validateStampRows(saveRows);
+    if (stampError) {
+      setErrorMessage(stampError);
+      return;
+    }
+    setIsSaving(true);
+    setErrorMessage("");
+    try {
+      const expiry = expiryDate ? Timestamp.fromDate(new Date(expiryDate)) : null;
+      const plan = await saveStamps(firestoreStampDeps(uid, expiry), saveRows);
+      setSavedMessage(stampSaveMessage(plan));
+      setTimeout(() => router.push("/"), 1500);
+    } catch (error) {
+      console.error(error);
+      setErrorMessage("保存に失敗しました。何も保存されていません。もう一度お試しください。");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
   return (
     <div>
       <p style={{ fontSize: 13, color: "#666", marginBottom: 4 }}>
@@ -322,11 +365,11 @@ export default function ScanPhysicalUpload() {
       {isPreparing && <p style={{ fontSize: 13, color: "#999" }}>画像を準備しています...</p>}
       {isProcessing && <p style={{ fontSize: 13, color: "#999" }}>画像を読み取っています...</p>}
       {errorMessage && <p style={{ fontSize: 13, color: "#b3261e" }}>{errorMessage}</p>}
-      {savedMessage && <p style={{ fontSize: 13, color: "#2a7a3b" }}>{savedMessage}</p>}
+      {savedMessage && <p style={{ fontSize: 13, color: "#2a7a3b", whiteSpace: "pre-line" }}>{savedMessage}</p>}
 
       {!isProcessing && (name || totalAmount) && (
         <div className="card" style={{ marginTop: 8 }}>
-          {matchedAccountId && (
+          {matchedAccountId && !stampMode && (
             <p style={{ fontSize: 12, color: "var(--brand)", marginBottom: 12 }}>
               既存のサービスと同じ名前です。現在の残高:¥{(existingBalance ?? 0).toLocaleString()}
             </p>
@@ -374,7 +417,18 @@ export default function ScanPhysicalUpload() {
           <div className="field">
             <label>額面 × 枚数</label>
             {rows.map((row, i) => (
-              <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+              <div key={i} style={{ marginBottom: 8 }}>
+              {rows.length > 1 && (
+                <input
+                  type="text"
+                  value={rowName(row)}
+                  onChange={(e) => changeRows(updateRow(rows, i, { name: e.target.value }))}
+                  placeholder="項目の名前(例:切手 1円)"
+                  maxLength={40}
+                  style={{ width: "100%", marginBottom: 4 }}
+                />
+              )}
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 <input
                   type="number"
                   value={row.faceValue}
@@ -410,6 +464,7 @@ export default function ScanPhysicalUpload() {
                   </button>
                 )}
               </div>
+              </div>
             ))}
             <button
               type="button"
@@ -430,8 +485,10 @@ export default function ScanPhysicalUpload() {
             <p style={{ fontSize: 12, color: "#999", marginTop: 6 }}>
               額面ごとに行を分けて入力できます。合計は行から自動で計算します
             </p>
-            {rows.length > 1 && (
-              <p style={{ fontSize: 12, color: "#b3261e", marginTop: 4 }}>{MSG_MULTI_NOT_SAVABLE}</p>
+            {stampMode && (
+              <p style={{ fontSize: 12, color: "var(--brand)", marginTop: 4 }}>
+                額面ごとに別の項目として保存します。同じ名前・額面の項目があれば、枚数と合計金額を足します
+              </p>
             )}
             <p style={{ fontSize: 12, color: "#999", marginTop: 4 }}>
               切手など重なって見えるものは、枚数を多く数えてしまうことがあります。実際の枚数に修正してください。
@@ -443,6 +500,14 @@ export default function ScanPhysicalUpload() {
             )}
           </div>
 
+          {stampMode ? (
+            <div className="field">
+              <label>合計金額(円)</label>
+              <p style={{ fontSize: 14 }}>
+                {rowsTotals(rows).amount.toLocaleString()}円(額面×枚数を、項目ごとに足します)
+              </p>
+            </div>
+          ) : (
           <div className="field">
             <label>合計金額(円)</label>
             <input
@@ -466,6 +531,7 @@ export default function ScanPhysicalUpload() {
               )}
             </p>
           </div>
+          )}
 
           <div className="field">
             <label>有効期限(任意)</label>
@@ -476,7 +542,7 @@ export default function ScanPhysicalUpload() {
             />
           </div>
 
-          {matchedAccountId ? (
+          {matchedAccountId && !stampMode ? (
             <div className="action-row">
               <button
                 type="button"
@@ -505,7 +571,7 @@ export default function ScanPhysicalUpload() {
               className="btn-primary"
               style={{ width: "100%" }}
             >
-              {isSaving ? "保存中..." : "この内容で登録する"}
+              {isSaving ? "保存中..." : stampMode ? "この内容で登録する(同じ項目があれば足す)" : "この内容で登録する"}
             </button>
           )}
         </div>

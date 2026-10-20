@@ -1,0 +1,71 @@
+// stampSave の Firestore 側の実装(ブラウザで動く)。ここはテストで動かさない(stampSave.test.ts は偽の deps を使う)。
+import {
+  collection,
+  doc,
+  getDocs,
+  query,
+  runTransaction,
+  serverTimestamp,
+  where,
+  type Timestamp,
+} from "firebase/firestore";
+import { db } from "./firebase";
+import { toExistingItem } from "./stampMerge.ts";
+import type { StampSaveDeps } from "./stampSave.ts";
+
+// expiry は、利用者が入力したときだけ渡す(切手は基本、期限がない)。足すときは、渡されたときだけ上書きする
+export function firestoreStampDeps(uid: string, expiry: Timestamp | null): StampSaveDeps {
+  return {
+    async findByName(name) {
+      const snap = await getDocs(
+        query(collection(db, "accounts"), where("ownerId", "==", uid), where("name", "==", name))
+      );
+      return snap.docs.flatMap((d) => {
+        const item = toExistingItem(d.id, d.data());
+        return item ? [item] : [];
+      });
+    },
+    runTransaction(fn) {
+      return runTransaction(db, (t) =>
+        fn({
+          async get(id) {
+            const snap = await t.get(doc(db, "accounts", id));
+            if (!snap.exists() || snap.data().ownerId !== uid) return null;
+            return toExistingItem(snap.id, snap.data());
+          },
+          addTo(id, newCount, newBalance) {
+            const now = serverTimestamp();
+            t.update(doc(db, "accounts", id), {
+              currentBalance: newBalance,
+              itemQuantity: newCount,
+              ...(expiry ? { expiryDate: expiry } : {}),
+              lastUpdatedAt: now,
+              updatedAt: now,
+            });
+          },
+          create(item) {
+            const now = serverTimestamp();
+            t.set(doc(collection(db, "accounts")), {
+              ownerId: uid,
+              name: item.name,
+              groupName: item.name,
+              category: "gift_certificate",
+              isYenBased: true,
+              type: "finite",
+              currentBalance: item.amount,
+              balanceUnit: "円",
+              expiryDate: expiry,
+              faceValue: item.faceValue,
+              itemQuantity: item.count,
+              storageLocationMemo: null,
+              notificationTiming: { firstStageDays: 90, secondStageDays: 21 },
+              lastUpdatedAt: now,
+              createdAt: now,
+              updatedAt: now,
+            });
+          },
+        })
+      );
+    },
+  };
+}
