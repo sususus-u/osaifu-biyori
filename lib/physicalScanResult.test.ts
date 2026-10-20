@@ -7,6 +7,10 @@ import {
   isNothingRead,
   isOverItemLimit,
   unreadableCount,
+  breakdownLines,
+  breakdownTotals,
+  isBreakdownSuspect,
+  MSG_BREAKDOWN_SUSPECT,
   type PhysicalScanResponse,
 } from "./physicalScanResult.ts";
 
@@ -53,4 +57,40 @@ test("読めなかった枚数は breakdown の unreadable の合計。なけれ
     }),
     3
   );
+});
+
+const stamps: PhysicalScanResponse = {
+  name: "切手",
+  itemCount: 43,
+  totalAmount: 68,
+  faceValuePerItem: null,
+  expiryDate: null,
+  breakdown: [
+    { faceValue: 1, count: 18 },
+    { faceValue: 2, count: 25 },
+  ],
+};
+test("内訳の整形: 1円×18=18円、2円×25=50円、合計43枚/68円。読めなかった枚は含めない", () => {
+  const r = { ...stamps, breakdown: [...stamps.breakdown!, { faceValue: null, count: 3, unreadable: true }] };
+  assert.deepEqual(breakdownLines(r), [
+    { faceValue: 1, count: 18, subtotal: 18 },
+    { faceValue: 2, count: 25, subtotal: 50 },
+  ]);
+  assert.deepEqual(breakdownTotals(r), { amount: 68, count: 43 });
+  assert.equal(unreadableCount(r), 3);
+});
+test("内訳が null や空なら、行は出ない", () => {
+  assert.deepEqual(breakdownLines({ ...stamps, breakdown: null }), []);
+  assert.deepEqual(breakdownLines({ ...stamps, breakdown: [] }), []);
+  assert.equal(isBreakdownSuspect({ ...stamps, breakdown: [] }), false);
+});
+test("警告: 1円18枚・2円25枚で totalAmount が 43 のときは警告する", () => {
+  assert.equal(isBreakdownSuspect({ ...stamps, totalAmount: 43 }), true);
+  assert.ok(MSG_BREAKDOWN_SUSPECT.includes("内訳を確認"));
+});
+test("警告: 正しい読み取り(68円・43枚)では警告しない", () => {
+  assert.equal(isBreakdownSuspect(stamps), false);
+});
+test("警告: 内訳の枚数の合計が itemCount と違うときは警告する", () => {
+  assert.equal(isBreakdownSuspect({ ...stamps, itemCount: 44 }), true);
 });

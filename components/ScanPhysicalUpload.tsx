@@ -12,6 +12,11 @@ import {
   isNothingRead,
   isOverItemLimit,
   unreadableCount,
+  breakdownLines,
+  breakdownTotals,
+  isBreakdownSuspect,
+  MSG_BREAKDOWN_SUSPECT,
+  type BreakdownLine,
   MSG_NOTHING_READ,
   MSG_TOO_MANY,
   type PhysicalScanResponse,
@@ -57,6 +62,10 @@ export default function ScanPhysicalUpload() {
   const [overLimit, setOverLimit] = useState(false);
   // 額面が読めなかった枚数(枚数と合計には含まれていない)
   const [unreadable, setUnreadable] = useState(0);
+  // 確認用の内訳(額面×枚数)。手で直せる入力欄とは別で、読み取り結果をそのまま見せる
+  const [lines, setLines] = useState<BreakdownLine[]>([]);
+  const [linesTotal, setLinesTotal] = useState({ amount: 0, count: 0 });
+  const [suspect, setSuspect] = useState(false);
 
   // スクショ登録フォームからカメラを直接起動した場合、撮影した画像がsessionStorage経由で
   // 渡ってくる。マウント時に一度だけ確認し、あれば自動で読み取り処理を始める。
@@ -82,6 +91,8 @@ export default function ScanPhysicalUpload() {
     setSavedMessage("");
     setOverLimit(false);
     setUnreadable(0);
+    setLines([]);
+    setSuspect(false);
     setIsProcessing(true);
     setMatchedAccountId(null);
     setExistingBalance(null);
@@ -112,6 +123,9 @@ export default function ScanPhysicalUpload() {
       }
       setOverLimit(isOverItemLimit(data));
       setUnreadable(unreadableCount(data));
+      setLines(breakdownLines(data));
+      setLinesTotal(breakdownTotals(data));
+      setSuspect(isBreakdownSuspect(data));
 
       setName(data.name ?? "");
       setNameUnrecognized(!data.name);
@@ -288,8 +302,23 @@ export default function ScanPhysicalUpload() {
               額面が読めなかった切手が{unreadable}枚あります。この枚数と金額には含まれていません。必要なら、枚数と合計を直してください
             </p>
           )}
+          {suspect && <p style={{ fontSize: 12, color: "#b3261e", marginBottom: 8 }}>{MSG_BREAKDOWN_SUSPECT}</p>}
           {itemCount !== null && (
             <p style={{ fontSize: 12, color: "#999", marginBottom: 8 }}>読み取った枚数:{itemCount}枚</p>
+          )}
+          {lines.length > 0 && (
+            <div style={{ fontSize: 13, marginBottom: 12 }}>
+              <p style={{ fontSize: 12, color: "#999", marginBottom: 4 }}>読み取った内訳(確認用)</p>
+              {lines.map((l, i) => (
+                <p key={i}>
+                  {l.faceValue.toLocaleString()}円 × {l.count.toLocaleString()}枚 = {l.subtotal.toLocaleString()}円
+                </p>
+              ))}
+              {unreadable > 0 && <p>読めなかった枚:{unreadable}枚</p>}
+              <p style={{ fontWeight: 600, marginTop: 4 }}>
+                合計 {linesTotal.count.toLocaleString()}枚 / {linesTotal.amount.toLocaleString()}円
+              </p>
+            </div>
           )}
 
           <div className="field">

@@ -92,9 +92,17 @@
 - 効果が足りないときの次の手: モデルを claude-haiku-4-5 から上のモデルに上げる(`app/api/scan-physical-count/route.ts`)。読み取りの費用が上がり、速度は遅くなる。上げるときは、費用と1日の回数の上限を見直す。診断ログ(下のセクション)は、この効果の確認が済むまで残す。
 - 診断ログの扱い: 今回の変更では取り消さない(効果の確認が済んでから、下の手順で取り消す)。
 
+## 切手の読み取りの改善(再試行・内訳・モデル切り替え)
+- 背景(実機): 正解は 1円18枚、2円25枚(43枚、68円)。改善前は、額面を1円だけと読み、43〜44円と出た。同じシートを3回読むと、2回目と3回目は全項目 null だった(stop_reason は end_turn。画面は応答をそのまま入れており、原因は AI の応答側)。
+- 再試行: 応答が全項目 null のとき、サーバー内で1回だけ、同じ画像で呼び直す(`lib/physicalScanRetry.ts`)。1日20回の利用回数は1回分のまま。再試行も null なら今までの案内。1回目に25秒超かかったときは再試行しない。route に maxDuration=60 を明示(2回呼んでも収まる見込み)。
+- 内訳の表示: 結果の画面に「1円 × 18枚 = 18円」などと合計を出す(確認用。手で直せる入力欄は、そのまま)。breakdown が空や null なら出さない。
+- 警告: totalAmount が itemCount と同じで内訳の合計と違うとき、または内訳の枚数の合計が itemCount と違うとき、「額面が正しく読めていない可能性があります」を出す(登録は止めない)。
+- モデルの切り替え: Vercel の環境変数 SCAN_PHYSICAL_MODEL。許可する値は claude-haiku-4-5-20251001(既定)、claude-haiku-4-5、claude-sonnet-5-5 のみ(`lib/physicalScanModel.ts`)。未設定・一覧にない値は既定になり、一覧にない値はログに警告が出る。環境変数を変えたら、再デプロイが要る。上げると費用は数倍、速度は遅くなる見込み(実測は未確認)。
+- 効果は、実機でまだ確認していない。
+
 ## 【一時的】切手の読み取りの診断ログ
 - 目的: 切手の読み取りで name が毎回 null になる原因を調べる。診断が済んだら取り消す。
-- 内容: `app/api/scan-physical-count/route.ts` が、AI の応答を読んだ直後に console.warn する(印「[scan-physical-count 診断]」)。出すのは、name が null か文字列か(文字列なら文字数と先頭5文字)、itemCount・totalAmount・faceValuePerItem が null か数値か(数値は出さない)、stop_reason だけ。応答全体、画像、uid、メールアドレスは出さない。応答が JSON として読めなかったときも、stop_reason を出す。
+- 内容: `app/api/scan-physical-count/route.ts` が、AI の応答を読んだ直後に console.warn する(印「[scan-physical-count 診断]」)。出すのは、name が null か文字列か(文字列なら文字数と先頭5文字)、itemCount・totalAmount の数値、faceValuePerItem が null か数値か、breakdown の件数と各行の「額面×枚数」、stop_reason、再試行の有無(試行ごとに1行)だけ。応答全体、画像、uid、メールアドレスは出さない。応答が JSON として読めなかったときも、stop_reason を出す。
 - 見かた: 試した直後に、Vercel の Logs で「[scan-physical-count 診断]」を検索する(無料プランのログは約1時間で消える)。
 - 取り消す手順: (1) `lib/scanDiagnostic.ts` と `lib/scanDiagnostic.test.ts` を消す。(2) route.ts の「診断(一時的)」と書いた5行を消す(import 1、変数 1、代入 1、warn 2)。(3) package.json の test から scanDiagnostic.test.ts を外す。(4) このセクションを消す。(5) 型チェック・lint・ビルド・テストを通して push。
 
