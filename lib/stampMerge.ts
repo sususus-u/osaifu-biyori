@@ -1,5 +1,5 @@
 // 切手を額面ごとの項目で保存するときの「足す/作る」の計画を作る(純粋な関数。ブラウザにも Firestore にも依存しない)。
-// 同じ名前(完全一致)・種類(gift_certificate)・額面の項目が既にあれば、枚数と合計金額を足す。なければ作る。
+// 同じ名前(空白と全角数字のゆれは同じとみなす)・種類(gift_certificate)・額面の項目が既にあれば、枚数と合計金額を足す。なければ作る。
 // 同じ条件の項目が複数あるときは、いちばん古いものに足す。
 
 export const MAX_STAMP_ROWS = 20; // 1回の保存で扱う行の上限(トランザクションを小さく保つ)
@@ -84,8 +84,20 @@ export function toExistingItem(id: string, data: Record<string, unknown>): Exist
   };
 }
 
+// 名前を比べるための正規化。空白(全角・半角・タブ・改行など)をすべて除き、全角の数字を半角にする。
+// ひらがな・カタカナ・旧字体などのゆれは扱わない。保存する名前には使わない(比べるときだけ)
+export function normalizeName(name: string): string {
+  return name
+    .replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0))
+    .replace(/[\s　]+/g, "");
+}
+
 function matches(item: ExistingItem, row: SaveRow): boolean {
-  return item.category === "gift_certificate" && item.name === row.name && item.faceValue === row.faceValue;
+  return (
+    item.category === "gift_certificate" &&
+    normalizeName(item.name) === normalizeName(row.name) &&
+    item.faceValue === row.faceValue
+  );
 }
 
 // 古い順(作成日時が無いものは最後。同じなら ID の順)
@@ -112,7 +124,9 @@ export function validateStampRows(rows: SaveRow[]): string | null {
 export function planStampSave(existing: ExistingItem[], rows: SaveRow[]): StampPlanItem[] {
   const merged: SaveRow[] = [];
   for (const r of rows) {
-    const same = merged.find((m) => m.name === r.name && m.faceValue === r.faceValue);
+    const same = merged.find(
+      (m) => normalizeName(m.name) === normalizeName(r.name) && m.faceValue === r.faceValue
+    );
     if (same) same.count += r.count;
     else merged.push({ ...r });
   }

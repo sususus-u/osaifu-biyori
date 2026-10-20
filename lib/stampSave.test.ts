@@ -126,7 +126,7 @@ class FakeDb {
 
   deps(): StampSaveDeps {
     return {
-      findByName: async (name) => [...this.docs.values()].filter((d) => d.name === name),
+      listMine: async () => [...this.docs.values()],
       runTransaction: async <T>(fn: (tx: StampTx) => Promise<T>): Promise<T> => {
         for (let attempt = 0; attempt < 5; attempt++) {
           this.txRuns++;
@@ -184,7 +184,7 @@ test("失敗時は全部失敗: 途中で例外なら、どの行も保存され
   db.put(item({ id: "a" }));
   const base = db.deps();
   const failing: StampSaveDeps = {
-    findByName: base.findByName,
+    listMine: base.listMine,
     runTransaction: (fn) =>
       base.runTransaction((tx) =>
         fn({
@@ -216,8 +216,8 @@ test("クエリのあと、トランザクションまでの間に項目が消�
   db.put(item({ id: "a" }));
   const base = db.deps();
   const deps: StampSaveDeps = {
-    findByName: async (n) => {
-      const found = await base.findByName(n);
+    listMine: async () => {
+      const found = await base.listMine();
       db.docs.delete("a"); // 探したあとに、別の端末が消した
       return found;
     },
@@ -233,8 +233,8 @@ test("クエリのあとに名前や額面が変えられた項目には足さ�
   db.put(item({ id: "a" }));
   const base = db.deps();
   const deps: StampSaveDeps = {
-    findByName: async (n) => {
-      const found = await base.findByName(n);
+    listMine: async () => {
+      const found = await base.listMine();
       db.put(item({ id: "a", name: "別の名前" }));
       return found;
     },
@@ -247,7 +247,7 @@ test("クエリのあとに名前や額面が変えられた項目には足さ�
 
 // ---- 切手の判定と、保存する行の名前 ----
 
-import { isScannedStamp, saveRowName } from "./stampMerge.ts";
+import { isScannedStamp, normalizeName, saveRowName } from "./stampMerge.ts";
 
 test("切手の判定: 名前が「切手」と完全に一致するときだけ", () => {
   assert.equal(isScannedStamp("切手"), true);
@@ -286,4 +286,37 @@ test("名前の決め方: 複数行、手で付けた名前、手で「切手」
   assert.equal(saveRowName({ rowCount: 1, name: "図書カード", scanIsStamp: isScannedStamp("図書カード"), faceValue: "500" }), "図書カード");
   // 切手以外の複数行は「名前 N円」
   assert.equal(saveRowName({ rowCount: 2, name: "図書カード", scanIsStamp: false, faceValue: "500" }), "図書カード 500円");
+});
+
+// ---- 名前のゆれ ----
+
+test("正規化: 空白(半角・全角・タブ・改行)を除き、全角数字を半角にする", () => {
+  for (const n of ["切手 1円", "切手1円", "切手　1円", "切手 １円", "切手\t1円\n", "切手　１円"]) {
+    assert.equal(normalizeName(n), "切手1円", JSON.stringify(n));
+  }
+  assert.notEqual(normalizeName("切手 1円"), normalizeName("切手 2円"));
+  assert.notEqual(normalizeName("記念切手 1円"), normalizeName("切手 1円"));
+});
+
+test("「切手1円」「切手　1円」「切手 １円」は、既存の「切手 1円」と同じ項目として足される(名前は書き換えない)", () => {
+  for (const typed of ["切手1円", "切手　1円", "切手 １円"]) {
+    const plan = planStampSave([item({ id: "a" })], [row(typed, 1, 5)]);
+    assert.equal(plan[0].kind, "add", typed);
+    assert.equal(plan[0].kind === "add" && plan[0].newCount, 23, typed);
+  }
+});
+
+test("逆向き: 既存が「切手1円」でも、「切手 1円」が足される", () => {
+  const plan = planStampSave([item({ id: "a", name: "切手1円" })], [row("切手 1円", 1, 5)]);
+  assert.equal(plan[0].kind, "add");
+});
+
+test("「切手 1円」と「切手 2円」、名前を変えた「記念切手 1円」は別扱い(作る)", () => {
+  assert.equal(planStampSave([item({ id: "a" })], [row("切手 2円", 1, 5)])[0].kind, "create");
+  assert.equal(planStampSave([item({ id: "a", name: "記念切手 1円" })], [row("切手 1円", 1, 5)])[0].kind, "create");
+});
+
+test("同じ保存の中の「切手 1円」と「切手1円」の行は、1つにまとめる", () => {
+  const plan = planStampSave([], [row("切手 1円", 1, 5), row("切手1円", 1, 4)]);
+  assert.deepEqual(plan, [{ kind: "create", name: "切手 1円", faceValue: 1, count: 9, amount: 9 }]);
 });

@@ -16,10 +16,9 @@ import type { StampSaveDeps } from "./stampSave.ts";
 // expiry は、利用者が入力したときだけ渡す(切手は基本、期限がない)。足すときは、渡されたときだけ上書きする
 export function firestoreStampDeps(uid: string, expiry: Timestamp | null): StampSaveDeps {
   return {
-    async findByName(name) {
-      const snap = await getDocs(
-        query(collection(db, "accounts"), where("ownerId", "==", uid), where("name", "==", name))
-      );
+    async listMine() {
+      // 一覧の画面と同じ、ownerId だけのクエリ(インデックス不要)
+      const snap = await getDocs(query(collection(db, "accounts"), where("ownerId", "==", uid)));
       return snap.docs.flatMap((d) => {
         const item = toExistingItem(d.id, d.data());
         return item ? [item] : [];
