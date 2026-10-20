@@ -244,3 +244,46 @@ test("クエリのあとに名前や額面が変えられた項目には足さ�
   assert.equal(plan[0].kind, "create");
   assert.equal(db.docs.get("a")?.itemQuantity, 18);
 });
+
+// ---- 切手の判定と、保存する行の名前 ----
+
+import { isScannedStamp, saveRowName } from "./stampMerge.ts";
+
+test("切手の判定: 名前が「切手」と完全に一致するときだけ", () => {
+  assert.equal(isScannedStamp("切手"), true);
+  assert.equal(isScannedStamp(" 切手 "), true);
+  for (const n of ["図書カード", "Amazonギフト券", "商品券", "切手シート", "切手 1円", "", null, undefined]) {
+    assert.equal(isScannedStamp(n), false, String(n));
+  }
+});
+
+test("1円だけの写真(額面が1種類): 名前が「切手 1円」になり、既存の「切手 1円」に足される", async () => {
+  const name = saveRowName({ rowCount: 1, name: "切手", scanIsStamp: isScannedStamp("切手"), faceValue: "1" });
+  assert.equal(name, "切手 1円");
+  const db = new FakeDb();
+  db.put(item({ id: "a" }));
+  await saveStamps(db.deps(), [row(name, 1, 5)]);
+  assert.equal(db.docs.get("a")?.itemQuantity, 23);
+  assert.equal(db.docs.get("a")?.currentBalance, 23);
+});
+
+test("今ある「切手」(額面×枚数の1件)には触らない", async () => {
+  const db = new FakeDb();
+  db.put(item({ id: "legacy", name: "切手", faceValue: 1, itemQuantity: 10, currentBalance: 10 }));
+  await saveStamps(db.deps(), [row("切手 1円", 1, 5)]);
+  assert.equal(db.docs.get("legacy")?.itemQuantity, 10);
+  assert.equal(db.docs.size, 2);
+});
+
+test("名前の決め方: 複数行、手で付けた名前、手で「切手」に変えた場合、切手以外", () => {
+  const stamp = { rowCount: 1, name: "切手", scanIsStamp: true, faceValue: "2" };
+  assert.equal(saveRowName(stamp), "切手 2円");
+  assert.equal(saveRowName({ ...stamp, rowName: "私の切手" }), "私の切手");
+  assert.equal(saveRowName({ rowCount: 2, name: "切手", scanIsStamp: true, faceValue: "3" }), "切手 3円");
+  // 手で名前を変えた(scanIsStamp が false): 名前欄の名前そのもの(今までどおり1件)
+  assert.equal(saveRowName({ rowCount: 1, name: "切手", scanIsStamp: false, faceValue: "1" }), "切手");
+  // 切手以外: AI の返した名前のまま
+  assert.equal(saveRowName({ rowCount: 1, name: "図書カード", scanIsStamp: isScannedStamp("図書カード"), faceValue: "500" }), "図書カード");
+  // 切手以外の複数行は「名前 N円」
+  assert.equal(saveRowName({ rowCount: 2, name: "図書カード", scanIsStamp: false, faceValue: "500" }), "図書カード 500円");
+});

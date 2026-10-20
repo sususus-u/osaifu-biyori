@@ -42,8 +42,9 @@ import {
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthProvider";
 import {
-  defaultRowName,
+  isScannedStamp,
   isStampName,
+  saveRowName,
   stampSaveMessage,
   validateStampRows,
   type SaveRow,
@@ -74,14 +75,13 @@ export default function ScanPhysicalUpload() {
   // 額面が1種類のときの保存(今までの「額面×枚数」の1件)に使う、1行目の額面と枚数
   const unitAmount = rows.length === 1 ? rows[0].faceValue : "";
   const quantity = rows.length === 1 ? rows[0].count : "";
-  // 額面ごとの項目で保存する(足す/作る)のは、複数の額面のとき、または名前が「切手 N円」の形のとき。
-  // 額面が1種類で名前が「切手」などのときは、今までどおり1件(置き換える/追加する)
-  const stampMode = rows.length > 1 || isStampName(name);
-  // 1行のときは名前欄の名前そのもの。複数行のときは「名前 N円」(名前が「切手 N円」の形なら「切手 N円」)
+  // 読み取り結果が切手(AI の名前が「切手」)のまま、名前を変えていないとき true。手で名前を変えたら false
+  const [scanIsStamp, setScanIsStamp] = useState(false);
+  // 額面ごとの項目で保存する(足す/作る)のは、複数の額面、読み取り結果が切手、または名前が「切手 N円」の形のとき。
+  // 額面が1種類の切手以外(商品券など)、または手で名前を「切手」などに変えたときは、今までどおり1件(置き換える/追加する)
+  const stampMode = rows.length > 1 || scanIsStamp || isStampName(name);
   const rowName = (r: ScanRow) =>
-    rows.length === 1
-      ? name
-      : (r.name ?? defaultRowName(isStampName(name) ? "切手" : name, r.faceValue));
+    saveRowName({ rowCount: rows.length, name, scanIsStamp, rowName: r.name, faceValue: r.faceValue });
   const [expiryDate, setExpiryDate] = useState("");
   const [itemCount, setItemCount] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -141,6 +141,7 @@ export default function ScanPhysicalUpload() {
       // 何も読めなかったときは、フォームを出さず、撮り直しの案内だけを出す
       if (isNothingRead(data)) {
         setName("");
+        setScanIsStamp(false);
         setTotalAmount("");
         setRows([{ faceValue: "", count: "" }]);
         setTotalEdited(false);
@@ -157,6 +158,7 @@ export default function ScanPhysicalUpload() {
       setSuspect(isBreakdownSuspect(data));
 
       setName(data.name ?? "");
+      setScanIsStamp(isScannedStamp(data.name));
       setNameUnrecognized(!data.name);
       // 額面ごとの内訳があれば、それを行の初期値にする。合計は行から計算(内訳がなければ、今までどおり AI の合計)
       const initial = initialRows(data);
@@ -408,7 +410,10 @@ export default function ScanPhysicalUpload() {
             <input
               type="text"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => {
+                setName(e.target.value);
+                setScanIsStamp(false);
+              }}
               placeholder="例:切手、図書カード"
             />
             {nameUnrecognized && (
@@ -422,7 +427,7 @@ export default function ScanPhysicalUpload() {
             <label>額面 × 枚数</label>
             {rows.map((row, i) => (
               <div key={i} style={{ marginBottom: 8 }}>
-              {rows.length > 1 && (
+              {(rows.length > 1 || scanIsStamp) && (
                 <input
                   type="text"
                   value={rowName(row)}

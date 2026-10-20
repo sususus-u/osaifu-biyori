@@ -43,6 +43,25 @@ export function isStampName(name: string): boolean {
   return STAMP_NAME.test(name.trim());
 }
 
+// 読み取り結果が切手か。AI は、切手の写真の名前を「切手」とする(lib/physicalScanPrompt.ts の指示)ので、
+// 名前が「切手」と完全に一致するときだけ切手とみなす(商品券、ギフトカード、図書カードなどは、そのまま)
+export function isScannedStamp(aiName: string | null | undefined): boolean {
+  return (aiName ?? "").trim() === "切手";
+}
+
+// 保存する行の名前。額面が複数、または読み取り結果が切手のときは、行ごとの名前(手で付けた名前、なければ「切手 N円」など)。
+// それ以外(額面が1種類の切手以外、または手で名前を変えたもの)は、名前欄の名前そのもの
+export function saveRowName(o: {
+  rowCount: number;
+  name: string;
+  scanIsStamp: boolean;
+  rowName?: string;
+  faceValue: string;
+}): string {
+  if (o.rowCount === 1 && !o.scanIsStamp) return o.name;
+  return o.rowName ?? defaultRowName(isStampName(o.name) || o.scanIsStamp ? "切手" : o.name, o.faceValue);
+}
+
 // 行の名前の初期値。額面が整数でなければ空(まだ決められない)
 export function defaultRowName(base: string, faceValue: string): string {
   const f = Number(faceValue);
