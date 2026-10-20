@@ -15,60 +15,8 @@ import { collection, query, where, onSnapshot, Timestamp } from "firebase/firest
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthProvider";
 import { CATEGORY_DEFAULTS, type AccountCategory, type AccountDoc } from "@/types/firestore";
+import AccountRow, { type AccountWithId } from "@/components/AccountRow";
 import { getYenValue } from "@/lib/accountUtils";
-
-interface AccountWithId extends AccountDoc {
-  id: string;
-}
-
-function formatBalance(balance?: number | null, unit?: string | null) {
-  if (balance === undefined || balance === null) return "";
-  if (unit === "円") {
-    return (
-      <>
-        {balance.toLocaleString()}
-        <span style={{ fontSize: 11 }}>円</span>
-      </>
-    );
-  }
-  return `${balance.toLocaleString()}${unit ?? ""}`;
-}
-
-function balanceDisplay(acc: AccountWithId) {
-  if (
-    acc.faceValue !== undefined &&
-    acc.faceValue !== null &&
-    acc.itemQuantity !== undefined &&
-    acc.itemQuantity !== null
-  ) {
-    return (
-      <>
-        {acc.faceValue.toLocaleString()}円 × {acc.itemQuantity}枚 = {formatBalance(acc.currentBalance, acc.balanceUnit)}
-      </>
-    );
-  }
-  if (acc.category === "points") {
-    const yenValue = getYenValue(acc);
-    if (yenValue !== null) {
-      const isEquivalentRate = acc.yenExchangeRate == null || acc.yenExchangeRate === 1;
-      if (isEquivalentRate) {
-        return (
-          <>
-            {yenValue.toLocaleString()}
-            <span style={{ fontSize: 11 }}>円相当</span>
-          </>
-        );
-      }
-      return (
-        <>
-          {formatBalance(acc.currentBalance, acc.balanceUnit)}({yenValue.toLocaleString()}
-          <span style={{ fontSize: 11 }}>円相当</span>)
-        </>
-      );
-    }
-  }
-  return formatBalance(acc.currentBalance, acc.balanceUnit);
-}
 
 function monthKey(date: Date) {
   return `${date.getFullYear()}年${date.getMonth() + 1}月`;
@@ -77,12 +25,6 @@ function monthKey(date: Date) {
 function categoryLabel(acc: AccountWithId) {
   if (acc.category === "other") return acc.customCategoryLabel || "その他";
   return CATEGORY_DEFAULTS[acc.category as AccountCategory]?.label ?? acc.category;
-}
-
-function isOverdueUnupdated(acc: AccountWithId) {
-  if (!acc.expiryDate || acc.type !== "continuous") return false;
-  const expiry = (acc.expiryDate as Timestamp).toDate();
-  return expiry.getTime() < Date.now();
 }
 
 function sortAccounts(list: AccountWithId[], mode: "balance" | "name"): AccountWithId[] {
@@ -352,27 +294,11 @@ export default function AccountList() {
                   </p>
                   <div>
                     {withExpiryUndated.map((acc) => (
-                      <Link
+                      <AccountRow
                         key={acc.id}
-                        href={`/accounts/${acc.id}/edit`}
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          padding: "12px 14px",
-                          fontSize: 14,
-                          borderTop: "0.5px solid #f0f0f0",
-                          textDecoration: "none",
-                          color: "inherit",
-                        }}
-                      >
-                        <div>
-                          <p style={{ margin: 0, fontWeight: 500 }}>{acc.name}</p>
-                          <p style={{ margin: 0, fontSize: 12, color: "#999" }}>
-                            {categoryLabel(acc)}
-                          </p>
-                        </div>
-                        <p style={{ margin: 0 }}>{balanceDisplay(acc)}</p>
-                      </Link>
+                        account={acc}
+                        subText={categoryLabel(acc)}
+                      />
                     ))}
                   </div>
                 </div>
@@ -402,28 +328,12 @@ export default function AccountList() {
                     {expanded && (
                       <div>
                         {items.map((acc) => (
-                          <Link
+                          <AccountRow
                             key={acc.id}
-                            href={`/accounts/${acc.id}/edit`}
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              padding: "12px 14px",
-                              fontSize: 14,
-                              borderTop: "0.5px solid #f0f0f0",
-                              textDecoration: "none",
-                              color: "inherit",
-                              background: isOverdueUnupdated(acc) ? "#fdf3e7" : "transparent",
-                            }}
-                          >
-                            <div>
-                              <p style={{ margin: 0, fontWeight: 500 }}>{acc.name}</p>
-                              <p style={{ margin: 0, fontSize: 12, color: "#999" }}>
-                                {categoryLabel(acc)}
-                              </p>
-                            </div>
-                            <p style={{ margin: 0 }}>{balanceDisplay(acc)}</p>
-                          </Link>
+                            account={acc}
+                            subText={categoryLabel(acc)}
+                            highlightOverdue
+                          />
                         ))}
                       </div>
                     )}
@@ -439,28 +349,12 @@ export default function AccountList() {
               {sortAccounts(withExpiry, withExpirySortMode).map((acc) => {
                 const expiry = acc.expiryDate ? (acc.expiryDate as Timestamp).toDate() : null;
                 return (
-                  <Link
+                  <AccountRow
                     key={acc.id}
-                    href={`/accounts/${acc.id}/edit`}
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      padding: "12px 14px",
-                      fontSize: 14,
-                      borderTop: "0.5px solid #f0f0f0",
-                      textDecoration: "none",
-                      color: "inherit",
-                      background: isOverdueUnupdated(acc) ? "#fdf3e7" : "transparent",
-                    }}
-                  >
-                    <div>
-                      <p style={{ margin: 0, fontWeight: 500 }}>{acc.name}</p>
-                      <p style={{ margin: 0, fontSize: 12, color: "#999" }}>
-                        {expiry ? `${expiry.getFullYear()}年${expiry.getMonth() + 1}月期限` : ""}
-                      </p>
-                    </div>
-                    <p style={{ margin: 0 }}>{balanceDisplay(acc)}</p>
-                  </Link>
+                    account={acc}
+                    subText={expiry ? `${expiry.getFullYear()}年${expiry.getMonth() + 1}月期限` : ""}
+                    highlightOverdue
+                  />
                 );
               })}
             </div>
@@ -496,25 +390,11 @@ export default function AccountList() {
               <p style={{ fontSize: 14, color: "#999", padding: 14 }}>登録されたサービスがありません</p>
             )}
             {noExpiry.map((acc) => (
-              <Link
+              <AccountRow
                 key={acc.id}
-                href={`/accounts/${acc.id}/edit`}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  padding: "12px 14px",
-                  fontSize: 14,
-                  borderTop: "0.5px solid #f0f0f0",
-                  textDecoration: "none",
-                  color: "inherit",
-                }}
-              >
-                <div>
-                  <p style={{ margin: 0, fontWeight: 500 }}>{acc.name}</p>
-                  <p style={{ margin: 0, fontSize: 12, color: "#999" }}>{categoryLabel(acc)}</p>
-                </div>
-                <p style={{ margin: 0 }}>{balanceDisplay(acc)}</p>
-              </Link>
+                account={acc}
+                subText={categoryLabel(acc)}
+              />
             ))}
           </div>
         </div>
@@ -572,32 +452,16 @@ export default function AccountList() {
                   {items.map((acc) => {
                     const expiry = acc.expiryDate ? (acc.expiryDate as Timestamp).toDate() : null;
                     return (
-                      <Link
+                      <AccountRow
                         key={acc.id}
-                        href={`/accounts/${acc.id}/edit`}
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          padding: "12px 14px",
-                          fontSize: 14,
-                          borderTop: "0.5px solid #f0f0f0",
-                          textDecoration: "none",
-                          color: "inherit",
-                          background: isOverdueUnupdated(acc) ? "#fdf3e7" : "transparent",
-                        }}
-                      >
-                        <div>
-                          <p style={{ margin: 0, fontWeight: 500 }}>{acc.name}</p>
-                          <p style={{ margin: 0, fontSize: 12, color: "#999" }}>
-                            {expiry
-                              ? `${expiry.getFullYear()}年${expiry.getMonth() + 1}月期限`
-                              : acc.name.includes("期間")
-                                ? "期限未入力"
-                                : "期限なし"}
-                          </p>
-                        </div>
-                        <p style={{ margin: 0 }}>{balanceDisplay(acc)}</p>
-                      </Link>
+                        account={acc}
+                        subText={expiry
+                            ? `${expiry.getFullYear()}年${expiry.getMonth() + 1}月期限`
+                            : acc.name.includes("期間")
+                              ? "期限未入力"
+                              : "期限なし"}
+                        highlightOverdue
+                      />
                     );
                   })}
                 </div>
