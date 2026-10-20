@@ -14,7 +14,7 @@ import { useAuth } from "@/contexts/AuthProvider";
 import { authFetch } from "@/lib/authFetch";
 import LoginGuide from "@/components/LoginGuide";
 import type { Announcement } from "@/lib/announcements";
-import DropMark from "@/components/DropMark";
+import CardMark from "@/components/CardMark";
 import { useDismissedAnnouncementIds } from "@/lib/dismissedAnnouncements";
 
 const HUB_URL = "https://okizukibiyori.com/";
@@ -141,7 +141,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <div className="app-shell">
         <header className="appbar">
           <div>
-            <p className="appbar-brand"><DropMark size={26} />おさいふびより</p>
+            <p className="appbar-brand"><CardMark size={26} />おさいふびより</p>
             <h1 className="appbar-title">{getTitle(pathname)}</h1>
           </div>
           <Link href="/" className="appbar-home" aria-label="ログイン案内に戻る">
@@ -173,7 +173,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     <div className="app-shell">
       <header className="appbar">
         <div>
-          <p className="appbar-brand"><DropMark size={26} />おさいふびより</p>
+          <p className="appbar-brand"><CardMark size={26} />おさいふびより</p>
           <h1 className="appbar-title">{getTitle(pathname)}</h1>
         </div>
         <div style={{ display: "flex", alignItems: "center" }}>
