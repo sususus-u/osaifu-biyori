@@ -9,7 +9,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --test lib/authToken.test.ts lib/accountDataAuth.test.ts lib/handoffState.test.ts lib/scanImage.test.ts lib/physicalScanPrompt.test.ts lib/scanDiagnostic.test.ts"
+    "test": "node --test lib/authToken.test.ts lib/accountDataAuth.test.ts lib/handoffState.test.ts lib/scanImage.test.ts lib/physicalScanPrompt.test.ts lib/physicalScanResult.test.ts lib/scanDiagnostic.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.120.0",

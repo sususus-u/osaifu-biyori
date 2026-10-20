@@ -16,3 +16,14 @@ test("出力の形(breakdown と name)が残っている", () => {
   assert.ok(PHYSICAL_SCAN_PROMPT.includes('"breakdown"'));
   assert.ok(PHYSICAL_SCAN_PROMPT.includes('"name"'));
 });
+test("読めた分だけで itemCount と totalAmount を返し、読めない枚は unreadable として書く指示が入っている", () => {
+  assert.ok(PHYSICAL_SCAN_PROMPT.includes("額面が読めた分だけで、itemCountとtotalAmountを必ず出してください"));
+  assert.ok(PHYSICAL_SCAN_PROMPT.includes("全体をnullにしないでください"));
+  assert.ok(PHYSICAL_SCAN_PROMPT.includes('"unreadable": true'));
+});
+test("読めない枚があるときに totalAmount を null にする古い指示は残っていない", () => {
+  assert.ok(!PHYSICAL_SCAN_PROMPT.includes("額面が読めない枚があるときは、推測せず totalAmount を null にしてください"));
+});
+test("枚数の上限は AI への指示に入れていない", () => {
+  assert.ok(!PHYSICAL_SCAN_PROMPT.includes("100"));
+});

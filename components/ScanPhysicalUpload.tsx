@@ -9,6 +9,14 @@ import { useRouter } from "next/navigation";
 import { authFetch } from "@/lib/authFetch";
 import { prepareScanImage, readScanJson } from "@/lib/scanImage";
 import {
+  isNothingRead,
+  isOverItemLimit,
+  unreadableCount,
+  MSG_NOTHING_READ,
+  MSG_TOO_MANY,
+  type PhysicalScanResponse,
+} from "@/lib/physicalScanResult";
+import {
   collection,
   query,
   where,
@@ -21,14 +29,6 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthProvider";
-
-interface ScanResult {
-  name: string | null;
-  itemCount: number | null;
-  totalAmount: number | null;
-  faceValuePerItem: number | null;
-  expiryDate: string | null;
-}
 
 export default function ScanPhysicalUpload() {
   const router = useRouter();
@@ -53,6 +53,10 @@ export default function ScanPhysicalUpload() {
   const [isSaving, setIsSaving] = useState(false);
   const [savedMessage, setSavedMessage] = useState("");
   const [nameUnrecognized, setNameUnrecognized] = useState(false);
+  // 枚数が目安(MAX_ITEMS_PER_SCAN)を超えたときの警告。登録は止めない
+  const [overLimit, setOverLimit] = useState(false);
+  // 額面が読めなかった枚数(枚数と合計には含まれていない)
+  const [unreadable, setUnreadable] = useState(0);
 
   // スクショ登録フォームからカメラを直接起動した場合、撮影した画像がsessionStorage経由で
   // 渡ってくる。マウント時に一度だけ確認し、あれば自動で読み取り処理を始める。
@@ -76,6 +80,8 @@ export default function ScanPhysicalUpload() {
 
     setErrorMessage("");
     setSavedMessage("");
+    setOverLimit(false);
+    setUnreadable(0);
     setIsProcessing(true);
     setMatchedAccountId(null);
     setExistingBalance(null);
@@ -90,7 +96,22 @@ export default function ScanPhysicalUpload() {
         body: JSON.stringify({ imageBase64: base64, mediaType }),
       });
       // 上限に達した場合などは、サーバーからの案内文をそのまま表示する。413 などは撮り直しの案内
-      const data = await readScanJson<ScanResult>(res);
+      const data = await readScanJson<PhysicalScanResponse>(res);
+
+      // 何も読めなかったときは、フォームを出さず、撮り直しの案内だけを出す
+      if (isNothingRead(data)) {
+        setName("");
+        setTotalAmount("");
+        setUnitAmount("");
+        setQuantity("");
+        setExpiryDate("");
+        setItemCount(null);
+        setNameUnrecognized(false);
+        setErrorMessage(MSG_NOTHING_READ);
+        return;
+      }
+      setOverLimit(isOverItemLimit(data));
+      setUnreadable(unreadableCount(data));
 
       setName(data.name ?? "");
       setNameUnrecognized(!data.name);
@@ -259,6 +280,12 @@ export default function ScanPhysicalUpload() {
           {matchedAccountId && (
             <p style={{ fontSize: 12, color: "var(--brand)", marginBottom: 12 }}>
               既存のサービスと同じ名前です。現在の残高:¥{(existingBalance ?? 0).toLocaleString()}
+            </p>
+          )}
+          {overLimit && <p style={{ fontSize: 12, color: "#b3261e", marginBottom: 8 }}>{MSG_TOO_MANY}</p>}
+          {unreadable > 0 && (
+            <p style={{ fontSize: 12, color: "#b3261e", marginBottom: 8 }}>
+              額面が読めなかった切手が{unreadable}枚あります。この枚数と金額には含まれていません。必要なら、枚数と合計を直してください
             </p>
           )}
           {itemCount !== null && (

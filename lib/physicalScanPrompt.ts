@@ -9,16 +9,16 @@ export const PHYSICAL_SCAN_PROMPT = `この写真には、切手や商品券・�
 - 各枚に印刷されている額面(金額)が読み取れれば、それを合計してください。額面がバラバラな場合はすべて合計してください
 - 何の商品券/切手か、名前が印刷されていれば読み取ってください(例:「図書カード」「Amazonギフト券」「切手」など)
   name(商品名)は、文字がはっきり読み取れる場合のみ回答してください。手書き文字などで判読に自信が持てない場合は、無理に推測せず、必ずnullを返してください。誤った名前を返すより、nullにしてユーザーに手入力してもらう方が安全です。
-- 額面ごとに「額面×枚数」の小計をbreakdownに書き、totalAmountはその小計の合計、itemCountは枚数の合計に必ず一致させてください。額面が読めない枚があるときは、推測せず totalAmount を null にしてください
+- 額面ごとに「額面×枚数」の小計をbreakdownに書き、totalAmountはその小計の合計、itemCountは枚数の合計に必ず一致させてください。額面が読めた分だけで、itemCountとtotalAmountを必ず出してください(読めない枚があっても、全体をnullにしないでください)。額面が読めなかった枚は、推測せず、breakdownに { "faceValue": null, "count": 読めなかった枚数, "unreadable": true } として書いてください。この枚はitemCountとtotalAmountには含めません。1枚も額面が読めないときだけ、itemCountとtotalAmountをnullにしてください
 - 切手の場合(切手の絵柄、額面、シートの形から切手と判断できる場合)は、名前が印刷されていなくても、nameを「切手」とする。
 - 有効期限が印刷されていれば読み取ってください(印刷されていないことも多いので、その場合はnull)
 - 写っているすべての商品券・切手の額面が同じ場合、その1枚あたりの額面もfaceValuePerItemとして返してください(額面がバラバラな場合や読み取れない場合はnull)
 
 {
-  "breakdown": [{ "faceValue": 数値のみ(1枚の額面), "count": 数値のみ(その額面の枚数) }],
+  "breakdown": [{ "faceValue": 数値のみ(1枚の額面。読めなければnull), "count": 数値のみ(その額面の枚数), "unreadable": 読めなかった枚のときだけtrue }],
   "name": "商品名(読み取れない場合はnull)",
-  "itemCount": 数値のみ(枚数、読み取れない場合はnull),
-  "totalAmount": 数値のみ(合計金額。カンマなし。読み取れない場合はnull),
+  "itemCount": 数値のみ(額面が読めた枚数の合計。1枚も読めない場合はnull),
+  "totalAmount": 数値のみ(読めた額面の合計金額。カンマなし。1枚も読めない場合はnull),
   "faceValuePerItem": 数値のみ(1枚あたりの額面。バラバラ・不明ならnull),
   "expiryDate": "YYYY-MM-DD形式(読み取れない場合はnull)"
 }`;
