@@ -93,11 +93,11 @@ test("JSON が切れて1回目が遅いときは再試行しない", async () =>
   assert.equal(f.calls(), 1);
   assert.equal(r.skippedBySlow, true);
 });
-test("route: max_tokens は定数 1000、thinking は無効、JSON が読めない応答は再試行の対象", async () => {
+test("route: max_tokens は定数 1000、thinking は付けない、JSON が読めない応答は再試行の対象", async () => {
   const { readFileSync } = await import("node:fs");
   const route = readFileSync(new URL("../app/api/scan-physical-count/route.ts", import.meta.url), "utf8");
   assert.ok(route.includes("const SCAN_MAX_TOKENS = 1000;"));
   assert.ok(route.includes("max_tokens: SCAN_MAX_TOKENS"));
-  assert.ok(route.includes('thinking: { type: "disabled" }'));
+  assert.ok(!route.includes("thinking")); // Sonnet 5.5 は disabled を受け付けず 400 になった。付けない
   assert.ok(route.includes("parseFailed: true"));
 });

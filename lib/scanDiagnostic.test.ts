@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { buildScanDiagnostic, SCAN_DIAGNOSTIC_MARK } from "./scanDiagnostic.ts";
+import { buildScanDiagnostic, buildScanErrorDiagnostic, SCAN_DIAGNOSTIC_MARK } from "./scanDiagnostic.ts";
 import { PHYSICAL_SCAN_PROMPT } from "./physicalScanPrompt.ts";
 
 test("診断ログ: name が null / 枚数と金額の数値を出す / 印が先頭", () => {
@@ -37,6 +37,17 @@ test("診断ログ: JSON が読めなかったとき、その旨と stop_reason(
   const s = buildScanDiagnostic(null, "max_tokens", "試行=1/2 再試行=あり");
   assert.ok(s.startsWith(SCAN_DIAGNOSTIC_MARK));
   assert.ok(s.includes("JSONが読めなかった") && s.includes("stop_reason=max_tokens") && s.includes("再試行=あり"));
+});
+test("診断ログ: API エラーは type と status を出し、メッセージは短く切る", () => {
+  const err = Object.assign(new Error("x".repeat(500)), {
+    status: 400,
+    error: { error: { type: "invalid_request_error" } },
+  });
+  const s = buildScanErrorDiagnostic(err, null);
+  assert.ok(s.startsWith(SCAN_DIAGNOSTIC_MARK));
+  assert.ok(s.includes("type=invalid_request_error") && s.includes("status=400"));
+  assert.ok(s.length < 400);
+  assert.ok(buildScanErrorDiagnostic("文字列", "max_tokens").includes("stop_reason=max_tokens"));
 });
 test("route.ts は、lib の文面をそのまま AI に渡している", () => {
   const route = readFileSync(new URL("../app/api/scan-physical-count/route.ts", import.meta.url), "utf8");

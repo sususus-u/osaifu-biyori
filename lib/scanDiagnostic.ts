@@ -47,3 +47,21 @@ export function buildScanDiagnostic(
     ...(note ? [note] : []),
   ].join(" ");
 }
+
+// API のエラー(400 など)の診断。種類(type)と status、メッセージの先頭だけ(画像、uid、応答の全文は出さない)
+export function buildScanErrorDiagnostic(error: unknown, stopReason: string | null | undefined): string {
+  const e = (error && typeof error === "object" ? error : {}) as Record<string, unknown>;
+  const body = (e.error && typeof e.error === "object" ? e.error : {}) as Record<string, unknown>;
+  const inner = (body.error && typeof body.error === "object" ? body.error : {}) as Record<string, unknown>;
+  const type = typeof inner.type === "string" ? inner.type : typeof e.name === "string" ? e.name : "不明";
+  const status = typeof e.status === "number" ? String(e.status) : "なし";
+  const msg = typeof e.message === "string" ? e.message.replace(/s+/g, " ").slice(0, 200) : "";
+  return [
+    SCAN_DIAGNOSTIC_MARK,
+    "応答を読めなかった",
+    `type=${type}`,
+    `status=${status}`,
+    `stop_reason=${stopReason ?? "不明"}`,
+    `message=「${msg}」`,
+  ].join(" ");
+}

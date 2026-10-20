@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { guardAiRead } from "@/lib/usageLimit";
-import { buildScanDiagnostic, SCAN_DIAGNOSTIC_MARK } from "@/lib/scanDiagnostic"; // 診断(一時的)
+import { buildScanDiagnostic, buildScanErrorDiagnostic } from "@/lib/scanDiagnostic"; // 診断(一時的)
 import { PHYSICAL_SCAN_PROMPT } from "@/lib/physicalScanPrompt";
 import { resolvePhysicalScanModel } from "@/lib/physicalScanModel";
 import { readWithRetry, type ScanAttempt } from "@/lib/physicalScanRetry";
@@ -47,7 +47,6 @@ export async function POST(req: NextRequest) {
       const message = await anthropic.messages.create({
         model,
         max_tokens: SCAN_MAX_TOKENS,
-        thinking: { type: "disabled" }, // 考える出力を使わない(JSON が途中で切れるのを防ぐ)
         messages: [
           {
             role: "user",
@@ -95,7 +94,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(parsed);
   } catch (error) {
     console.error(error);
-    console.warn(`${SCAN_DIAGNOSTIC_MARK} 応答を読めなかった stop_reason=${stopReason ?? "不明"}`); // 診断(一時的)
+    console.warn(buildScanErrorDiagnostic(error, stopReason)); // 診断(一時的)
     // AIの呼び出しや結果の読み取りで失敗した分は、回数に含めない
     await refund?.();
     return NextResponse.json({ error: "読み取りに失敗しました" }, { status: 500 });
