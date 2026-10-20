@@ -56,7 +56,7 @@ export const customTokenSignInReady: Promise<void> = (async () => {
     // state の照合(控えは必ず消える)。state なしは、段階1の間は通す
     let stateOk = false;
     try {
-      stateOk = consumeState(state, window.sessionStorage);
+      stateOk = consumeState(state, window.localStorage);
     } catch {
       stateOk = state === null;
     }

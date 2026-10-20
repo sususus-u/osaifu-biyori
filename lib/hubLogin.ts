@@ -11,7 +11,7 @@ import { issueState } from "@/lib/handoffState";
 
 const HUB_LOGIN_URL = "https://okizukibiyori.com/login";
 
-// 1回の起動(タブ)でハブへ移動した回数。sessionStorage はタブごとに別なので、
+// 1回の起動(タブ)でハブへ移動した回数。sessionStorage はタブごとに別なので、(state の控えは localStorage。handoffState.ts)
 // 「1回の起動」を数えるのに合う。ログインが通らず戻ってきても無限に往復しないための歯止め。
 const REDIRECT_COUNT_KEY = "tamari:hubLoginRedirects";
 const MAX_REDIRECTS_PER_SESSION = 1;
@@ -46,7 +46,7 @@ export function goToHubLogin(): boolean {
   } catch {
     return false;
   }
-  const state = issueState(window.sessionStorage);
+  const state = issueState(window.localStorage);
   if (state === null) return false;
   window.location.assign(buildHubLoginUrl(window.location.href, state));
   return true;
