@@ -6,13 +6,23 @@ import {
   type ExistingItem,
   type SaveRow,
   type StampPlanItem,
+  stampItemText,
+  stampSaveMessage,
 } from "./stampMerge.ts";
+
+// 保存した項目の ID と案内(一覧で、該当の行の下に案内を出すために使う)
+export interface StampSaveResult {
+  plan: StampPlanItem[];
+  items: { id: string; kind: "add" | "create"; text: string }[];
+  message: string;
+}
 
 export interface StampTx {
   // 読み直す。なくなっていれば null
   get(id: string): Promise<ExistingItem | null>;
   addTo(id: string, newCount: number, newBalance: number): void;
-  create(item: { name: string; faceValue: number; count: number; amount: number }): void;
+  // 作った項目の新しい ID を返す
+  create(item: { name: string; faceValue: number; count: number; amount: number }): string;
 }
 
 export interface StampSaveDeps {
@@ -22,7 +32,7 @@ export interface StampSaveDeps {
   runTransaction<T>(fn: (tx: StampTx) => Promise<T>): Promise<T>;
 }
 
-export async function saveStamps(deps: StampSaveDeps, rows: SaveRow[]): Promise<StampPlanItem[]> {
+export async function saveStamps(deps: StampSaveDeps, rows: SaveRow[]): Promise<StampSaveResult> {
   const candidates = await deps.listMine();
   const targetIds = planStampSave(candidates, rows).flatMap((p) => (p.kind === "add" ? [p.id] : []));
 
@@ -34,10 +44,15 @@ export async function saveStamps(deps: StampSaveDeps, rows: SaveRow[]): Promise<
       if (item) fresh.push(item);
     }
     const plan = planStampSave(fresh, rows);
+    const items: StampSaveResult["items"] = [];
     for (const p of plan) {
-      if (p.kind === "add") tx.addTo(p.id, p.newCount, p.newBalance);
-      else tx.create(p);
+      if (p.kind === "add") {
+        tx.addTo(p.id, p.newCount, p.newBalance);
+        items.push({ id: p.id, kind: "add", text: stampItemText(p) });
+      } else {
+        items.push({ id: tx.create(p), kind: "create", text: stampItemText(p) });
+      }
     }
-    return plan;
+    return { plan, items, message: stampSaveMessage(plan) };
   });
 }

@@ -8,7 +8,7 @@
 // 登録・スクショの導線は /accounts/new 側の大きなCTAに集約したため、ここでは持たない。
 // クイック更新のみ、控えめなリンクとして残す。
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Zap } from "lucide-react";
 import { collection, query, where, onSnapshot, Timestamp } from "firebase/firestore";
@@ -16,6 +16,16 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthProvider";
 import { CATEGORY_DEFAULTS, type AccountCategory, type AccountDoc } from "@/types/firestore";
 import AccountRow, { type AccountWithId } from "@/components/AccountRow";
+import StampRowNotice from "@/components/StampRowNotice";
+import StampSavedToast from "@/components/StampSavedToast";
+import {
+  STAMP_FLASH_MS,
+  STAMP_NOTICE_MS,
+  STAMP_TOAST_MS,
+  planStampNotices,
+  takeStampSavedMessage,
+  type StampSavedPayload,
+} from "@/lib/stampToast";
 import { getYenValue } from "@/lib/accountUtils";
 
 function monthKey(date: Date) {
@@ -67,6 +77,14 @@ function sortServiceGroupItems(list: AccountWithId[]): AccountWithId[] {
 export default function AccountList() {
   const { uid, isLoading } = useAuth();
   const [accounts, setAccounts] = useState<AccountWithId[]>([]);
+  // 一覧の最初の読み込みが済んだか(保存後の案内は、行が出てから結びつける)
+  const [loaded, setLoaded] = useState(false);
+  // 切手の保存後の案内。pending は読んだだけ、notices は行の下に出す分、fallbackMessage は行が見つからない分(上部のトースト)
+  const [pending, setPending] = useState<StampSavedPayload | null>(null);
+  const [notices, setNotices] = useState<Record<string, string>>({});
+  const [flashIds, setFlashIds] = useState<Set<string>>(new Set());
+  const [fallbackMessage, setFallbackMessage] = useState<string | null>(null);
+  const scrollTargetRef = useRef<string | null>(null);
   const [tab, setTab] = useState<"withExpiry" | "noExpiry" | "byGroup">(() => {
     if (typeof window === "undefined") return "withExpiry";
     const stored = sessionStorage.getItem("account-list-tab");
@@ -95,9 +113,82 @@ export default function AccountList() {
         ...(docSnap.data() as AccountDoc),
       }));
       setAccounts(list);
+      setLoaded(true);
     });
     return () => unsubscribe();
   }, [uid]);
+
+  // 切手の保存の直後に開いたときだけ、案内が入っている(読んだらすぐ消える)
+  useEffect(() => {
+    const taken = takeStampSavedMessage(window.sessionStorage);
+    // sessionStorage は開くまで読めず、読んだら消すので、開いた直後に一度だけ読む
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (taken) setPending(taken);
+  }, []);
+
+  // 一覧が読み込まれたら、案内を該当の行に結びつける。行が今のタブになければタブを切り替える。
+  // 見つからなかった分は、上部のトーストに出す(見つかった分は二重に出さない)
+  useEffect(() => {
+    if (!pending || !loaded) return;
+    const plan = planStampNotices(
+      pending,
+      accounts.map((a) => ({ id: a.id, name: a.name, hasExpiry: Boolean(a.expiryDate) })),
+      tab
+    );
+    /* eslint-disable react-hooks/set-state-in-effect */
+    setPending(null);
+    setTab(plan.tab);
+    setNotices(plan.notices);
+    setFlashIds(new Set(Object.keys(plan.notices)));
+    setFallbackMessage(plan.fallback);
+    /* eslint-enable react-hooks/set-state-in-effect */
+    scrollTargetRef.current = plan.firstId;
+  }, [pending, loaded, accounts, tab]);
+
+  // 読み込みが遅いとき(3秒)は、行に結びつけず、上部のトーストで出す
+  useEffect(() => {
+    if (!pending) return;
+    const timer = setTimeout(() => {
+      setFallbackMessage(pending.message);
+      setPending(null);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [pending]);
+
+  // 案内が出たら、最初の行を画面の中央へ動かす。7秒で案内を、2秒で強調を消す
+  useEffect(() => {
+    if (Object.keys(notices).length === 0) return;
+    const id = scrollTargetRef.current;
+    scrollTargetRef.current = null;
+    if (id) {
+      document
+        .querySelector(`[data-account-id="${CSS.escape(id)}"]`)
+        ?.scrollIntoView({ block: "center", behavior: "smooth" });
+    }
+    const flashTimer = setTimeout(() => setFlashIds(new Set()), STAMP_FLASH_MS);
+    const noticeTimer = setTimeout(() => setNotices({}), STAMP_NOTICE_MS);
+    return () => {
+      clearTimeout(flashTimer);
+      clearTimeout(noticeTimer);
+    };
+  }, [notices]);
+
+  function noticeFor(id: string) {
+    const text = notices[id];
+    if (!text) return undefined;
+    return (
+      <StampRowNotice
+        text={text}
+        onClose={() =>
+          setNotices((cur) => {
+            const next = { ...cur };
+            delete next[id];
+            return next;
+          })
+        }
+      />
+    );
+  }
 
   const isLimitedOrHasExpiry = (a: AccountWithId) => Boolean(a.expiryDate) || a.name.includes("期間");
 
@@ -183,6 +274,16 @@ export default function AccountList() {
 
   return (
     <div>
+      {/* 読み上げ用。枠の外に常設し、案内が出たときに中身が入る(画面には出ない) */}
+      <div
+        aria-live="polite"
+        style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap" }}
+      >
+        {Object.values(notices).join(" ")}
+      </div>
+      {fallbackMessage && (
+        <StampSavedToast message={fallbackMessage} durationMs={STAMP_TOAST_MS} onClose={() => setFallbackMessage(null)} />
+      )}
       <div className="card" style={{ marginBottom: 12 }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", textAlign: "center" }}>
           <div>
@@ -297,6 +398,8 @@ export default function AccountList() {
                       <AccountRow
                         key={acc.id}
                         account={acc}
+                        notice={noticeFor(acc.id)}
+                        flash={flashIds.has(acc.id)}
                         subText={categoryLabel(acc)}
                       />
                     ))}
@@ -331,6 +434,8 @@ export default function AccountList() {
                           <AccountRow
                             key={acc.id}
                             account={acc}
+                            notice={noticeFor(acc.id)}
+                            flash={flashIds.has(acc.id)}
                             subText={categoryLabel(acc)}
                             highlightOverdue
                           />
@@ -352,6 +457,8 @@ export default function AccountList() {
                   <AccountRow
                     key={acc.id}
                     account={acc}
+                    notice={noticeFor(acc.id)}
+                    flash={flashIds.has(acc.id)}
                     subText={expiry ? `${expiry.getFullYear()}年${expiry.getMonth() + 1}月期限` : ""}
                     highlightOverdue
                   />
@@ -393,6 +500,8 @@ export default function AccountList() {
               <AccountRow
                 key={acc.id}
                 account={acc}
+                notice={noticeFor(acc.id)}
+                flash={flashIds.has(acc.id)}
                 subText={categoryLabel(acc)}
               />
             ))}
@@ -455,6 +564,8 @@ export default function AccountList() {
                       <AccountRow
                         key={acc.id}
                         account={acc}
+                        notice={noticeFor(acc.id)}
+                        flash={flashIds.has(acc.id)}
                         subText={expiry
                             ? `${expiry.getFullYear()}年${expiry.getMonth() + 1}月期限`
                             : acc.name.includes("期間")

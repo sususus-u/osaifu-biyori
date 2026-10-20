@@ -147,13 +147,14 @@ export function planStampSave(existing: ExistingItem[], rows: SaveRow[]): StampP
   });
 }
 
+// 1項目ぶんの案内
+export function stampItemText(p: StampPlanItem): string {
+  return p.kind === "add"
+    ? `${p.name}に${p.addCount}枚追加しました(合計${p.newCount}枚)`
+    : `${p.name}を新しく作りました(${p.count}枚)`;
+}
+
 // 保存後の案内。複数は1行ずつ(改行で区切る)
 export function stampSaveMessage(plan: StampPlanItem[]): string {
-  return plan
-    .map((p) =>
-      p.kind === "add"
-        ? `${p.name}に${p.addCount}枚追加しました(合計${p.newCount}枚)`
-        : `${p.name}を新しく作りました(${p.count}枚)`
-    )
-    .join("\n");
+  return plan.map(stampItemText).join("\n");
 }

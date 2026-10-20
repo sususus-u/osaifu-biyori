@@ -45,7 +45,6 @@ import {
   isScannedStamp,
   isStampName,
   saveRowName,
-  stampSaveMessage,
   validateStampRows,
   type SaveRow,
 } from "@/lib/stampMerge";
@@ -322,11 +321,10 @@ export default function ScanPhysicalUpload() {
     setErrorMessage("");
     try {
       const expiry = expiryDate ? Timestamp.fromDate(new Date(expiryDate)) : null;
-      const plan = await saveStamps(firestoreStampDeps(uid, expiry), saveRows);
-      const message = stampSaveMessage(plan);
-      setSavedMessage(message);
-      // 一覧に移ると、この画面の表示は消えるので、一覧のトーストで出す
-      stashStampSavedMessage(window.sessionStorage, message);
+      const result = await saveStamps(firestoreStampDeps(uid, expiry), saveRows);
+      setSavedMessage(result.message);
+      // 一覧に移ると、この画面の表示は消えるので、一覧の該当の行の下(なければ上部のトースト)で出す
+      stashStampSavedMessage(window.sessionStorage, { message: result.message, items: result.items });
       setTimeout(() => router.push("/"), 300);
     } catch (error) {
       console.error(error);

@@ -44,7 +44,8 @@ export function firestoreStampDeps(uid: string, expiry: Timestamp | null): Stamp
           },
           create(item) {
             const now = serverTimestamp();
-            t.set(doc(collection(db, "accounts")), {
+            const ref = doc(collection(db, "accounts"));
+            t.set(ref, {
               ownerId: uid,
               name: item.name,
               groupName: item.name,
@@ -62,6 +63,7 @@ export function firestoreStampDeps(uid: string, expiry: Timestamp | null): Stamp
               createdAt: now,
               updatedAt: now,
             });
+            return ref.id;
           },
         })
       );

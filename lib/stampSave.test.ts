@@ -142,14 +142,16 @@ class FakeDb {
                 const cur = this.docs.get(id)!;
                 this.put({ ...cur, itemQuantity: newCount, currentBalance: newBalance });
               }),
-            create: (c) =>
-              writes.push(() => {
-                const id = `new${++this.seq}`;
+            create: (c) => {
+              const id = `new${++this.seq}`;
+              writes.push(() =>
                 this.put({
                   id, name: c.name, category: "gift_certificate", faceValue: c.faceValue,
                   currentBalance: c.amount, itemQuantity: c.count, createdMillis: 9000,
-                });
-              }),
+                })
+              );
+              return id;
+            },
           };
           const result = await fn(tx); // 例外なら、書き込みを反映せずに外へ出る
           const inject = this.interleave;
@@ -169,8 +171,15 @@ class FakeDb {
 test("保存: 足す行と作る行を、まとめて1回で保存する", async () => {
   const db = new FakeDb();
   db.put(item({ id: "a" }));
-  const plan = await saveStamps(db.deps(), [row("切手 1円", 1, 5), row("切手 2円", 2, 25)]);
+  const { plan, items, message } = await saveStamps(db.deps(), [row("切手 1円", 1, 5), row("切手 2円", 2, 25)]);
   assert.equal(plan.length, 2);
+  // 案内の文と、足した/作った項目の ID(作った方は、実際に作られた項目の ID)
+  assert.equal(message, "切手 1円に5枚追加しました(合計23枚)\n切手 2円を新しく作りました(25枚)");
+  assert.equal(items[0].id, "a");
+  assert.equal(items[0].kind, "add");
+  assert.equal(items[0].text, "切手 1円に5枚追加しました(合計23枚)");
+  assert.equal(items[1].kind, "create");
+  assert.equal(db.docs.get(items[1].id)?.name, "切手 2円");
   assert.equal(db.docs.get("a")?.itemQuantity, 23);
   assert.equal(db.docs.get("a")?.currentBalance, 23);
   const created = [...db.docs.values()].find((d) => d.name === "切手 2円");
@@ -223,7 +232,7 @@ test("クエリのあと、トランザクションまでの間に項目が消�
     },
     runTransaction: base.runTransaction,
   };
-  const plan = await saveStamps(deps, [row("切手 1円", 1, 5)]);
+  const { plan } = await saveStamps(deps, [row("切手 1円", 1, 5)]);
   assert.equal(plan[0].kind, "create");
   assert.equal([...db.docs.values()][0].itemQuantity, 5);
 });
@@ -240,7 +249,7 @@ test("クエリのあとに名前や額面が変えられた項目には足さ�
     },
     runTransaction: base.runTransaction,
   };
-  const plan = await saveStamps(deps, [row("切手 1円", 1, 5)]);
+  const { plan } = await saveStamps(deps, [row("切手 1円", 1, 5)]);
   assert.equal(plan[0].kind, "create");
   assert.equal(db.docs.get("a")?.itemQuantity, 18);
 });
