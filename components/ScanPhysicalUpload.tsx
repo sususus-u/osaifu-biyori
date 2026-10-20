@@ -49,6 +49,7 @@ import {
   type SaveRow,
 } from "@/lib/stampMerge";
 import { saveStamps } from "@/lib/stampSave";
+import { stashStampSavedMessage } from "@/lib/stampToast";
 import { firestoreStampDeps } from "@/lib/stampSaveFirestore";
 
 export default function ScanPhysicalUpload() {
@@ -320,8 +321,11 @@ export default function ScanPhysicalUpload() {
     try {
       const expiry = expiryDate ? Timestamp.fromDate(new Date(expiryDate)) : null;
       const plan = await saveStamps(firestoreStampDeps(uid, expiry), saveRows);
-      setSavedMessage(stampSaveMessage(plan));
-      setTimeout(() => router.push("/"), 1500);
+      const message = stampSaveMessage(plan);
+      setSavedMessage(message);
+      // 一覧に移ると、この画面の表示は消えるので、一覧のトーストで出す
+      stashStampSavedMessage(window.sessionStorage, message);
+      setTimeout(() => router.push("/"), 300);
     } catch (error) {
       console.error(error);
       setErrorMessage("保存に失敗しました。何も保存されていません。もう一度お試しください。");
