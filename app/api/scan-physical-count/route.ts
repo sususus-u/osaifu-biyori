@@ -13,6 +13,9 @@ import { readWithRetry, type ScanAttempt } from "@/lib/physicalScanRetry";
 // 1回目が遅かったときは再試行しない(RETRY_SKIP_AFTER_MS)ので、合計は 60 秒を超えない見込み。
 export const maxDuration = 60;
 
+// AI の返答の最大トークン数。Sonnet は考える分も数えるため、500 では JSON の途中で切れることがあった
+const SCAN_MAX_TOKENS = 1000;
+
 export async function POST(req: NextRequest) {
   // AI読み取りの回数を1つ使ったあとで失敗したときに、その1回分を戻すための関数。
   let refund: (() => Promise<void>) | null = null;
@@ -43,7 +46,8 @@ export async function POST(req: NextRequest) {
     const callAi = async (): Promise<ScanAttempt> => {
       const message = await anthropic.messages.create({
         model,
-        max_tokens: 500,
+        max_tokens: SCAN_MAX_TOKENS,
+        thinking: { type: "disabled" }, // 考える出力を使わない(JSON が途中で切れるのを防ぐ)
         messages: [
           {
             role: "user",
@@ -69,7 +73,12 @@ export async function POST(req: NextRequest) {
       const rawText = textBlock && "text" in textBlock ? textBlock.text : "{}";
       const cleaned = rawText.replace(/```json|```/g, "").trim();
       stopReason = message.stop_reason; // 診断(一時的)
-      return { parsed: JSON.parse(cleaned), stopReason: message.stop_reason };
+      try {
+        return { parsed: JSON.parse(cleaned), stopReason: message.stop_reason };
+      } catch {
+        // JSON として読めない(途中で切れた等)。再試行の対象にする。応答の全文は出さない
+        return { parsed: null, stopReason: message.stop_reason, parseFailed: true };
+      }
     };
 
     // 全項目 null のときだけ、同じ画像で1回呼び直す(利用回数は guardAiRead の1回分のまま)
@@ -80,6 +89,8 @@ export async function POST(req: NextRequest) {
       console.warn(buildScanDiagnostic(a.parsed, a.stopReason, note));
     });
     const parsed = result.attempts[result.attempts.length - 1].parsed;
+    // 再試行しても JSON が読めなかったときは、今までどおり失敗として返す(回数は戻す)
+    if (parsed === null) throw new Error("AIの応答をJSONとして読めなかった");
 
     return NextResponse.json(parsed);
   } catch (error) {

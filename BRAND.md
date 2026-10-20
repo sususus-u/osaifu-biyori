@@ -99,6 +99,7 @@
 - 警告: totalAmount が itemCount と同じで内訳の合計と違うとき、または内訳の枚数の合計が itemCount と違うとき、「額面が正しく読めていない可能性があります」を出す(登録は止めない)。
 - モデルの切り替え: Vercel の環境変数 SCAN_PHYSICAL_MODEL。許可する値は claude-haiku-4-5-20251001(既定)、claude-haiku-4-5、claude-sonnet-5-5 のみ(`lib/physicalScanModel.ts`)。未設定・一覧にない値は既定になり、一覧にない値はログに警告が出る。環境変数を変えたら、再デプロイが要る。上げると費用は数倍、速度は遅くなる見込み(実測は未確認)。
 - 効果は、実機でまだ確認していない。
+- JSON が読めない失敗(SyntaxError: Unterminated string in JSON)への対応: SCAN_PHYSICAL_MODEL を claude-sonnet-5-5 にして同じ写真を3回読むと、1回は正解(43枚・68円)、2回は position 168 と 100 で失敗し、再試行は動かなかった(全項目 null のときだけの設計だったため)。有力な原因は、max_tokens 500 の不足(Sonnet は考える分の出力も数える可能性がある。未確認)で、応答が途中で切れたこと。直し方: (1) max_tokens を 1000 に上げた(定数 SCAN_MAX_TOKENS)。(2) 考える出力を使わない設定(thinking: disabled)を付けた。(3) JSON が読めないときも、全項目 null のときと合わせて、合計1回まで同じ画像で呼び直す。再試行でも読めなければ「読み取りに失敗しました」(回数は戻す)。(4) 診断ログに「JSONが読めなかった」と stop_reason(max_tokens か end_turn か)、再試行の有無を出す。費用と速度: max_tokens は上限なので、使った分しか増えない。Sonnet は Haiku より遅く、1回の時間は実測していない(25秒を超えると再試行しない)。効果と thinking 設定の通り方は、実機で確認が要る。
 
 ## 【一時的】切手の読み取りの診断ログ
 - 目的: 切手の読み取りで name が毎回 null になる原因を調べる。診断が済んだら取り消す。

@@ -33,6 +33,11 @@ test("診断ログ: name が文字列なら、文字数と先頭5文字だけ", 
   assert.ok(s.includes("10文字") && s.includes("ABCDE") && !s.includes("ABCDEF"));
   assert.ok(s.includes("stop_reason=max_tokens"));
 });
+test("診断ログ: JSON が読めなかったとき、その旨と stop_reason(max_tokens)と再試行の注記を出す", () => {
+  const s = buildScanDiagnostic(null, "max_tokens", "試行=1/2 再試行=あり");
+  assert.ok(s.startsWith(SCAN_DIAGNOSTIC_MARK));
+  assert.ok(s.includes("JSONが読めなかった") && s.includes("stop_reason=max_tokens") && s.includes("再試行=あり"));
+});
 test("route.ts は、lib の文面をそのまま AI に渡している", () => {
   const route = readFileSync(new URL("../app/api/scan-physical-count/route.ts", import.meta.url), "utf8");
   assert.ok(route.includes('from "@/lib/physicalScanPrompt"'));

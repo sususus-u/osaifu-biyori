@@ -29,6 +29,10 @@ export function buildScanDiagnostic(
   stopReason: string | null | undefined,
   note?: string
 ): string {
+  // parsed が null のときは、JSON として読めなかった応答(stop_reason が max_tokens なら途中で切れた可能性)
+  if (parsed === null) {
+    return [SCAN_DIAGNOSTIC_MARK, "JSONが読めなかった", `stop_reason=${stopReason ?? "null"}`, ...(note ? [note] : [])].join(" ");
+  }
   const p = (parsed && typeof parsed === "object" ? parsed : {}) as Record<string, unknown>;
   const name =
     typeof p.name === "string" ? `文字列(${p.name.length}文字, 先頭5文字「${p.name.slice(0, 5)}」)` : kind(p.name);
