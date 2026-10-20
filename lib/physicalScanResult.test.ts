@@ -11,6 +11,14 @@ import {
   breakdownTotals,
   isBreakdownSuspect,
   MSG_BREAKDOWN_SUSPECT,
+  initialRows,
+  rowsTotals,
+  addRow,
+  removeRow,
+  updateRow,
+  validateRows,
+  MAX_FACE_VALUE,
+  MAX_ROW_COUNT,
   type PhysicalScanResponse,
 } from "./physicalScanResult.ts";
 
@@ -93,4 +101,53 @@ test("警告: 正しい読み取り(68円・43枚)では警告しない", () => 
 });
 test("警告: 内訳の枚数の合計が itemCount と違うときは警告する", () => {
   assert.equal(isBreakdownSuspect({ ...stamps, itemCount: 44 }), true);
+});
+
+test("行の初期値: breakdown から額面ごとの行になる(1円×18、2円×25)", () => {
+  assert.deepEqual(initialRows(stamps), [
+    { faceValue: "1", count: "18" },
+    { faceValue: "2", count: "25" },
+  ]);
+});
+test("行の初期値: 同じ額面の行は枚数を足す。読めなかった枚は入れない", () => {
+  const r = {
+    ...stamps,
+    breakdown: [
+      { faceValue: 1, count: 10 },
+      { faceValue: 1, count: 8 },
+      { faceValue: null, count: 3, unreadable: true },
+    ],
+  };
+  assert.deepEqual(initialRows(r), [{ faceValue: "1", count: "18" }]);
+});
+test("行の初期値: breakdown が無い・空なら、今までどおり1行(faceValuePerItem × itemCount)", () => {
+  const one = { name: "切手", itemCount: 10, totalAmount: 840, faceValuePerItem: 84, expiryDate: null };
+  assert.deepEqual(initialRows(one), [{ faceValue: "84", count: "10" }]);
+  assert.deepEqual(initialRows({ ...one, breakdown: [] }), [{ faceValue: "84", count: "10" }]);
+  assert.deepEqual(initialRows({ ...one, faceValuePerItem: null, itemCount: null }), [{ faceValue: "", count: "" }]);
+});
+test("行から合計を計算する(18円+50円=68円、43枚)。空の欄は 0", () => {
+  assert.deepEqual(rowsTotals(initialRows(stamps)), { amount: 68, count: 43 });
+  assert.deepEqual(rowsTotals([{ faceValue: "", count: "5" }, { faceValue: "2", count: "x" }]), { amount: 0, count: 5 });
+});
+test("行の追加・削除・修正。最後の1行は消えない", () => {
+  let rows = initialRows(stamps);
+  rows = addRow(rows);
+  assert.equal(rows.length, 3);
+  rows = updateRow(rows, 2, { faceValue: "10", count: "3" });
+  assert.deepEqual(rowsTotals(rows), { amount: 98, count: 46 });
+  rows = removeRow(rows, 0);
+  assert.deepEqual(rows[0], { faceValue: "2", count: "25" });
+  assert.equal(removeRow([{ faceValue: "1", count: "1" }], 0).length, 1);
+  assert.equal(removeRow(rows, 9).length, rows.length);
+});
+test("数値の確認: 整数で 0 より大きく、上限以内", () => {
+  assert.equal(validateRows(initialRows(stamps)), null);
+  assert.ok(validateRows([{ faceValue: "", count: "3" }]));
+  assert.ok(validateRows([{ faceValue: "1.5", count: "3" }]));
+  assert.ok(validateRows([{ faceValue: "0", count: "3" }]));
+  assert.ok(validateRows([{ faceValue: "1", count: "-2" }]));
+  assert.ok(validateRows([{ faceValue: String(MAX_FACE_VALUE + 1), count: "1" }]));
+  assert.ok(validateRows([{ faceValue: "1", count: String(MAX_ROW_COUNT + 1) }]));
+  assert.equal(validateRows([{ faceValue: String(MAX_FACE_VALUE), count: String(MAX_ROW_COUNT) }]), null);
 });

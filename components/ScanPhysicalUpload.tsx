@@ -17,6 +17,14 @@ import {
   isBreakdownSuspect,
   MSG_BREAKDOWN_SUSPECT,
   type BreakdownLine,
+  type ScanRow,
+  initialRows,
+  rowsTotals,
+  addRow,
+  removeRow,
+  updateRow,
+  validateRows,
+  MSG_MULTI_NOT_SAVABLE,
   MSG_NOTHING_READ,
   MSG_TOO_MANY,
   type PhysicalScanResponse,
@@ -51,8 +59,12 @@ export default function ScanPhysicalUpload() {
   const [existingQuantity, setExistingQuantity] = useState<number | null>(null);
   const [name, setName] = useState("");
   const [totalAmount, setTotalAmount] = useState("");
-  const [unitAmount, setUnitAmount] = useState("");
-  const [quantity, setQuantity] = useState("");
+  // 額面ごとの行(額面、枚数)。合計金額は、手で直していない間は、行から自動で計算する
+  const [rows, setRows] = useState<ScanRow[]>([{ faceValue: "", count: "" }]);
+  const [totalEdited, setTotalEdited] = useState(false);
+  // 保存(段階1では1行のときだけ)に使う、1行目の額面と枚数
+  const unitAmount = rows.length === 1 ? rows[0].faceValue : "";
+  const quantity = rows.length === 1 ? rows[0].count : "";
   const [expiryDate, setExpiryDate] = useState("");
   const [itemCount, setItemCount] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -113,8 +125,8 @@ export default function ScanPhysicalUpload() {
       if (isNothingRead(data)) {
         setName("");
         setTotalAmount("");
-        setUnitAmount("");
-        setQuantity("");
+        setRows([{ faceValue: "", count: "" }]);
+        setTotalEdited(false);
         setExpiryDate("");
         setItemCount(null);
         setNameUnrecognized(false);
@@ -129,9 +141,17 @@ export default function ScanPhysicalUpload() {
 
       setName(data.name ?? "");
       setNameUnrecognized(!data.name);
-      setTotalAmount(data.totalAmount !== null ? String(data.totalAmount) : "");
-      setUnitAmount(data.faceValuePerItem !== null ? String(data.faceValuePerItem) : "");
-      setQuantity(data.itemCount !== null ? String(data.itemCount) : "");
+      // 額面ごとの内訳があれば、それを行の初期値にする。合計は行から計算(内訳がなければ、今までどおり AI の合計)
+      const initial = initialRows(data);
+      setRows(initial);
+      setTotalEdited(false);
+      setTotalAmount(
+        breakdownLines(data).length > 0
+          ? String(rowsTotals(initial).amount)
+          : data.totalAmount != null
+            ? String(data.totalAmount)
+            : ""
+      );
       setExpiryDate(data.expiryDate ?? "");
       setItemCount(data.itemCount);
 
@@ -180,16 +200,31 @@ export default function ScanPhysicalUpload() {
     await processImage(prepared.base64, prepared.mediaType);
   }
 
-  function handleApplyUnitCalc() {
-    const unit = Number(unitAmount);
-    const qty = Number(quantity);
-    if (unitAmount === "" || quantity === "" || isNaN(unit) || isNaN(qty)) return;
-    setTotalAmount(String(unit * qty));
+  // 行を変えたとき。合計金額を手で直していなければ、行から計算し直す
+  function changeRows(next: ScanRow[]) {
+    setRows(next);
+    if (!totalEdited) setTotalAmount(String(rowsTotals(next).amount));
+  }
+
+  // 手で直した合計を捨てて、行から計算し直す
+  function handleRecalcTotal() {
+    setTotalEdited(false);
+    setTotalAmount(String(rowsTotals(rows).amount));
   }
 
   async function handleSave(mode: "replace" | "add" = "replace") {
     if (!uid || !name.trim()) {
       setErrorMessage("名前を入力してください。");
+      return;
+    }
+    // 段階1: 保存の仕組みはまだ1件分だけ。複数の額面は止める(段階2で、額面ごとに項目を作る)
+    if (rows.length > 1) {
+      setErrorMessage(MSG_MULTI_NOT_SAVABLE);
+      return;
+    }
+    const rowsError = validateRows(rows);
+    if (rowsError) {
+      setErrorMessage(rowsError);
       return;
     }
     if (unitAmount === "" || quantity === "") {
@@ -338,43 +373,66 @@ export default function ScanPhysicalUpload() {
 
           <div className="field">
             <label>額面 × 枚数</label>
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <input
-                type="number"
-                value={unitAmount}
-                onChange={(e) => setUnitAmount(e.target.value)}
-                placeholder="額面(1枚あたり)"
-                style={{ flex: 1 }}
-              />
-              <span style={{ color: "#999" }}>×</span>
-              <input
-                type="number"
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                placeholder="枚数"
-                style={{ flex: 1 }}
-              />
-              <button
-                type="button"
-                onClick={handleApplyUnitCalc}
-                style={{
-                  flexShrink: 0,
-                  padding: "10px 14px",
-                  fontSize: 13,
-                  fontWeight: 500,
-                  color: "var(--brand)",
-                  background: "#fff",
-                  border: "1px solid var(--brand)",
-                  borderRadius: "var(--radius-pill)",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                反映
-              </button>
-            </div>
+            {rows.map((row, i) => (
+              <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+                <input
+                  type="number"
+                  value={row.faceValue}
+                  onChange={(e) => changeRows(updateRow(rows, i, { faceValue: e.target.value }))}
+                  placeholder="額面(1枚あたり)"
+                  style={{ flex: 1 }}
+                />
+                <span style={{ color: "#999" }}>×</span>
+                <input
+                  type="number"
+                  value={row.count}
+                  onChange={(e) => changeRows(updateRow(rows, i, { count: e.target.value }))}
+                  placeholder="枚数"
+                  style={{ flex: 1 }}
+                />
+                {rows.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => changeRows(removeRow(rows, i))}
+                    aria-label="この行を削除"
+                    style={{
+                      flexShrink: 0,
+                      padding: "8px 10px",
+                      fontSize: 13,
+                      color: "#b3261e",
+                      background: "#fff",
+                      border: "1px solid #b3261e",
+                      borderRadius: "var(--radius-pill)",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    削除
+                  </button>
+                )}
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => changeRows(addRow(rows))}
+              style={{
+                padding: "8px 14px",
+                fontSize: 13,
+                fontWeight: 500,
+                color: "var(--brand)",
+                background: "#fff",
+                border: "1px solid var(--brand)",
+                borderRadius: "var(--radius-pill)",
+                whiteSpace: "nowrap",
+              }}
+            >
+              行を追加
+            </button>
             <p style={{ fontSize: 12, color: "#999", marginTop: 6 }}>
-              同じ額面のものが複数ある場合、まとめて入力できます
+              額面ごとに行を分けて入力できます。合計は行から自動で計算します
             </p>
+            {rows.length > 1 && (
+              <p style={{ fontSize: 12, color: "#b3261e", marginTop: 4 }}>{MSG_MULTI_NOT_SAVABLE}</p>
+            )}
             <p style={{ fontSize: 12, color: "#999", marginTop: 4 }}>
               切手など重なって見えるものは、枚数を多く数えてしまうことがあります。実際の枚数に修正してください。
             </p>
@@ -390,8 +448,23 @@ export default function ScanPhysicalUpload() {
             <input
               type="number"
               value={totalAmount}
-              onChange={(e) => setTotalAmount(e.target.value)}
+              onChange={(e) => {
+                setTotalEdited(true);
+                setTotalAmount(e.target.value);
+              }}
             />
+            <p style={{ fontSize: 12, color: "#999", marginTop: 6 }}>
+              行の合計:{rowsTotals(rows).count.toLocaleString()}枚 / {rowsTotals(rows).amount.toLocaleString()}円
+              {totalEdited && (
+                <button
+                  type="button"
+                  onClick={handleRecalcTotal}
+                  style={{ marginLeft: 8, fontSize: 12, color: "var(--brand)", background: "none", border: "none", textDecoration: "underline" }}
+                >
+                  行から計算し直す
+                </button>
+              )}
+            </p>
           </div>
 
           <div className="field">

@@ -103,6 +103,12 @@
 - 【緊急の失敗】98f1bfb で足した thinking: disabled が、Sonnet 5.5 で 400 invalid_request_error になり、読み取りがすべて失敗した(メッセージ: 「To turn thinking off on this model, send "thinking": {"type": "between_tools"} instead of ...。The model does not think before responding」)。SDK の型には disabled があったが、モデルが受け付けなかった。直し方: thinking を付けない(このモデルは、答える前に考えない。Haiku も付けなくて通る)。max_tokens 1000、JSON が読めないときの再試行、診断ログは残した。診断ログに、API エラーの type・status・メッセージの先頭200文字も出すようにした。
 - 教訓: API の新しい設定を足したら、実際のモデルで、1回、動かして確認する。SDK の型にあることは、モデルが受け付けることを保証しない。また、Sonnet 5.5 は答える前の出力がないので、SyntaxError(Unterminated string)の原因は、max_tokens の不足とは限らない(未解明。診断ログの stop_reason で確かめる)。
 
+## 切手は額面ごとの項目で管理する(案A)
+- 設計(利用者が決定): 切手は、額面ごとの別の項目で管理する。名前は「切手 1円」「切手 2円」の形。1つの項目に内訳を持つ案B(items 配列)は、一覧・編集・保存の作り直しが大きいため採らなかった。データの形(accounts の faceValue、itemQuantity、currentBalance)は変えず、既存の口座(商品券、すでに登録した切手)の移行も要らない。
+- 足す処理(段階2の予定): 保存のとき、額面ごとに項目を作る。同じ名前と額面の項目が既にあれば、枚数(itemQuantity)と合計金額(currentBalance)を足す(例: 「切手 1円」が18枚あり、1円を5枚読むと23枚)。
+- 段階1(実装済み): 読み取り後の入力画面を、額面ごとの行(額面、枚数)にした。breakdown が初期値(同じ額面は枚数を足す。読めなかった枚は入れない)。行の追加・削除、手で直せる。数値の確認は、整数で1以上、額面は100万円以下、枚数は1行1万枚以下(`lib/physicalScanResult.ts`)。合計金額は、手で直していない間は行から自動計算し、手で直したらその値を優先(「行から計算し直す」で戻せる)。breakdown が無いときは、今までどおり1行。保存の処理は変えていない。複数の額面の行があるときは、保存を止め「複数の額面は、まだ保存できません。額面ごとに、1つずつ、読み取ってください」と案内する(段階2までの間)。
+- 実機の確認は、まだ。
+
 ## 【一時的】切手の読み取りの診断ログ
 - 目的: 切手の読み取りで name が毎回 null になる原因を調べる。診断が済んだら取り消す。
 - 内容: `app/api/scan-physical-count/route.ts` が、AI の応答を読んだ直後に console.warn する(印「[scan-physical-count 診断]」)。出すのは、name が null か文字列か(文字列なら文字数と先頭5文字)、itemCount・totalAmount の数値、faceValuePerItem が null か数値か、breakdown の件数と各行の「額面×枚数」、stop_reason、再試行の有無(試行ごとに1行)だけ。応答全体、画像、uid、メールアドレスは出さない。応答が JSON として読めなかったときも、stop_reason を出す。
