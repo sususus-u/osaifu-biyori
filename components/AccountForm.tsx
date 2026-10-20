@@ -5,6 +5,7 @@
 // 種類を選ぶと、CATEGORY_DEFAULTS から円建てフラグ・タイプ・通知タイミングの
 // 初期値が自動で入る。ポイント・その他は円建て/非円建てをユーザーが選び直せる。
 
+import ConfirmSheet from "@/components/ConfirmSheet";
 import { useState, useEffect, useRef, type FormEvent, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -1274,51 +1275,33 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
       </form>
 
       {showDeleteModal && (
-        <div className="modal-backdrop">
-          <div className="modal-sheet">
-            <p>「{name || "このサービス"}」を削除します。よろしいですか?</p>
-            <div className="modal-actions">
-              <button className="btn-danger" onClick={handleDelete} disabled={isDeleting}>
-                {isDeleting ? "削除中..." : "削除する"}
-              </button>
-              <button className="btn-ghost" onClick={() => setShowDeleteModal(false)} disabled={isDeleting}>
-                キャンセル
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmSheet
+          title={"「" + (name || "このサービス") + "」を削除しますか?"}
+          description="削除すると、元に戻せません。"
+          confirmLabel="削除する"
+          busyLabel="削除中..."
+          variant="danger"
+          busy={isDeleting}
+          onConfirm={handleDelete}
+          onClose={() => setShowDeleteModal(false)}
+        />
       )}
 
       {pendingOutcome && (
-        <div className="modal-backdrop">
-          <div className="modal-sheet">
-            <p>
-              {accountType === "continuous" ? (
-                <>「{name || "このサービス"}」の失効を記録します。残高は0にリセットされます。よろしいですか?</>
-              ) : (
-                <>
-                  「{name || "このサービス"}」を{pendingOutcome === "used_up" ? "使いきった" : "失効した"}記録を残します。よろしいですか?
-                </>
-              )}
-            </p>
-            <div className="modal-actions">
-              <button
-                className={pendingOutcome === "used_up" ? "btn-outline" : "btn-outline-warm"}
-                onClick={() => handleOutcome(pendingOutcome)}
-                disabled={isRecordingOutcome}
-              >
-                {isRecordingOutcome ? "記録中..." : "記録する"}
-              </button>
-              <button
-                className="btn-ghost"
-                onClick={() => setPendingOutcome(null)}
-                disabled={isRecordingOutcome}
-              >
-                キャンセル
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmSheet
+          title={
+            accountType === "continuous"
+              ? "「" + (name || "このサービス") + "」の失効を記録しますか?"
+              : "「" + (name || "このサービス") + "」を" + (pendingOutcome === "used_up" ? "使いきった" : "失効した") + "ものとして記録しますか?"
+          }
+          description={accountType === "continuous" ? "残高は0にリセットされます。" : "記録を残します。"}
+          confirmLabel="記録する"
+          busyLabel="記録中..."
+          variant={pendingOutcome === "expired" ? "danger" : "normal"}
+          busy={isRecordingOutcome}
+          onConfirm={() => handleOutcome(pendingOutcome)}
+          onClose={() => setPendingOutcome(null)}
+        />
       )}
     </>
   );

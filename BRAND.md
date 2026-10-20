@@ -49,6 +49,20 @@
 - しずくの位置(カードの右下 → 左側): しずくの path を `M8.6 12.2…`(中心 x≒7.6)に変えた。理由: 金の丸も含めて、絵全体の重心が右に寄っていたため。カード、横線、金の点、色、拡大・移動は変えていない(しずくはカードの中なので、全体の範囲は同じ)。変えた場所: assets の2つの SVG、`components/CardMark.tsx`、生成した PNG と favicon。ファイル名は変えていない(キャッシュの注意は次の項目と同じ)。
 - アイコンのキャッシュ: ファイル名は変えていない(manifest も layout も同じ)。Next は public の画像を `max-age=0` で配るため、再読み込みで新しい絵になる。ただし、タブのアイコン(favicon)と、ホーム画面に追加済みのアイコンは、端末側で長く残ることがある。残るときは、ブラウザのキャッシュを消す、ホーム画面のアイコンを一度消して入れ直す。それでも困るなら、ファイル名にバージョンを付ける(例: icon-192-v2.png。manifest と layout の参照も変える)。
 
+## 確認のポップアップ(ConfirmSheet)
+- 4つのアプリ(おさいふびより、まもりびより、たべびより、ハブ)で、同じ仕様にそろえる計画の、最初の1つ(型づくり)。他の3アプリにも同じ形で入れる。部品の仕様(見た目、並び、操作)は4アプリで同じにし、アプリごとに変えない。直すときは、4つ同時に直す。
+- 部品: `components/ConfirmSheet.tsx`。CSS は `app/globals.css` の `.confirm-*`。以前の `.modal-backdrop`、`.modal-sheet`、`.modal-actions` は、使う場面がなくなったので削除した。
+- 使い方: 出す場面だけ描画する。`{open && <ConfirmSheet title="「A」を削除しますか?" description="削除すると、元に戻せません。" confirmLabel="削除する" busyLabel="削除中..." variant="danger" busy={isDeleting} onConfirm={...} onClose={() => setOpen(false)} />}`。props: title、description(省略可)、confirmLabel、busyLabel(省略可)、variant(danger か normal。省略は normal)、busy、onConfirm、onClose。
+- 文言: 見出し(〜しますか?)+説明+実行ボタン(〜する)+「キャンセル」。「〜よろしいですか?」だけの形にしない。
+- 色: 元に戻せない操作(削除、廃棄、失効の記録、お知らせを消す)は danger(赤 `#b3261e`、塗り)。元に戻せる操作(ログアウトなど)は normal(ブランド色、塗り)。赤の直書きはしない。
+- 位置: スマホ(幅600px未満)は下から出るボトムシート(最大幅480px)。幅600px以上は画面の中央のカード(幅400px)。切り替えは `@media (min-width: 600px)`(このアプリの CSS には、それまでブレークポイントがなかったため、600pxにした。4アプリでこの値を使う)。
+- 背景: 暗転 0.45。背景を押す、または Esc で閉じる。処理中(busy)は、閉じず、両方のボタンも押せない。z-index は 100 の1つだけ(以前の 50 と 1000 は無くした)。
+- ボタン: スマホは縦並び(実行が上、キャンセルが下)。広い画面は横並び(右が実行、左がキャンセル)。
+- 高さ: 画面の高さの85%(`85dvh`)まで。超えたら内側でスクロール。下の安全領域は `env(safe-area-inset-bottom)` を足した(iPhone で、viewport-fit=cover を指定していないと、値は0。今は指定していない)。
+- 操作: 開くと「キャンセル」にフォーカス(誤って実行しにくい)。Tab はポップアップの中だけを回る。閉じると、押したボタンにフォーカスが戻る。role="dialog"、aria-modal、aria-labelledby(見出し)、aria-describedby(説明)。
+- 置き換えた場面(動作は変えていない): 口座の削除(danger)、失効の記録(danger)、使いきった記録(normal)、お知らせを消す(danger)、ログアウト(normal)。
+- 確認がない場面(今回は変えていない): アカウント削除(API はあるが、画面から呼ぶ場所はない)、共有の解除(共有機能は未実装)、写真の「この項目は登録しない」(AccountForm.tsx:1198)。元に戻せない操作に確認を足すかは、利用者が後で決める。
+
 ## lint の整理の方針
 - 2026-10 に、lint の指摘18件を整理して、0件にした(動作は変えない)。
 - 直したもの: ScanPhysicalUpload の使わない変数 existingFaceValue(値を捨て、更新関数だけ残す)。AccountForm の setBalanceUnitFromValue を、effect より前へ移した(処理は同じ)。

@@ -458,34 +458,89 @@ button {
   gap: 4px;
 }
 
-/* --- ボトムシート(削除確認など) --- */
+/* --- 確認のポップアップ(ConfirmSheet。4アプリで同じ仕様) --- */
+/* スマホ: 下から出るシート。幅600px以上: 中央のカード。z-index は 100 だけを使う */
 
-.modal-backdrop {
+.confirm-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.35);
+  background: rgba(0, 0, 0, 0.45);
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  z-index: 50;
+  z-index: 100;
 }
 
-.modal-sheet {
+.confirm-sheet {
   width: 100%;
   max-width: 480px;
+  max-height: 85dvh;
+  overflow-y: auto;
   background: #fff;
   border-radius: 20px 20px 0 0;
-  padding: 24px 20px 32px;
+  padding: 24px 20px calc(24px + env(safe-area-inset-bottom));
 }
 
-.modal-sheet p {
+.confirm-title {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.5;
+  margin: 0 0 8px;
+}
+
+.confirm-desc {
   font-size: 14px;
+  line-height: 1.6;
   color: #555;
   margin: 0 0 20px;
 }
 
-.modal-actions {
+.confirm-actions {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.confirm-btn {
+  width: 100%;
+  border-radius: var(--radius-pill);
+  padding: 13px;
+  font-size: 15px;
+  font-weight: 500;
+}
+.confirm-btn:disabled {
+  opacity: 0.5;
+}
+.confirm-btn-danger {
+  background: #b3261e;
+  color: #fff;
+  border: 1px solid #b3261e;
+}
+.confirm-btn-normal {
+  background: var(--brand);
+  color: #fff;
+  border: 1px solid var(--brand);
+}
+.confirm-btn-cancel {
+  background: #fff;
+  color: #555;
+  border: 1px solid #ccc;
+}
+
+@media (min-width: 600px) {
+  .confirm-backdrop {
+    align-items: center;
+    padding: 24px;
+  }
+  .confirm-sheet {
+    max-width: 400px;
+    border-radius: 16px;
+    padding-bottom: 24px;
+  }
+  .confirm-actions {
+    flex-direction: row-reverse;
+  }
+  .confirm-btn {
+    flex: 1;
+  }
 }

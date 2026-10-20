@@ -11,6 +11,7 @@
 // 利用者は選んだお知らせを自分の画面から消せる(端末にだけ記録し、サーバーは変えない)。
 // 消したものも含めたすべては「過去のお知らせ」(/notifications/all)で見られる。
 
+import ConfirmSheet from "@/components/ConfirmSheet";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
@@ -199,23 +200,19 @@ function HubAnnouncements() {
       <PastAnnouncementsLink />
 
       {showConfirm && (
-        <div className="modal-backdrop">
-          <div className="modal-sheet" role="dialog" aria-modal="true">
-            <p>
-              選んだ{selectedCount}件のお知らせを、この一覧から消します。
-              <strong>消したあとは、元に戻せません。</strong>
+        <ConfirmSheet
+          title={"選んだ" + selectedCount + "件のお知らせを消しますか?"}
+          description={
+            <>
+              この一覧から消します。<strong>消したあとは、元に戻せません。</strong>
               「過去のお知らせ」からは、引き続き読むことができます。
-            </p>
-            <div className="modal-actions">
-              <button className="btn-danger" type="button" onClick={handleDismiss}>
-                {selectedCount}件を消す
-              </button>
-              <button className="btn-ghost" type="button" onClick={() => setShowConfirm(false)}>
-                キャンセル
-              </button>
-            </div>
-          </div>
-        </div>
+            </>
+          }
+          confirmLabel={selectedCount + "件を消す"}
+          variant="danger"
+          onConfirm={handleDismiss}
+          onClose={() => setShowConfirm(false)}
+        />
       )}
     </>
   );

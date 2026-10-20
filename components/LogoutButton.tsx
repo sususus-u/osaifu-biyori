@@ -6,6 +6,7 @@
 // サインアウトできると uid が null になり、画面側(AppShell)が案内の画面を出す。
 // プッシュ通知のブラウザ側の登録は、ここでは触らない。
 
+import ConfirmSheet from "@/components/ConfirmSheet";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
@@ -68,72 +69,16 @@ export default function LogoutButton() {
       )}
 
       {confirming && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label="ログアウトの確認"
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.4)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 24,
-            zIndex: 1000,
-          }}
-        >
-          <div
-            style={{
-              background: "#fff",
-              borderRadius: 14,
-              padding: 20,
-              width: "100%",
-              maxWidth: 320,
-            }}
-          >
-            <p style={{ fontSize: 14, lineHeight: 1.6, marginBottom: 16 }}>
-              ログアウトします。よろしいですか。
-            </p>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button
-                type="button"
-                onClick={() => setConfirming(false)}
-                disabled={busy}
-                style={{
-                  flex: 1,
-                  background: "#fff",
-                  color: "#555",
-                  border: "1px solid #ddd",
-                  borderRadius: 100,
-                  padding: "10px 0",
-                  fontSize: 13,
-                  opacity: busy ? 0.5 : 1,
-                }}
-              >
-                キャンセル
-              </button>
-              <button
-                type="button"
-                onClick={handleLogout}
-                disabled={busy}
-                style={{
-                  flex: 1,
-                  background: "#c0392b",
-                  color: "#fff",
-                  border: "1px solid #c0392b",
-                  borderRadius: 100,
-                  padding: "10px 0",
-                  fontSize: 13,
-                  fontWeight: 500,
-                  opacity: busy ? 0.5 : 1,
-                }}
-              >
-                {busy ? "処理中…" : "ログアウトする"}
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmSheet
+          title="ログアウトしますか?"
+          description="この端末に残っているこのアプリのデータも消えます。"
+          confirmLabel="ログアウトする"
+          busyLabel="処理中…"
+          variant="normal"
+          busy={busy}
+          onConfirm={handleLogout}
+          onClose={() => setConfirming(false)}
+        />
       )}
     </div>
   );
