@@ -19,10 +19,11 @@ import AccountRow, { type AccountWithId } from "@/components/AccountRow";
 import StampRowNotice from "@/components/StampRowNotice";
 import StampSavedToast from "@/components/StampSavedToast";
 import {
-  STAMP_NOTICE_MS,
   STAMP_TOAST_MS,
   STAMP_WAIT_MS,
+  clearNoticesOnTabChange,
   clearStampSavedMessage,
+  closeNotice,
   peekStampSavedMessage,
   decideBind,
   planWaitTimeout,
@@ -192,7 +193,7 @@ export default function AccountList() {
     return () => clearTimeout(timer);
   }, [pending]);
 
-  // 案内が出たら、最初の行を画面の中央へ動かす。7秒で案内を消す
+  // 案内が出たら、最初の行を画面の中央へ動かす。案内は自動では消さない(閉じる、タブの切り替え、画面を離れる、で消える)
   useEffect(() => {
     if (Object.keys(notices).length === 0) return;
     const id = scrollTargetRef.current;
@@ -202,10 +203,6 @@ export default function AccountList() {
         .querySelector(`[data-account-id="${CSS.escape(id)}"]`)
         ?.scrollIntoView({ block: "center", behavior: "smooth" });
     }
-    const noticeTimer = setTimeout(() => setNotices({}), STAMP_NOTICE_MS);
-    return () => {
-      clearTimeout(noticeTimer);
-    };
   }, [notices]);
 
   function noticeFor(id: string) {
@@ -214,13 +211,7 @@ export default function AccountList() {
     return (
       <StampRowNotice
         text={text}
-        onClose={() =>
-          setNotices((cur) => {
-            const next = { ...cur };
-            delete next[id];
-            return next;
-          })
-        }
+        onClose={() => setNotices((cur) => closeNotice(cur, id))}
       />
     );
   }
@@ -368,7 +359,10 @@ export default function AccountList() {
         ].map((t) => (
           <button
             key={t.key}
-            onClick={() => setTab(t.key as typeof tab)}
+            onClick={() => {
+              setTab(t.key as typeof tab);
+              setNotices((cur) => clearNoticesOnTabChange(cur));
+            }}
             style={{
               flex: 1,
               padding: "8px 10px",

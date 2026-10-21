@@ -3,7 +3,6 @@
 // storage は引数で受けるので、テストでは偽物を使う。
 export const STAMP_SAVED_MESSAGE_KEY = "tamari:stampSavedMessage";
 export const STAMP_TOAST_MS = 4000; // 上部のトースト(代わりの案内)
-export const STAMP_NOTICE_MS = 7000; // 行の下の案内
 export const STAMP_WAIT_MS = 3000; // 一覧の読み込みを待つ上限。超えたら上部のトーストへ切り替える
 
 export interface MessageStorage {
@@ -85,6 +84,18 @@ export function takeStampSavedMessage(storage: MessageStorage | null): StampSave
   const v = peekStampSavedMessage(storage);
   clearStampSavedMessage(storage);
   return v;
+}
+
+// 行の下の案内は、自動では消さない。1件ずつ閉じる(他の案内は残る)
+export function closeNotice(notices: Record<string, string>, id: string): Record<string, string> {
+  const next = { ...notices };
+  delete next[id];
+  return next;
+}
+
+// 一覧のタブをユーザーが切り替えたら、案内は全部消す(保存直後の自動の切り替えでは呼ばない)
+export function clearNoticesOnTabChange(notices: Record<string, string>): Record<string, string> {
+  return Object.keys(notices).length === 0 ? notices : {};
 }
 
 // 結びつけを始めてよいか。items があるのに行が全部は見つからない間は、待つ(null)。

@@ -1,11 +1,14 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import * as toastModule from "./stampToast.ts";
 import {
   STAMP_SAVED_MESSAGE_KEY,
   STAMP_WAIT_MS,
   clearStampSavedMessage,
   peekStampSavedMessage,
   planWaitTimeout,
+  clearNoticesOnTabChange,
+  closeNotice,
   decideBind,
   pickTab,
   planStampNotices,
@@ -143,6 +146,26 @@ test("decideBind: 行が1つも見つからないまま待ち時間を超えた�
 test("decideBind: 古い形式(項目なし)は待たず、全文をトースト", () => {
   const plan = decideBind({ message: "古い", items: [] }, listAB, "noExpiry", false)!;
   assert.equal(plan.fallback, "古い");
+});
+
+// ---- 行の下の案内を閉じる ----
+
+test("案内は自動では消えない(7秒のタイマーの定数は無い)。画面を離れる(アンマウント)と、状態ごと消える", () => {
+  assert.equal("STAMP_NOTICE_MS" in toastModule, false);
+});
+
+test("1件ずつ閉じられる。もう片方は残る。タップも「×」も同じ閉じ方", () => {
+  const n = { a: "x", b: "y" };
+  assert.deepEqual(closeNotice(n, "a"), { b: "y" });
+  assert.deepEqual(closeNotice(closeNotice(n, "a"), "b"), {});
+  assert.deepEqual(n, { a: "x", b: "y" }); // 元は変えない
+  assert.deepEqual(closeNotice(n, "zzz"), n);
+});
+
+test("タブを切り替えると、案内は全部消える", () => {
+  assert.deepEqual(clearNoticesOnTabChange({ a: "x", b: "y" }), {});
+  const empty = {};
+  assert.equal(clearNoticesOnTabChange(empty), empty);
 });
 
 // ---- 行の下の案内(noticesById)、代わりの案内、タブの決め方 ----
