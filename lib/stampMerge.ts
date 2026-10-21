@@ -161,6 +161,12 @@ export function switchStampMode(
   return { name: r.kind === "ok" ? stampNameFromFace(r.value) : "", savedManualName: o.name };
 }
 
+// 読み取りで新しく作る項目のグループ名。「切手 N円」の名前は、手動の登録と同じ「切手」にそろえる(一覧の「サービス別」で
+// 1つの見出しにまとまる)。それ以外の名前(商品券など)は、今までどおり名前そのもの。足す場合は呼ばない(既存の項目は書き換えない)
+export function groupNameForNewItem(name: string): string {
+  return isStampName(canonicalStampName(name)) ? STAMP_DEFAULT_NAME : name;
+}
+
 // 額面から、名前「切手 N円」を作る
 export function stampNameFromFace(n: number): string {
   return `切手 ${n}円`;

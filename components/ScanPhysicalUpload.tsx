@@ -50,6 +50,8 @@ import {
   type SaveRow,
 } from "@/lib/stampMerge";
 import BusyIndicator from "@/components/BusyIndicator";
+import { scanStampSummary } from "@/lib/stampAuto";
+import { STAMP_NAME_BG } from "@/lib/stampNameView";
 import { busyViewForPhysical, waitForPaint } from "@/lib/busyView";
 import { saveStamps } from "@/lib/stampSave";
 import { stashStampSavedMessage } from "@/lib/stampToast";
@@ -86,6 +88,8 @@ export default function ScanPhysicalUpload() {
   const rowName = (r: ScanRow) =>
     saveRowName({ rowCount: rows.length, name, scanIsStamp, rowName: r.name, faceValue: r.faceValue });
   const [expiryDate, setExpiryDate] = useState("");
+  // 期限を手で直したか(自動で設定した一言から、期限と通知を外す)
+  const [expiryTouched, setExpiryTouched] = useState(false);
   const [itemCount, setItemCount] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [savedMessage, setSavedMessage] = useState("");
@@ -175,6 +179,7 @@ export default function ScanPhysicalUpload() {
             : ""
       );
       setExpiryDate(data.expiryDate ?? "");
+      setExpiryTouched(false);
       setItemCount(data.itemCount);
 
       // 同じ名前の既存口座があるか確認(あれば比較しながら更新できるようにする)
@@ -549,8 +554,18 @@ export default function ScanPhysicalUpload() {
             <input
               type="date"
               value={expiryDate}
-              onChange={(e) => setExpiryDate(e.target.value)}
+              onChange={(e) => {
+                setExpiryTouched(true);
+                setExpiryDate(e.target.value);
+              }}
             />
+            {stampMode && (
+              <p
+                style={{ margin: "8px 0 0", padding: "8px 12px", borderRadius: 8, background: STAMP_NAME_BG, color: "#444", fontSize: 13, lineHeight: 1.6 }}
+              >
+                {scanStampSummary({ expiryDate, expiryTouched })}
+              </p>
+            )}
           </div>
 
           {matchedAccountId && !stampMode ? (

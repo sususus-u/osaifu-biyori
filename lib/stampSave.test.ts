@@ -621,3 +621,36 @@ test("編集モード(切手の新規登録でない)では、一言が出ない
   assert.equal(stampAutoSummary({ isStampEntry: false, cur: stampAutoApply(initial, NO_TOUCH), touched: NO_TOUCH }), null);
   assert.equal(isStampGroupEntry(true, "切手"), false);
 });
+
+// ---- 段階3: 読み取りの新規作成のグループ名と、一言 ----
+import { groupNameForNewItem } from "./stampMerge.ts";
+import { scanStampSummary } from "./stampAuto.ts";
+
+test("新規作成のグループ名: 「切手 N円」は「切手」(ゆれも)。別の名前は名前のまま。足す場合は呼ばない", () => {
+  assert.equal(groupNameForNewItem("切手 84円"), "切手");
+  assert.equal(groupNameForNewItem("切手１円"), "切手");
+  assert.equal(groupNameForNewItem("記念切手 84円"), "記念切手 84円");
+  assert.equal(groupNameForNewItem("図書カード 500円"), "図書カード 500円");
+  // 足す側(planStampSave)の計画には、グループ名が無い=既存の項目のグループ名は変えない
+  const plan = planStampSave(
+    [{ id: "a", name: "切手 1円", category: "gift_certificate", faceValue: 1, currentBalance: 0, itemQuantity: 0, createdMillis: 1 }],
+    [{ name: "切手 1円", faceValue: 1, count: 3 }]
+  );
+  assert.equal(plan[0].kind, "add");
+  assert.equal("groupName" in plan[0], false);
+});
+
+test("読み取りの一言: 期限なし/期限ありの文。期限を手で直したら、期限と通知は挙げない", () => {
+  assert.equal(
+    scanStampSummary({ expiryDate: "", expiryTouched: false }),
+    "自動で設定しました: 種類=商品券・切手、単位=円、期限=なし、通知=なし(変更できます)"
+  );
+  assert.equal(
+    scanStampSummary({ expiryDate: "2027-03-31", expiryTouched: false }),
+    "自動で設定しました: 種類=商品券・切手、単位=円、期限=2027-03-31、通知=90日前・21日前(変更できます)"
+  );
+  assert.equal(
+    scanStampSummary({ expiryDate: "2027-03-31", expiryTouched: true }),
+    "自動で設定しました: 種類=商品券・切手、単位=円(変更できます)"
+  );
+});

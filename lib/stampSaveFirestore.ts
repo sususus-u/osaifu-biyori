@@ -10,7 +10,7 @@ import {
   type Timestamp,
 } from "firebase/firestore";
 import { db } from "./firebase";
-import { toExistingItem } from "./stampMerge.ts";
+import { groupNameForNewItem, toExistingItem } from "./stampMerge.ts";
 import type { StampSaveDeps } from "./stampSave.ts";
 
 // expiry は、利用者が入力したときだけ渡す(切手は基本、期限がない)。足すときは、渡されたときだけ上書きする
@@ -48,7 +48,7 @@ export function firestoreStampDeps(uid: string, expiry: Timestamp | null): Stamp
             t.set(ref, {
               ownerId: uid,
               name: item.name,
-              groupName: item.name,
+              groupName: groupNameForNewItem(item.name),
               category: "gift_certificate",
               isYenBased: true,
               type: "finite",
