@@ -412,6 +412,14 @@ export default function ScanPhysicalUpload() {
             </div>
           )}
 
+          {stampMode && (
+            <p
+              style={{ margin: "0 0 12px", padding: "8px 12px", borderRadius: 8, background: STAMP_NAME_BG, color: "#444", fontSize: 13, lineHeight: 1.6 }}
+            >
+              {scanStampSummary({ expiryDate, expiryTouched })}
+            </p>
+          )}
+
           <div className="field">
             <label>名前</label>
             <input
@@ -559,13 +567,6 @@ export default function ScanPhysicalUpload() {
                 setExpiryDate(e.target.value);
               }}
             />
-            {stampMode && (
-              <p
-                style={{ margin: "8px 0 0", padding: "8px 12px", borderRadius: 8, background: STAMP_NAME_BG, color: "#444", fontSize: 13, lineHeight: 1.6 }}
-              >
-                {scanStampSummary({ expiryDate, expiryTouched })}
-              </p>
-            )}
           </div>
 
           {matchedAccountId && !stampMode ? (
