@@ -29,7 +29,7 @@ import { getYenValue } from "@/lib/accountUtils";
 import BusyIndicator from "@/components/BusyIndicator";
 import { busyPreparing, waitForPaint } from "@/lib/busyView";
 import { stashStampSavedMessage } from "@/lib/stampToast";
-import { STAMP_DEFAULT_NAME, canonicalStampName, manualAddNotice, parseStampFace, stampEntryMode, stampFaceFromName, stampNameFromFace, switchStampMode, normalizeName, pickAddTarget, toExistingItem, type ExistingItem } from "@/lib/stampMerge";
+import { STAMP_DEFAULT_NAME, STAMP_MANUAL_PLACEHOLDER, canonicalStampName, manualAddNotice, parseStampFace, stampEntryMode, stampFaceFromName, stampNameFromFace, switchStampMode, normalizeName, pickAddTarget, toExistingItem, type ExistingItem } from "@/lib/stampMerge";
 import { useAuth } from "@/contexts/AuthProvider";
 import { prepareScanImage } from "@/lib/scanImage";
 import {
@@ -460,7 +460,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
       }
     }
     if (!name.trim()) {
-      setErrorMessage("名前を入力してください。");
+      setErrorMessage(stampMode === "manual" ? "名称を入力してください(例:記念切手)。" : "名前を入力してください。");
       return false;
     }
     if (isOther && !customCategoryLabel.trim()) {
@@ -965,7 +965,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
                 setSameNameItems([]);
               }}
               onBlur={handleNameBlur}
-              placeholder="例:PayPay残高"
+              placeholder={stampMode === "manual" ? STAMP_MANUAL_PLACEHOLDER : "例:PayPay残高"}
               list="known-account-names"
               style={{ paddingRight: name ? 32 : undefined }}
             />

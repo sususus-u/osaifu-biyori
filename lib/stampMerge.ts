@@ -125,7 +125,8 @@ export function isStampGroupEntry(isEditMode: boolean, groupName: string): boole
   return !isEditMode && groupName.trim() === "切手";
 }
 
-export const STAMP_DEFAULT_NAME = "切手"; // グループ名が「切手」のときの、名前の初期値(名称を自分で付けるとき)
+export const STAMP_DEFAULT_NAME = "切手"; // 数字入力で、額面を入れる前に名前として見せる文字(値は空)
+export const STAMP_MANUAL_PLACEHOLDER = "記念切手 など"; // 名称を自分で付けるときの、名前欄の薄い案内
 
 export type StampEntryMode = "numeric" | "manual";
 
@@ -153,7 +154,8 @@ export function switchStampMode(
   o: { name: string; savedManualName: string; faceShown: string }
 ): { name: string; savedManualName: string } {
   if (to === "manual") {
-    return { name: o.savedManualName || STAMP_DEFAULT_NAME, savedManualName: o.savedManualName };
+    // 自分で付ける名前なので、最初は空欄(控えた名前があれば復元する)
+    return { name: o.savedManualName, savedManualName: o.savedManualName };
   }
   const r = parseStampFace(o.faceShown);
   return { name: r.kind === "ok" ? stampNameFromFace(r.value) : "", savedManualName: o.name };
