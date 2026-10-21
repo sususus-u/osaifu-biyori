@@ -585,3 +585,39 @@ test("コントラスト比は WCAG AA(4.5:1)以上。決まった名前も、�
   assert.ok(contrastRatio(STAMP_NAME_HINT_COLOR, v.background) >= 4.5);
   assert.ok(contrastRatio("#000000", "#ffffff") > 20.9); // 計算の確かめ(黒と白は 21:1)
 });
+
+// ---- 切手の自動設定(種類・単位・期限・通知) ----
+import { NO_TOUCH, stampAutoApply, stampAutoRestore, stampAutoSummary } from "./stampAuto.ts";
+
+const initial = { category: "electronic_money", unit: "円", hasExpiry: null as boolean | null };
+
+test("切手のとき、種類=商品券・切手、単位=円、期限=なしが自動で入る(通知は期限なしで対象外)", () => {
+  const next = stampAutoApply(initial, NO_TOUCH);
+  assert.deepEqual(next, { category: "gift_certificate", unit: "円", hasExpiry: false });
+  assert.equal(
+    stampAutoSummary({ isStampEntry: true, cur: next, touched: NO_TOUCH }),
+    "自動で設定しました: 種類=商品券・切手、単位=円、期限=なし、通知=なし(変更できます)"
+  );
+});
+
+test("手で変えた欄は、上書きしない(一言にも出ない)", () => {
+  const cur = { category: "other", unit: "枚", hasExpiry: true as boolean | null };
+  const touched = { category: true, unit: true, expiry: true };
+  assert.deepEqual(stampAutoApply(cur, touched), cur);
+  assert.equal(stampAutoSummary({ isStampEntry: true, cur, touched }), null);
+  const part = stampAutoApply(initial, { category: true, unit: false, expiry: false });
+  assert.deepEqual(part, { category: "electronic_money", unit: "円", hasExpiry: false });
+});
+
+test("グループ名を変えると、手で変えていない欄だけ元に戻る", () => {
+  const applied = stampAutoApply(initial, NO_TOUCH);
+  assert.deepEqual(stampAutoRestore(applied, initial, NO_TOUCH), initial);
+  const edited = { ...applied, hasExpiry: true as boolean | null };
+  const back = stampAutoRestore(edited, initial, { category: false, unit: false, expiry: true });
+  assert.deepEqual(back, { category: "electronic_money", unit: "円", hasExpiry: true });
+});
+
+test("編集モード(切手の新規登録でない)では、一言が出ない。自動設定の入口は止まる", () => {
+  assert.equal(stampAutoSummary({ isStampEntry: false, cur: stampAutoApply(initial, NO_TOUCH), touched: NO_TOUCH }), null);
+  assert.equal(isStampGroupEntry(true, "切手"), false);
+});

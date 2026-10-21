@@ -29,8 +29,9 @@ import { getYenValue } from "@/lib/accountUtils";
 import BusyIndicator from "@/components/BusyIndicator";
 import { busyPreparing, waitForPaint } from "@/lib/busyView";
 import { stashStampSavedMessage } from "@/lib/stampToast";
-import { stampNameView } from "@/lib/stampNameView";
-import { STAMP_DEFAULT_NAME, STAMP_MANUAL_PLACEHOLDER, canonicalStampName, manualAddNotice, parseStampFace, stampEntryMode, stampFaceFromName, stampNameFromFace, switchStampMode, normalizeName, pickAddTarget, toExistingItem, type ExistingItem } from "@/lib/stampMerge";
+import { STAMP_NAME_BG, stampNameView } from "@/lib/stampNameView";
+import { NO_TOUCH, stampAutoApply, stampAutoRestore, stampAutoSummary, type StampAutoState, type StampTouched } from "@/lib/stampAuto";
+import { isStampGroupEntry, STAMP_DEFAULT_NAME, STAMP_MANUAL_PLACEHOLDER, canonicalStampName, manualAddNotice, parseStampFace, stampEntryMode, stampFaceFromName, stampNameFromFace, switchStampMode, normalizeName, pickAddTarget, toExistingItem, type ExistingItem } from "@/lib/stampMerge";
 import { useAuth } from "@/contexts/AuthProvider";
 import { prepareScanImage } from "@/lib/scanImage";
 import {
@@ -130,6 +131,9 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
   const [stampFaceInput, setStampFaceInput] = useState("");
   const [stampManual, setStampManual] = useState(false);
   const [savedManualName, setSavedManualName] = useState("");
+  // 切手の自動設定(種類・単位・期限)。手で変えた欄は優先し、上書きしない。入れる前の値は、戻すために控える
+  const [stampTouched, setStampTouched] = useState<StampTouched>(NO_TOUCH);
+  const stampPrevRef = useRef<StampAutoState | null>(null);
   const [itemQuantity, setItemQuantity] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
   // 有効期限を「期間限定」「期限なし」のどちらにするか。null は未選択(新規登録時は選択必須)
@@ -181,6 +185,11 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
   // 名前がすでに別の名称(読み取りの引き継ぎなど)なら、自動では数字入力にしない
   const stampMode = stampEntryMode({ isEditMode, groupName, manualFlag: stampManual, name, faceInput: stampFaceInput });
   const showStampNumeric = stampMode === "numeric";
+  const autoSummary = stampAutoSummary({
+    isStampEntry: stampMode !== null,
+    cur: { category, unit: balanceUnit, hasExpiry },
+    touched: stampTouched,
+  });
   const stampFaceShown =
     stampFaceInput !== "" ? stampFaceInput : stampFaceFromName(name) !== null ? String(stampFaceFromName(name)) : "";
 
@@ -414,9 +423,37 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
     if (r.kind === "ok") {
       setName(stampNameFromFace(r.value));
       setFaceValue(String(r.value));
-      if (category !== "gift_certificate") handleCategoryChange("gift_certificate");
+      if (category !== "gift_certificate" && !stampTouched.category) handleCategoryChange("gift_certificate");
     } else {
       setName("");
+    }
+  }
+
+  // グループ名の変更。新規登録で「切手」になったら、種類=商品券・切手、単位=円、期限=なし を自動で入れる(手で変えた欄は除く)。
+  // 「切手」でなくなったら、手で変えていない欄だけ、入れる前の値に戻す。編集モードでは何もしない
+  function handleGroupNameChange(v: string) {
+    const was = isStampGroupEntry(isEditMode, groupName);
+    const now = isStampGroupEntry(isEditMode, v);
+    setGroupName(v);
+    if (!was && now) {
+      const cur: StampAutoState = { category, unit: balanceUnit, hasExpiry };
+      stampPrevRef.current = cur;
+      const next = stampAutoApply(cur, stampTouched);
+      if (next.category !== category) handleCategoryChange(next.category as AccountCategory);
+      setBalanceUnitFromValue(next.unit);
+      if (next.hasExpiry !== hasExpiry) {
+        setHasExpiry(next.hasExpiry);
+        if (next.hasExpiry === false) setExpiryDate("");
+      }
+    } else if (was && !now) {
+      const prev = stampPrevRef.current;
+      stampPrevRef.current = null;
+      if (!prev) return;
+      const cur: StampAutoState = { category, unit: balanceUnit, hasExpiry };
+      const back = stampAutoRestore(cur, prev, stampTouched);
+      if (back.category !== category) handleCategoryChange(back.category as AccountCategory);
+      setBalanceUnitFromValue(back.unit);
+      if (back.hasExpiry !== hasExpiry) setHasExpiry(back.hasExpiry);
     }
   }
 
@@ -858,7 +895,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
             <input
               type="text"
               value={groupName}
-              onChange={(e) => setGroupName(e.target.value)}
+              onChange={(e) => handleGroupNameChange(e.target.value)}
               placeholder="例:PayPay"
               list="known-service-names"
               style={{ paddingRight: groupName ? 32 : undefined }}
@@ -866,7 +903,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
             {groupName && (
               <button
                 type="button"
-                onClick={() => setGroupName("")}
+                onClick={() => handleGroupNameChange("")}
                 aria-label="グループ名をクリア"
                 style={{
                   position: "absolute",
@@ -1013,11 +1050,21 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
           </datalist>
           </>
           )}
+          {autoSummary && (
+            <p
+              style={{ margin: "8px 0 0", padding: "8px 12px", borderRadius: 8, background: STAMP_NAME_BG, color: "#444", fontSize: 13, lineHeight: 1.6 }}
+            >
+              {autoSummary}
+            </p>
+          )}
         </div>
 
         <div className="field">
           <label>種類</label>
-          <select value={category} onChange={(e) => handleCategoryChange(e.target.value as AccountCategory)}>
+          <select value={category} onChange={(e) => {
+              setStampTouched((t) => ({ ...t, category: true }));
+              handleCategoryChange(e.target.value as AccountCategory);
+            }}>
             {CATEGORY_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
@@ -1102,7 +1149,10 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
               <label>単位</label>
               <select
                 value={isOther ? balanceUnitOption : CATEGORY_UNIT_DEFAULTS[category] ?? balanceUnitOption}
-                onChange={(e) => setBalanceUnitOption(e.target.value)}
+                onChange={(e) => {
+                  setStampTouched((t) => ({ ...t, unit: true }));
+                  setBalanceUnitOption(e.target.value);
+                }}
                 disabled={!isOther}
               >
                 <option value="円">円</option>
@@ -1115,7 +1165,10 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
                 <input
                   type="text"
                   value={customBalanceUnit}
-                  onChange={(e) => setCustomBalanceUnit(e.target.value)}
+                  onChange={(e) => {
+                    setStampTouched((t) => ({ ...t, unit: true }));
+                    setCustomBalanceUnit(e.target.value);
+                  }}
                   placeholder="単位を入力"
                   style={{ marginTop: 6 }}
                 />
@@ -1220,7 +1273,10 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
               <input
                 type="radio"
                 checked={hasExpiry === true}
-                onChange={() => setHasExpiry(true)}
+                onChange={() => {
+                  setStampTouched((t) => ({ ...t, expiry: true }));
+                  setHasExpiry(true);
+                }}
                 style={{ width: "auto", padding: 0 }}
               />
               期間限定
@@ -1230,6 +1286,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
                 type="radio"
                 checked={hasExpiry === false}
                 onChange={() => {
+                  setStampTouched((t) => ({ ...t, expiry: true }));
                   setHasExpiry(false);
                   setExpiryDate("");
                 }}
