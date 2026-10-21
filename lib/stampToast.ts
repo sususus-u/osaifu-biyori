@@ -5,6 +5,7 @@ export const STAMP_SAVED_MESSAGE_KEY = "tamari:stampSavedMessage";
 export const STAMP_TOAST_MS = 4000; // 上部のトースト(代わりの案内)
 export const STAMP_NOTICE_MS = 7000; // 行の下の案内
 export const STAMP_FLASH_MS = 2000; // 行の強調
+export const STAMP_WAIT_MS = 3000; // 一覧の読み込みを待つ上限。超えたら上部のトーストへ切り替える
 
 export interface MessageStorage {
   getItem(key: string): string | null;
@@ -45,12 +46,12 @@ function isSavedItem(v: unknown): v is SavedItem {
   );
 }
 
-// 読んで、すぐ消す。なければ、読めなければ null。古い形式(文字列だけ)も読める(items は空)
-export function takeStampSavedMessage(storage: MessageStorage | null): StampSavedPayload | null {
+// 読む(消さない)。なければ、読めなければ null。古い形式(文字列だけ)も読める(items は空)。
+// 消すのは、表示を始めたとき(clearStampSavedMessage)。画面が作り直されても、案内を失わないため
+export function peekStampSavedMessage(storage: MessageStorage | null): StampSavedPayload | null {
   if (!storage) return null;
   try {
     const raw = storage.getItem(STAMP_SAVED_MESSAGE_KEY);
-    storage.removeItem(STAMP_SAVED_MESSAGE_KEY);
     if (raw === null || raw.trim() === "") return null;
     if (raw.trimStart().startsWith("{")) {
       try {
@@ -67,6 +68,45 @@ export function takeStampSavedMessage(storage: MessageStorage | null): StampSave
     return { message: raw, items: [] };
   } catch {
     return null;
+  }
+}
+
+// 消す。storage が使えないときは、黙って何もしない
+export function clearStampSavedMessage(storage: MessageStorage | null): void {
+  if (!storage) return;
+  try {
+    storage.removeItem(STAMP_SAVED_MESSAGE_KEY);
+  } catch {
+    // 消えないだけ
+  }
+}
+
+// 読んで、すぐ消す(peek + clear)
+export function takeStampSavedMessage(storage: MessageStorage | null): StampSavedPayload | null {
+  const v = peekStampSavedMessage(storage);
+  clearStampSavedMessage(storage);
+  return v;
+}
+
+// 読み込みを待ちきれなかったとき(STAMP_WAIT_MS 超)は、行に結びつけず、全文を上部のトーストへ
+export function planWaitTimeout(payload: StampSavedPayload): { fallback: string } {
+  return { fallback: payload.message };
+}
+
+// 診断用([stamp-notice 診断])。件数と有無と時間だけで、案内の本文・id は含めない。効果の確認後に取り消す(BRAND.md)
+export interface StampDiag {
+  event: "mount" | "bind" | "timeout";
+  hadKey: boolean;
+  itemCount: number;
+  found?: number;
+  toast?: boolean;
+  waitMs?: number;
+}
+export function stampDiag(d: StampDiag): void {
+  try {
+    console.warn("[stamp-notice 診断]", JSON.stringify(d));
+  } catch {
+    // 診断が出ないだけ
   }
 }
 

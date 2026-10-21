@@ -2,6 +2,10 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   STAMP_SAVED_MESSAGE_KEY,
+  STAMP_WAIT_MS,
+  clearStampSavedMessage,
+  peekStampSavedMessage,
+  planWaitTimeout,
   pickTab,
   planStampNotices,
   stashStampSavedMessage,
@@ -75,6 +79,36 @@ test("キーがなければ何も出ない。空の文は入れない。storage 
   assert.doesNotThrow(() => stashStampSavedMessage(broken, payload));
   assert.equal(takeStampSavedMessage(broken), null);
   assert.equal(takeStampSavedMessage(null), null);
+});
+
+// ---- 読んでも消さない(表示を始めてから消す)----
+
+test("peek は読んでも消さない。再マウントで何度読んでも同じ案内。clear の後は出ない(二重に出ない)", () => {
+  const s = fake();
+  stashStampSavedMessage(s, payload);
+  assert.deepEqual(peekStampSavedMessage(s), payload);
+  assert.equal(s.data.size, 1);
+  assert.deepEqual(peekStampSavedMessage(s), payload); // 再マウント
+  clearStampSavedMessage(s); // 表示を始めた
+  assert.equal(s.data.size, 0);
+  assert.equal(peekStampSavedMessage(s), null);
+});
+
+test("peek / clear は、storage がなくても例外でも落ちない", () => {
+  const broken: MessageStorage = {
+    getItem: () => { throw new Error("x"); },
+    setItem: () => {},
+    removeItem: () => { throw new Error("x"); },
+  };
+  assert.equal(peekStampSavedMessage(null), null);
+  assert.equal(peekStampSavedMessage(broken), null);
+  assert.doesNotThrow(() => clearStampSavedMessage(broken));
+  assert.doesNotThrow(() => clearStampSavedMessage(null));
+});
+
+test("読み込み待ち(3秒超)は、全文を上部のトーストへ。行には結びつけない", () => {
+  assert.equal(STAMP_WAIT_MS, 3000);
+  assert.equal(planWaitTimeout(payload).fallback, payload.message);
 });
 
 // ---- 行の下の案内(noticesById)、代わりの案内、タブの決め方 ----

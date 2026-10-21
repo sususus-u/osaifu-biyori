@@ -22,8 +22,12 @@ import {
   STAMP_FLASH_MS,
   STAMP_NOTICE_MS,
   STAMP_TOAST_MS,
+  STAMP_WAIT_MS,
+  clearStampSavedMessage,
+  peekStampSavedMessage,
   planStampNotices,
-  takeStampSavedMessage,
+  planWaitTimeout,
+  stampDiag,
   type StampSavedPayload,
 } from "@/lib/stampToast";
 import { getYenValue } from "@/lib/accountUtils";
@@ -85,6 +89,9 @@ export default function AccountList() {
   const [flashIds, setFlashIds] = useState<Set<string>>(new Set());
   const [fallbackMessage, setFallbackMessage] = useState<string | null>(null);
   const scrollTargetRef = useRef<string | null>(null);
+  // 案内の表示を始めたか(始めたら storage から消す。StrictMode の二重実行で、同じ案内を2回出さない)
+  const startedRef = useRef(false);
+  const pendingSinceRef = useRef(0);
   const [tab, setTab] = useState<"withExpiry" | "noExpiry" | "byGroup">(() => {
     if (typeof window === "undefined") return "withExpiry";
     const stored = sessionStorage.getItem("account-list-tab");
@@ -118,40 +125,61 @@ export default function AccountList() {
     return () => unsubscribe();
   }, [uid]);
 
-  // 切手の保存の直後に開いたときだけ、案内が入っている(読んだらすぐ消える)
+  // 切手の保存の直後に開いたときだけ、案内が入っている。読んでも消さない(表示を始めたときに消す)ので、
+  // 画面が作り直されても(StrictMode の二重実行、再マウント)案内は失われない
   useEffect(() => {
-    const taken = takeStampSavedMessage(window.sessionStorage);
-    // sessionStorage は開くまで読めず、読んだら消すので、開いた直後に一度だけ読む
+    if (startedRef.current) return;
+    const taken = peekStampSavedMessage(window.sessionStorage);
+    stampDiag({ event: "mount", hadKey: taken !== null, itemCount: taken ? taken.items.length : 0 });
+    pendingSinceRef.current = Date.now();
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (taken) setPending(taken);
   }, []);
 
   // 一覧が読み込まれたら、案内を該当の行に結びつける。行が今のタブになければタブを切り替える。
-  // 見つからなかった分は、上部のトーストに出す(見つかった分は二重に出さない)
+  // 見つからなかった分は、上部のトーストに出す(見つかった分は二重に出さない)。ここで表示を始めるので、storage から消す
   useEffect(() => {
-    if (!pending || !loaded) return;
+    if (!pending || !loaded || startedRef.current) return;
+    startedRef.current = true;
     const plan = planStampNotices(
       pending,
       accounts.map((a) => ({ id: a.id, name: a.name, hasExpiry: Boolean(a.expiryDate) })),
       tab
     );
-    /* eslint-disable react-hooks/set-state-in-effect */
+    clearStampSavedMessage(window.sessionStorage);
+    stampDiag({
+      event: "bind",
+      hadKey: true,
+      itemCount: pending.items.length,
+      found: Object.keys(plan.notices).length,
+      toast: plan.fallback !== null,
+      waitMs: Date.now() - pendingSinceRef.current,
+    });
     setPending(null);
     setTab(plan.tab);
     setNotices(plan.notices);
     setFlashIds(new Set(Object.keys(plan.notices)));
     setFallbackMessage(plan.fallback);
-    /* eslint-enable react-hooks/set-state-in-effect */
     scrollTargetRef.current = plan.firstId;
   }, [pending, loaded, accounts, tab]);
 
-  // 読み込みが遅いとき(3秒)は、行に結びつけず、上部のトーストで出す
+  // 読み込みが遅いとき(STAMP_WAIT_MS)は、行に結びつけず、上部のトーストで出す
   useEffect(() => {
     if (!pending) return;
     const timer = setTimeout(() => {
-      setFallbackMessage(pending.message);
+      if (startedRef.current) return;
+      startedRef.current = true;
+      clearStampSavedMessage(window.sessionStorage);
+      stampDiag({
+        event: "timeout",
+        hadKey: true,
+        itemCount: pending.items.length,
+        toast: true,
+        waitMs: Date.now() - pendingSinceRef.current,
+      });
+      setFallbackMessage(planWaitTimeout(pending).fallback);
       setPending(null);
-    }, 3000);
+    }, STAMP_WAIT_MS);
     return () => clearTimeout(timer);
   }, [pending]);
 
