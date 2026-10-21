@@ -28,7 +28,8 @@ import { guessServiceInfo } from "@/lib/knownServices";
 import { getYenValue } from "@/lib/accountUtils";
 import BusyIndicator from "@/components/BusyIndicator";
 import { busyPreparing, waitForPaint } from "@/lib/busyView";
-import { canonicalStampName, findSameName } from "@/lib/stampMerge";
+import { stashStampSavedMessage } from "@/lib/stampToast";
+import { canonicalStampName, findSameName, manualAddNotice } from "@/lib/stampMerge";
 import { useAuth } from "@/contexts/AuthProvider";
 import { prepareScanImage } from "@/lib/scanImage";
 import {
@@ -152,6 +153,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
   // 新規登録時、名前欄からフォーカスが外れた際に同名の既存サービスが見つかった場合の情報
   const [duplicateAccount, setDuplicateAccount] = useState<{
     id: string;
+    name: string;
     currentBalance: number | null;
     type: AccountType;
     faceValue: number | null;
@@ -384,6 +386,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
       const data = existing.data() as AccountDoc;
       setDuplicateAccount({
         id: existing.id,
+        name: String(data.name ?? ""),
         currentBalance: data.currentBalance ?? null,
         type: data.type,
         faceValue: data.faceValue ?? null,
@@ -648,6 +651,21 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
         expiryDate: expiryDate ? Timestamp.fromDate(new Date(expiryDate)) : null,
         source: "manual" as const,
         confirmedByUser: true,
+      });
+      // 足した行の下に案内を出す(読み取りの保存と同じ仕組み)。合計は、上で保存した値から作る
+      const addQuantity = itemQuantity === "" ? 0 : Number(itemQuantity);
+      const addBalance = balance === "" ? 0 : Number(balance);
+      const text = manualAddNotice({
+        name: duplicateAccount.name,
+        addQuantity,
+        newQuantity: newItemQuantity,
+        addBalance,
+        newBalance,
+        unit: balanceUnit || "円",
+      });
+      stashStampSavedMessage(window.sessionStorage, {
+        message: text,
+        items: [{ id: duplicateAccount.id, kind: "add", text }],
       });
       goToNextQueueItemOrHome();
     } catch (error) {

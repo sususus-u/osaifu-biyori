@@ -377,3 +377,37 @@ test("スクショの読み取り: 処理中だけ出る。文が空なら準備
   assert.equal(busyViewForScan(true, "画像を読み取っています...")!.title, BUSY_READING);
   assert.equal(busyViewForScan(true, "既存のサービスを確認しています...")!.title, "既存のサービスを確認しています…");
 });
+import { stashStampSavedMessage, takeStampSavedMessage } from "./stampToast.ts";
+
+// ---- 手で足したときの案内 ----
+import { manualAddNotice } from "./stampMerge.ts";
+
+test("手動で足す(切手): 読み取りの保存と同じ形の文。名前のゆれは「切手 N円」にそろう", () => {
+  assert.equal(
+    manualAddNotice({ name: "切手1円", addQuantity: 5, newQuantity: 23, addBalance: 5, newBalance: 23, unit: "円" }),
+    "切手 1円に5枚追加しました(合計23枚)"
+  );
+});
+
+test("手動で足す(切手以外): 足した量と合計が分かる。枚数だけ、何もないときの文も", () => {
+  assert.equal(
+    manualAddNotice({ name: "楽天ポイント", addQuantity: 0, newQuantity: 0, addBalance: 500, newBalance: 1500, unit: "ポイント" }),
+    "「楽天ポイント」に500ポイントを追加しました(合計1,500ポイント)"
+  );
+  assert.equal(
+    manualAddNotice({ name: "商品券", addQuantity: 2, newQuantity: 7, addBalance: 0, newBalance: 0, unit: "円" }),
+    "「商品券」に2枚追加しました(合計7枚)"
+  );
+  assert.equal(
+    manualAddNotice({ name: "商品券", addQuantity: 0, newQuantity: 0, addBalance: 0, newBalance: 0, unit: "円" }),
+    "「商品券」に追加しました"
+  );
+});
+
+test("手動で足した案内は、読み取りの保存と同じ入れ物(items に id と kind=add)で、読み出しできる", () => {
+  const data = new Map<string, string>();
+  const st = { getItem: (k: string) => data.get(k) ?? null, setItem: (k: string, v: string) => void data.set(k, v), removeItem: (k: string) => void data.delete(k) };
+  const text = "切手 1円に5枚追加しました(合計23枚)";
+  stashStampSavedMessage(st, { message: text, items: [{ id: "abc", kind: "add", text }] });
+  assert.deepEqual(takeStampSavedMessage(st), { message: text, items: [{ id: "abc", kind: "add", text }] });
+});

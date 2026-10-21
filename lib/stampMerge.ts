@@ -173,6 +173,27 @@ export function stampItemText(p: StampPlanItem): string {
     : `${p.name}を新しく作りました(${p.count}枚)`;
 }
 
+// 手で登録する画面で「今回の分を追加する」を押したときの案内の文。
+// 切手(「切手 N円」)で枚数を足したら、読み取りの保存と同じ形。それ以外で金額を足したら、足した量と合計(単位つき)。
+// 合計は、実際に保存する値(呼ぶ側が渡す)から作る
+export function manualAddNotice(o: {
+  name: string;
+  addQuantity: number;
+  newQuantity: number;
+  addBalance: number;
+  newBalance: number;
+  unit: string;
+}): string {
+  const name = displayAccountName(o.name);
+  const yen = (n: number) => `${n.toLocaleString("ja-JP")}${o.unit}`;
+  if (isStampName(name) && o.addQuantity > 0) {
+    return `${name}に${o.addQuantity}枚追加しました(合計${o.newQuantity}枚)`;
+  }
+  if (o.addBalance !== 0) return `「${name}」に${yen(o.addBalance)}を追加しました(合計${yen(o.newBalance)})`;
+  if (o.addQuantity > 0) return `「${name}」に${o.addQuantity}枚追加しました(合計${o.newQuantity}枚)`;
+  return `「${name}」に追加しました`;
+}
+
 // 保存後の案内。複数は1行ずつ(改行で区切る)
 export function stampSaveMessage(plan: StampPlanItem[]): string {
   return plan.map(stampItemText).join("\n");
