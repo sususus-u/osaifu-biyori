@@ -511,3 +511,41 @@ test("数字入力にするのは、グループ名が「切手」の新規登�
   assert.equal(isStampGroupEntry(false, "記念切手"), false);
   assert.equal(isStampGroupEntry(false, ""), false);
 });
+
+// ---- 2つの選択(額面の数字で入力する / 名称を自分で付ける) ----
+import { STAMP_DEFAULT_NAME, stampEntryMode, switchStampMode } from "./stampMerge.ts";
+
+const modeBase = { isEditMode: false, groupName: "切手", manualFlag: false, name: "", faceInput: "" };
+
+test("グループ名が「切手」の新規登録では2つの選択が出る。初期値は数字入力。名前の初期値は「切手」", () => {
+  assert.equal(stampEntryMode(modeBase), "numeric");
+  assert.equal(STAMP_DEFAULT_NAME, "切手");
+  assert.equal(switchStampMode("manual", { name: "", savedManualName: "", faceShown: "" }).name, "切手");
+});
+
+test("編集モード、別のグループ名では、2つの選択が出ない(null)", () => {
+  assert.equal(stampEntryMode({ ...modeBase, isEditMode: true }), null);
+  assert.equal(stampEntryMode({ ...modeBase, groupName: "PayPay" }), null);
+});
+
+test("数字入力のとき、額面が空だと保存できない(空欄・不正は、確認で止まる)", () => {
+  assert.equal(parseStampFace("").kind, "empty");
+  assert.equal(parseStampFace("abc").kind, "invalid");
+  assert.equal(parseStampFace("84").kind, "ok");
+});
+
+test("切り替えで、手で打った名前を失わない。数字入力に戻すと名前は「切手 N円」、また手入力に戻すと復元", () => {
+  // 手入力で「記念切手」と打ち、数字入力へ(額面 84 が入っている)
+  const toNum = switchStampMode("numeric", { name: "記念切手", savedManualName: "", faceShown: "84" });
+  assert.deepEqual(toNum, { name: "切手 84円", savedManualName: "記念切手" });
+  const back = switchStampMode("manual", { name: toNum.name, savedManualName: toNum.savedManualName, faceShown: "84" });
+  assert.equal(back.name, "記念切手");
+  // 額面が空のまま数字入力へ戻すと名前は空(画面では「切手」)
+  assert.equal(switchStampMode("numeric", { name: "記念切手", savedManualName: "", faceShown: "" }).name, "");
+});
+
+test("名前がすでに別の名称で額面の入力がないとき(引き継ぎなど)は、手入力として扱い、名前を失わない", () => {
+  assert.equal(stampEntryMode({ ...modeBase, name: "記念切手" }), "manual");
+  assert.equal(stampEntryMode({ ...modeBase, name: "切手 84円" }), "numeric");
+  assert.equal(stampEntryMode({ ...modeBase, manualFlag: true }), "manual");
+});

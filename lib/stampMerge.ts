@@ -125,6 +125,40 @@ export function isStampGroupEntry(isEditMode: boolean, groupName: string): boole
   return !isEditMode && groupName.trim() === "切手";
 }
 
+export const STAMP_DEFAULT_NAME = "切手"; // グループ名が「切手」のときの、名前の初期値(名称を自分で付けるとき)
+
+export type StampEntryMode = "numeric" | "manual";
+
+// グループ名が「切手」の新規登録での、名前の入力方法。それ以外(編集モード、別のグループ名)は null(2つの選択を出さない)。
+// 選択は manualFlag(「名称を自分で付ける」を選んだ)で決まる。ただし、名前がすでに別の名称(読み取りの引き継ぎなど)で、
+// 額面の入力がないときは、その名前を失わないよう「名称を自分で付ける」として扱う。初期値は numeric
+export function stampEntryMode(o: {
+  isEditMode: boolean;
+  groupName: string;
+  manualFlag: boolean;
+  name: string;
+  faceInput: string;
+}): StampEntryMode | null {
+  if (!isStampGroupEntry(o.isEditMode, o.groupName)) return null;
+  if (o.manualFlag) return "manual";
+  const custom =
+    o.name !== "" && o.name !== STAMP_DEFAULT_NAME && o.faceInput === "" && stampFaceFromName(o.name) === null;
+  return custom ? "manual" : "numeric";
+}
+
+// 2つの選択を切り替えたときの、名前と、手で打った名前の控え。手で打った名前は、戻したときに復元する。
+// 額面の入力(faceShown)が決まっていれば、数字入力に戻したとき、名前は「切手 N円」。なければ空(画面では「切手」と見せる)
+export function switchStampMode(
+  to: StampEntryMode,
+  o: { name: string; savedManualName: string; faceShown: string }
+): { name: string; savedManualName: string } {
+  if (to === "manual") {
+    return { name: o.savedManualName || STAMP_DEFAULT_NAME, savedManualName: o.savedManualName };
+  }
+  const r = parseStampFace(o.faceShown);
+  return { name: r.kind === "ok" ? stampNameFromFace(r.value) : "", savedManualName: o.name };
+}
+
 // 額面から、名前「切手 N円」を作る
 export function stampNameFromFace(n: number): string {
   return `切手 ${n}円`;

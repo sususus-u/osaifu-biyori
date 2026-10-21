@@ -29,7 +29,7 @@ import { getYenValue } from "@/lib/accountUtils";
 import BusyIndicator from "@/components/BusyIndicator";
 import { busyPreparing, waitForPaint } from "@/lib/busyView";
 import { stashStampSavedMessage } from "@/lib/stampToast";
-import { canonicalStampName, isStampGroupEntry, manualAddNotice, parseStampFace, stampFaceFromName, stampNameFromFace, normalizeName, pickAddTarget, toExistingItem, type ExistingItem } from "@/lib/stampMerge";
+import { STAMP_DEFAULT_NAME, canonicalStampName, manualAddNotice, parseStampFace, stampEntryMode, stampFaceFromName, stampNameFromFace, switchStampMode, normalizeName, pickAddTarget, toExistingItem, type ExistingItem } from "@/lib/stampMerge";
 import { useAuth } from "@/contexts/AuthProvider";
 import { prepareScanImage } from "@/lib/scanImage";
 import {
@@ -178,9 +178,8 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
 
   // グループ名が「切手」の新規登録では、名前を額面の数字入力にする(編集モードでは出さず、今の名前のまま)。
   // 名前がすでに別の名称(読み取りの引き継ぎなど)なら、自動では数字入力にしない
-  const stampGroup = isStampGroupEntry(isEditMode, groupName);
-  const showStampNumeric =
-    stampGroup && !stampManual && (name === "" || stampFaceInput !== "" || stampFaceFromName(name) !== null);
+  const stampMode = stampEntryMode({ isEditMode, groupName, manualFlag: stampManual, name, faceInput: stampFaceInput });
+  const showStampNumeric = stampMode === "numeric";
   const stampFaceShown =
     stampFaceInput !== "" ? stampFaceInput : stampFaceFromName(name) !== null ? String(stampFaceFromName(name)) : "";
 
@@ -420,18 +419,14 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
     }
   }
 
-  // 「名称を自分で付ける」/「額面の数字で入力する」の切り替え。手で打った名前は控えて、戻しても失わない
-  function toggleStampManual() {
+  // 2つの選択(額面の数字で入力する/名称を自分で付ける)の切り替え。手で打った名前は控えて、戻したとき復元する
+  function selectStampMode(to: "numeric" | "manual") {
+    if (to === stampMode) return;
     setSameNameItems([]);
-    if (showStampNumeric) {
-      setStampManual(true);
-      if (savedManualName) setName(savedManualName);
-    } else {
-      setSavedManualName(name);
-      setStampManual(false);
-      const r = parseStampFace(stampFaceShown);
-      setName(r.kind === "ok" ? stampNameFromFace(r.value) : "");
-    }
+    const next = switchStampMode(to, { name, savedManualName, faceShown: stampFaceShown });
+    setStampManual(to === "manual");
+    setName(next.name);
+    setSavedManualName(next.savedManualName);
   }
 
   function handleCategoryChange(newCategory: AccountCategory) {
@@ -902,6 +897,38 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
 
         <div className="field">
           <label>{showStampNumeric ? "額面(切手 ○円)" : "名前"}</label>
+          {stampMode && (
+            <div role="radiogroup" aria-label="名前の入力方法" style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+              {(
+                [
+                  ["numeric", "額面の数字で入力する"],
+                  ["manual", "名称を自分で付ける"],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  role="radio"
+                  aria-checked={stampMode === value}
+                  onClick={() => selectStampMode(value)}
+                  style={{
+                    flex: 1,
+                    minHeight: 44,
+                    padding: "8px 6px",
+                    fontSize: 13,
+                    borderRadius: 8,
+                    border: "1.5px solid var(--brand)",
+                    background: stampMode === value ? "var(--brand)" : "#fff",
+                    color: stampMode === value ? "#fff" : "var(--brand)",
+                    fontWeight: stampMode === value ? 600 : 400,
+                  }}
+                >
+                  {stampMode === value ? "✓ " : ""}
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
           {showStampNumeric && (
             <>
               <div style={{ position: "relative" }}>
@@ -923,18 +950,9 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
                 </span>
               </div>
               <p style={{ fontSize: 13, color: "#999", marginTop: 6 }}>
-                名前: {name || "(額面を入れると「切手 ○円」になります)"}
+                名前: {name || STAMP_DEFAULT_NAME}{name === "" ? "(額面を入れると「切手 ○円」になります)" : ""}
               </p>
             </>
-          )}
-          {stampGroup && (
-            <button
-              type="button"
-              onClick={toggleStampManual}
-              style={{ border: "none", background: "none", color: "var(--brand)", fontSize: 13, padding: "4px 0", textDecoration: "underline" }}
-            >
-              {showStampNumeric ? "名称を自分で付ける(記念切手など)" : "額面の数字で入力する"}
-            </button>
           )}
           {!showStampNumeric && (
           <>
