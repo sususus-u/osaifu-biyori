@@ -29,6 +29,7 @@ import { getYenValue } from "@/lib/accountUtils";
 import BusyIndicator from "@/components/BusyIndicator";
 import { busyPreparing, waitForPaint } from "@/lib/busyView";
 import { stashStampSavedMessage } from "@/lib/stampToast";
+import { stampNameView } from "@/lib/stampNameView";
 import { STAMP_DEFAULT_NAME, STAMP_MANUAL_PLACEHOLDER, canonicalStampName, manualAddNotice, parseStampFace, stampEntryMode, stampFaceFromName, stampNameFromFace, switchStampMode, normalizeName, pickAddTarget, toExistingItem, type ExistingItem } from "@/lib/stampMerge";
 import { useAuth } from "@/contexts/AuthProvider";
 import { prepareScanImage } from "@/lib/scanImage";
@@ -949,9 +950,19 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
                   円
                 </span>
               </div>
-              <p style={{ fontSize: 13, color: "#999", marginTop: 6 }}>
-                名前: {name || STAMP_DEFAULT_NAME}{name === "" ? "(額面を入れると「切手 ○円」になります)" : ""}
-              </p>
+              {(() => {
+                const v = stampNameView(name, STAMP_DEFAULT_NAME);
+                return (
+                  <p
+                    aria-live="polite"
+                    style={{ margin: "8px 0 0", padding: "10px 12px", borderRadius: 8, background: v.background, fontSize: 15 }}
+                  >
+                    <span style={{ fontSize: 12, color: v.hintColor }}>名前(自動):</span>{" "}
+                    <strong style={{ color: v.textColor, fontWeight: 600 }}>{v.text}</strong>
+                    {v.hint && <span style={{ fontSize: 12, color: v.hintColor }}>{v.hint}</span>}
+                  </p>
+                );
+              })()}
             </>
           )}
           {!showStampNumeric && (

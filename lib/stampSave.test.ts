@@ -559,3 +559,29 @@ test("「名称を自分で付ける」に切り替えると、名前は空(控�
   const restored = switchStampMode("manual", { name: "切手 84円", savedManualName: "記念切手", faceShown: "84" });
   assert.equal(restored.name, "記念切手");
 });
+
+// ---- 自動で決まった名前の見せ方(濃い文字色。WCAG AA) ----
+import { STAMP_NAME_COLOR, STAMP_NAME_HINT_COLOR, contrastRatio, stampNameView } from "./stampNameView.ts";
+
+test("額面を入れたあとの名前は、濃い文字色(案内用の薄い色ではない)。案内の文は付かない", () => {
+  const v = stampNameView("切手 84円", "切手");
+  assert.equal(v.text, "切手 84円");
+  assert.equal(v.textColor, STAMP_NAME_COLOR);
+  assert.notEqual(v.textColor, STAMP_NAME_HINT_COLOR);
+  assert.equal(v.hint, "");
+});
+
+test("額面を入れる前は、「切手」と薄めの案内の文。決まったあとより薄い", () => {
+  const v = stampNameView("", "切手");
+  assert.equal(v.text, "切手");
+  assert.ok(v.hint.includes("額面を入れると"));
+  assert.equal(v.textColor, STAMP_NAME_HINT_COLOR);
+  assert.ok(contrastRatio(STAMP_NAME_COLOR, v.background) > contrastRatio(STAMP_NAME_HINT_COLOR, v.background));
+});
+
+test("コントラスト比は WCAG AA(4.5:1)以上。決まった名前も、案内も", () => {
+  const v = stampNameView("切手 84円", "切手");
+  assert.ok(contrastRatio(STAMP_NAME_COLOR, v.background) >= 4.5);
+  assert.ok(contrastRatio(STAMP_NAME_HINT_COLOR, v.background) >= 4.5);
+  assert.ok(contrastRatio("#000000", "#ffffff") > 20.9); // 計算の確かめ(黒と白は 21:1)
+});
