@@ -411,3 +411,66 @@ test("手動で足した案内は、読み取りの保存と同じ入れ物(item
   stashStampSavedMessage(st, { message: text, items: [{ id: "abc", kind: "add", text }] });
   assert.deepEqual(takeStampSavedMessage(st), { message: text, items: [{ id: "abc", kind: "add", text }] });
 });
+
+// ---- 足し先の選び方(手動と読み取りで同じ規則)と、複数あるときの注意 ----
+import { MULTIPLE_STAMP_NOTE, pickAddTarget, planStampSave as planSave2, stampItemText as itemText2 } from "./stampMerge.ts";
+
+function ex(id: string, name: string, faceValue: number | null, createdMillis: number | null, category = "gift_certificate") {
+  return { id, name, category, faceValue, currentBalance: 0, itemQuantity: 0, createdMillis, type: "finite" };
+}
+
+test("手動の足し先: 候補が複数あれば最古。名前のゆれ・作成日時なし・同じ日時(id順)も読み取りと同じ", () => {
+  const items = [ex("z", "切手1円", 1, 300), ex("b", "切手 1円", 1, 100), ex("a", "切手　１円", 1, null), ex("c", "切手 1円", 1, 100)];
+  const r = pickAddTarget(items, { name: "切手 1円", category: "electronic_money" });
+  assert.equal(r.target!.id, "b");
+  assert.equal(r.count, 4);
+  // 読み取りの保存の計画と同じ先
+  const plan = planSave2(items, [{ name: "切手 1円", faceValue: 1, count: 1 }]);
+  assert.equal(plan[0].kind === "add" && plan[0].id, "b");
+});
+
+test("手動の足し先: 額面の違う項目、種類の違う項目には足さない(切手)。1件なら注意の元になる count は 1", () => {
+  const items = [ex("x", "切手 2円", 2, 1), ex("y", "切手 1円", 1, 1, "electronic_money"), ex("w", "切手 1円", 1, 5)];
+  const r = pickAddTarget(items, { name: "切手1円", category: "electronic_money" });
+  assert.equal(r.target!.id, "w");
+  assert.equal(r.count, 1);
+  assert.equal(pickAddTarget([ex("x", "切手 2円", 2, 1)], { name: "切手 1円", category: "gift_certificate" }).target, undefined);
+});
+
+test("手動の足し先(切手以外): 名前で選ぶ。同じ種類を優先し、なければ名前が合うもの全部から最古", () => {
+  const items = [ex("p", "PayPay残高", null, 100, "electronic_money"), ex("q", "PayPay残高", null, 50, "point"), ex("r", "別の名前", null, 1)];
+  const same = pickAddTarget(items, { name: "PayPay残高", category: "electronic_money" });
+  assert.equal(same.target!.id, "p");
+  assert.equal(same.count, 1);
+  const other = pickAddTarget(items, { name: "PayPay残高", category: "gift_certificate" });
+  assert.equal(other.target!.id, "q");
+  assert.equal(other.count, 2);
+  assert.equal(pickAddTarget(items, { name: "", category: "point" }).target, undefined);
+});
+
+test("注意: 読み取りの保存は、候補が2件以上のときだけ文に続く。1件なら今の文のまま", () => {
+  const one = planSave2([ex("a", "切手 1円", 1, 1)], [{ name: "切手 1円", faceValue: 1, count: 5 }]);
+  assert.equal(itemText2(one[0]), "切手 1円に5枚追加しました(合計5枚)");
+  const two = planSave2([ex("a", "切手 1円", 1, 1), ex("b", "切手1円", 1, 2)], [{ name: "切手 1円", faceValue: 1, count: 5 }]);
+  assert.equal(itemText2(two[0]), "切手 1円に5枚追加しました(合計5枚)" + MULTIPLE_STAMP_NOTE);
+});
+
+test("注意: 手動の文。切手は「同じ額面」、切手以外は「同じ名前」。1件なら付かない", () => {
+  const base = { addQuantity: 5, newQuantity: 23, addBalance: 5, newBalance: 23, unit: "円" };
+  assert.equal(manualAddNotice({ ...base, name: "切手1円" }), "切手 1円に5枚追加しました(合計23枚)");
+  assert.equal(manualAddNotice({ ...base, name: "切手1円", multiple: true }), "切手 1円に5枚追加しました(合計23枚)。同じ額面の項目が複数あります。");
+  assert.equal(
+    manualAddNotice({ name: "楽天ポイント", addQuantity: 0, newQuantity: 0, addBalance: 500, newBalance: 1500, unit: "ポイント", multiple: true }),
+    "「楽天ポイント」に500ポイントを追加しました(合計1,500ポイント)。同じ名前の項目が複数あります。"
+  );
+});
+
+test("古い形式の案内(文字列だけ、items の text だけ)も、注意つきの文も、読める", () => {
+  const data = new Map<string, string>();
+  const st = { getItem: (k: string) => data.get(k) ?? null, setItem: (k: string, v: string) => void data.set(k, v), removeItem: (k: string) => void data.delete(k) };
+  const text = "切手 1円に5枚追加しました(合計23枚)" + MULTIPLE_STAMP_NOTE;
+  stashStampSavedMessage(st, { message: text, items: [{ id: "abc", kind: "add", text }] });
+  assert.equal(takeStampSavedMessage(st)!.items[0].text, text);
+  data.set("tamari:stampSavedMessage", "切手 1円に5枚追加しました(合計23枚)");
+  assert.deepEqual(takeStampSavedMessage(st), { message: "切手 1円に5枚追加しました(合計23枚)", items: [] });
+});

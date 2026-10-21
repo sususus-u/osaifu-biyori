@@ -29,7 +29,7 @@ import { getYenValue } from "@/lib/accountUtils";
 import BusyIndicator from "@/components/BusyIndicator";
 import { busyPreparing, waitForPaint } from "@/lib/busyView";
 import { stashStampSavedMessage } from "@/lib/stampToast";
-import { canonicalStampName, findSameName, manualAddNotice } from "@/lib/stampMerge";
+import { canonicalStampName, manualAddNotice, normalizeName, pickAddTarget, toExistingItem, type ExistingItem } from "@/lib/stampMerge";
 import { useAuth } from "@/contexts/AuthProvider";
 import { prepareScanImage } from "@/lib/scanImage";
 import {
@@ -151,14 +151,20 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
   const [balanceLowConfidence, setBalanceLowConfidence] = useState(false);
   const [expiryLowConfidence, setExpiryLowConfidence] = useState(false);
   // 新規登録時、名前欄からフォーカスが外れた際に同名の既存サービスが見つかった場合の情報
-  const [duplicateAccount, setDuplicateAccount] = useState<{
-    id: string;
-    name: string;
-    currentBalance: number | null;
-    type: AccountType;
-    faceValue: number | null;
-    itemQuantity: number | null;
-  } | null>(null);
+  // 同じ名前(空白・全角数字のゆれを除く)の既存の項目。足し先は、種類・額面を見て、下の pickAddTarget で選ぶ
+  const [sameNameItems, setSameNameItems] = useState<(ExistingItem & { type: AccountType })[]>([]);
+  const pickedDuplicate = pickAddTarget(sameNameItems, { name, category });
+  const duplicateCount = pickedDuplicate.count;
+  const duplicateAccount = pickedDuplicate.target
+    ? {
+        id: pickedDuplicate.target.id,
+        name: pickedDuplicate.target.name,
+        currentBalance: pickedDuplicate.target.currentBalance,
+        type: pickedDuplicate.target.type,
+        faceValue: pickedDuplicate.target.faceValue,
+        itemQuantity: pickedDuplicate.target.itemQuantity,
+      }
+    : null;
 
   const isStampCard = category === "stamp_card";
   const isOther = category === "other";
@@ -375,23 +381,13 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
       // 名前の空白と全角数字のゆれは同じとみなす(「切手1円」と「切手 1円」)ので、ownerId だけで取得して絞る
       const q = query(collection(db, "accounts"), where("ownerId", "==", uid));
       const snap = await getDocs(q);
-      const existing = findSameName(
-        snap.docs.map((d) => ({ name: String((d.data() as AccountDoc).name ?? ""), doc: d })),
-        name
-      )?.doc;
-      if (!existing) {
-        setDuplicateAccount(null);
-        return;
-      }
-      const data = existing.data() as AccountDoc;
-      setDuplicateAccount({
-        id: existing.id,
-        name: String(data.name ?? ""),
-        currentBalance: data.currentBalance ?? null,
-        type: data.type,
-        faceValue: data.faceValue ?? null,
-        itemQuantity: data.itemQuantity ?? null,
+      const found = snap.docs.flatMap((d) => {
+        const item = toExistingItem(d.id, d.data());
+        return item && normalizeName(item.name) === normalizeName(name)
+          ? [{ ...item, type: (d.data() as AccountDoc).type }]
+          : [];
       });
+      setSameNameItems(found);
     } catch (error) {
       console.error(error);
     }
@@ -662,6 +658,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
         addBalance,
         newBalance,
         unit: balanceUnit || "円",
+        multiple: duplicateCount > 1,
       });
       stashStampSavedMessage(window.sessionStorage, {
         message: text,
@@ -859,7 +856,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
               value={name}
               onChange={(e) => {
                 setName(e.target.value);
-                setDuplicateAccount(null);
+                setSameNameItems([]);
               }}
               onBlur={handleNameBlur}
               placeholder="例:PayPay残高"
@@ -871,7 +868,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
                 type="button"
                 onClick={() => {
                   setName("");
-                  setDuplicateAccount(null);
+                  setSameNameItems([]);
                 }}
                 aria-label="名前をクリア"
                 style={{

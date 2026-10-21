@@ -34,7 +34,10 @@ export interface StampSaveDeps {
 
 export async function saveStamps(deps: StampSaveDeps, rows: SaveRow[]): Promise<StampSaveResult> {
   const candidates = await deps.listMine();
-  const targetIds = planStampSave(candidates, rows).flatMap((p) => (p.kind === "add" ? [p.id] : []));
+  const plan0 = planStampSave(candidates, rows);
+  const targetIds = plan0.flatMap((p) => (p.kind === "add" ? [p.id] : []));
+  // 足す対象の候補が2件以上あったか(トランザクションの中では、足す先の1件しか読まないので、ここで控える)
+  const multipleIds = new Set(plan0.flatMap((p) => (p.kind === "add" && p.multiple ? [p.id] : [])));
 
   return deps.runTransaction(async (tx) => {
     // トランザクションでは、読み取りを全部終えてから書く
@@ -43,7 +46,9 @@ export async function saveStamps(deps: StampSaveDeps, rows: SaveRow[]): Promise<
       const item = await tx.get(id);
       if (item) fresh.push(item);
     }
-    const plan = planStampSave(fresh, rows);
+    const plan = planStampSave(fresh, rows).map((p) =>
+      p.kind === "add" && multipleIds.has(p.id) ? { ...p, multiple: true as const } : p
+    );
     const items: StampSaveResult["items"] = [];
     for (const p of plan) {
       if (p.kind === "add") {

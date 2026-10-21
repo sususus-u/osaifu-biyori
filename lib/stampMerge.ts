@@ -33,6 +33,8 @@ export type StampPlanItem =
       addCount: number;
       newCount: number;
       newBalance: number;
+      // 足す対象の候補が2件以上あったときだけ true(案内に注意を足す)。足す先は、いちばん古い1件のまま
+      multiple?: true;
     }
   | { kind: "create"; name: string; faceValue: number; count: number; amount: number };
 
@@ -150,7 +152,8 @@ export function planStampSave(existing: ExistingItem[], rows: SaveRow[]): StampP
     else merged.push({ ...r });
   }
   return merged.map((r): StampPlanItem => {
-    const target = existing.filter((e) => matches(e, r)).sort(byOldest)[0];
+    const candidates = existing.filter((e) => matches(e, r)).sort(byOldest);
+    const target = candidates[0];
     if (!target) {
       return { kind: "create", name: r.name, faceValue: r.faceValue, count: r.count, amount: r.faceValue * r.count };
     }
@@ -162,14 +165,41 @@ export function planStampSave(existing: ExistingItem[], rows: SaveRow[]): StampP
       addCount: r.count,
       newCount: (target.itemQuantity ?? 0) + r.count,
       newBalance: (target.currentBalance ?? 0) + r.faceValue * r.count,
+      ...(candidates.length > 1 ? { multiple: true as const } : {}),
     };
   });
+}
+
+// 足す対象の候補が2件以上あるときの注意(案内の同じ枠の中に続ける)
+export const MULTIPLE_STAMP_NOTE = "。同じ額面の項目が複数あります。";
+export const MULTIPLE_NAME_NOTE = "。同じ名前の項目が複数あります。";
+
+// 手動の「今回の分を追加する」の足し先を選ぶ。読み取りの保存と同じ規則(名前を正規化、古い順の先頭)。
+// 「切手 N円」の名前: 種類 gift_certificate・額面 N が合うものから選ぶ(読み取りの保存の matches と同じ)。
+// それ以外: 名前が合うものから選ぶ。フォームの種類(category)が同じものがあれば、それを優先し、なければ名前が合うもの全部から選ぶ
+// (入力途中で種類がまだ初期値のままでも、今までどおり同名に気づけるように)。count は候補の数(2以上なら注意を出す)
+export function pickAddTarget<T extends ExistingItem>(
+  items: T[],
+  q: { name: string; category: string }
+): { target: T | undefined; count: number } {
+  const stamp = /^切手 (\d+)円$/.exec(canonicalStampName(q.name));
+  let candidates: T[];
+  if (stamp) {
+    const row: SaveRow = { name: q.name, faceValue: Number(stamp[1]), count: 0 };
+    candidates = items.filter((i) => matches(i, row));
+  } else {
+    const sameName = items.filter((i) => normalizeName(i.name) === normalizeName(q.name) && normalizeName(q.name) !== "");
+    const sameKind = sameName.filter((i) => i.category === q.category);
+    candidates = sameKind.length > 0 ? sameKind : sameName;
+  }
+  candidates = [...candidates].sort(byOldest);
+  return { target: candidates[0], count: candidates.length };
 }
 
 // 1項目ぶんの案内
 export function stampItemText(p: StampPlanItem): string {
   return p.kind === "add"
-    ? `${p.name}に${p.addCount}枚追加しました(合計${p.newCount}枚)`
+    ? `${p.name}に${p.addCount}枚追加しました(合計${p.newCount}枚)${p.multiple ? MULTIPLE_STAMP_NOTE : ""}`
     : `${p.name}を新しく作りました(${p.count}枚)`;
 }
 
@@ -183,15 +213,17 @@ export function manualAddNotice(o: {
   addBalance: number;
   newBalance: number;
   unit: string;
+  multiple?: boolean; // 足す対象の候補が2件以上あった
 }): string {
   const name = displayAccountName(o.name);
   const yen = (n: number) => `${n.toLocaleString("ja-JP")}${o.unit}`;
+  const note = o.multiple ? (isStampName(name) ? MULTIPLE_STAMP_NOTE : MULTIPLE_NAME_NOTE) : "";
   if (isStampName(name) && o.addQuantity > 0) {
-    return `${name}に${o.addQuantity}枚追加しました(合計${o.newQuantity}枚)`;
+    return `${name}に${o.addQuantity}枚追加しました(合計${o.newQuantity}枚)${note}`;
   }
-  if (o.addBalance !== 0) return `「${name}」に${yen(o.addBalance)}を追加しました(合計${yen(o.newBalance)})`;
-  if (o.addQuantity > 0) return `「${name}」に${o.addQuantity}枚追加しました(合計${o.newQuantity}枚)`;
-  return `「${name}」に追加しました`;
+  if (o.addBalance !== 0) return `「${name}」に${yen(o.addBalance)}を追加しました(合計${yen(o.newBalance)})${note}`;
+  if (o.addQuantity > 0) return `「${name}」に${o.addQuantity}枚追加しました(合計${o.newQuantity}枚)${note}`;
+  return `「${name}」に追加しました${note}`;
 }
 
 // 保存後の案内。複数は1行ずつ(改行で区切る)
