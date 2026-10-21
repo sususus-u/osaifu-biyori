@@ -6,6 +6,7 @@ import {
   clearStampSavedMessage,
   peekStampSavedMessage,
   planWaitTimeout,
+  decideBind,
   pickTab,
   planStampNotices,
   stashStampSavedMessage,
@@ -109,6 +110,39 @@ test("peek / clear は、storage がなくても例外でも落ちない", () =>
 test("読み込み待ち(3秒超)は、全文を上部のトーストへ。行には結びつけない", () => {
   assert.equal(STAMP_WAIT_MS, 3000);
   assert.equal(planWaitTimeout(payload).fallback, payload.message);
+});
+
+// ---- 結びつけ: 行が結びついたらトーストを出さない。見つからないときだけ出す ----
+
+const listAB: ListAccount[] = [
+  { id: "a", name: "切手 1円", hasExpiry: false },
+  { id: "b", name: "切手 2円", hasExpiry: false },
+];
+
+test("decideBind: 全部の行が見つかれば、行の下だけで、上部のトーストは出ない", () => {
+  const plan = decideBind(payload, listAB, "noExpiry", false)!;
+  assert.deepEqual(Object.keys(plan.notices).sort(), ["a", "b"]);
+  assert.equal(plan.fallback, null);
+});
+
+test("decideBind: 一部が見つからない間は待つ(先にトーストを出さない)。待ち時間を超えたら、見つかった分は行へ、残りだけトースト", () => {
+  const onlyA = listAB.slice(0, 1);
+  assert.equal(decideBind(payload, onlyA, "noExpiry", false), null);
+  const plan = decideBind(payload, onlyA, "noExpiry", true)!;
+  assert.deepEqual(Object.keys(plan.notices), ["a"]);
+  assert.equal(plan.fallback, payload.items[1].text);
+});
+
+test("decideBind: 行が1つも見つからないまま待ち時間を超えたときだけ、全項目がトースト", () => {
+  assert.equal(decideBind(payload, [], "noExpiry", false), null);
+  const plan = decideBind(payload, [], "noExpiry", true)!;
+  assert.deepEqual(plan.notices, {});
+  assert.equal(plan.fallback, payload.items.map((i) => i.text).join("\n"));
+});
+
+test("decideBind: 古い形式(項目なし)は待たず、全文をトースト", () => {
+  const plan = decideBind({ message: "古い", items: [] }, listAB, "noExpiry", false)!;
+  assert.equal(plan.fallback, "古い");
 });
 
 // ---- 行の下の案内(noticesById)、代わりの案内、タブの決め方 ----

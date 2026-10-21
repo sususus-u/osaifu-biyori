@@ -19,15 +19,15 @@ import AccountRow, { type AccountWithId } from "@/components/AccountRow";
 import StampRowNotice from "@/components/StampRowNotice";
 import StampSavedToast from "@/components/StampSavedToast";
 import {
-  STAMP_FLASH_MS,
   STAMP_NOTICE_MS,
   STAMP_TOAST_MS,
   STAMP_WAIT_MS,
   clearStampSavedMessage,
   peekStampSavedMessage,
-  planStampNotices,
+  decideBind,
   planWaitTimeout,
   stampDiag,
+  type StampNoticePlan,
   type StampSavedPayload,
 } from "@/lib/stampToast";
 import { getYenValue } from "@/lib/accountUtils";
@@ -86,7 +86,6 @@ export default function AccountList() {
   // 切手の保存後の案内。pending は読んだだけ、notices は行の下に出す分、fallbackMessage は行が見つからない分(上部のトースト)
   const [pending, setPending] = useState<StampSavedPayload | null>(null);
   const [notices, setNotices] = useState<Record<string, string>>({});
-  const [flashIds, setFlashIds] = useState<Set<string>>(new Set());
   const [fallbackMessage, setFallbackMessage] = useState<string | null>(null);
   const scrollTargetRef = useRef<string | null>(null);
   // 案内の表示を始めたか(始めたら storage から消す。StrictMode の二重実行で、同じ案内を2回出さない)
@@ -136,21 +135,15 @@ export default function AccountList() {
     if (taken) setPending(taken);
   }, []);
 
-  // 一覧が読み込まれたら、案内を該当の行に結びつける。行が今のタブになければタブを切り替える。
-  // 見つからなかった分は、上部のトーストに出す(見つかった分は二重に出さない)。ここで表示を始めるので、storage から消す
-  useEffect(() => {
-    if (!pending || !loaded || startedRef.current) return;
+  // 表示を始める(1回だけ)。storage から消し、行の下の案内と、上部のトースト(行が見つからない分だけ)を出す
+  function startNotices(p: StampSavedPayload, plan: StampNoticePlan, event: "bind" | "timeout") {
+    if (startedRef.current) return;
     startedRef.current = true;
-    const plan = planStampNotices(
-      pending,
-      accounts.map((a) => ({ id: a.id, name: a.name, hasExpiry: Boolean(a.expiryDate) })),
-      tab
-    );
     clearStampSavedMessage(window.sessionStorage);
     stampDiag({
-      event: "bind",
+      event,
       hadKey: true,
-      itemCount: pending.items.length,
+      itemCount: p.items.length,
       found: Object.keys(plan.notices).length,
       toast: plan.fallback !== null,
       waitMs: Date.now() - pendingSinceRef.current,
@@ -158,32 +151,48 @@ export default function AccountList() {
     setPending(null);
     setTab(plan.tab);
     setNotices(plan.notices);
-    setFlashIds(new Set(Object.keys(plan.notices)));
     setFallbackMessage(plan.fallback);
     scrollTargetRef.current = plan.firstId;
+  }
+
+  const listAccounts = accounts.map((a) => ({ id: a.id, name: a.name, hasExpiry: Boolean(a.expiryDate) }));
+  // 待ち時間の超過(下のタイマー)で、その時点の一覧と今のタブで結びつけるために持つ
+  const latestRef = useRef({ listAccounts, tab, loaded });
+  useEffect(() => {
+    latestRef.current = { listAccounts, tab, loaded };
+  });
+
+  // 一覧が読み込まれたら、案内を該当の行に結びつける。行が今のタブになければタブを切り替える。
+  // 行が全部は見つからない間は待つ(最初の読み込みは、保存した直後の項目をまだ含まないことがあり、先にトーストを出さない)
+  useEffect(() => {
+    if (!pending || !loaded || startedRef.current) return;
+    const plan = decideBind(pending, listAccounts, tab, false);
+    if (plan) startNotices(pending, plan, "bind");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pending, loaded, accounts, tab]);
 
-  // 読み込みが遅いとき(STAMP_WAIT_MS)は、行に結びつけず、上部のトーストで出す
+  // 待ち時間(STAMP_WAIT_MS)を超えたら、その時点で見つかった行には行の下に、見つからない分だけ上部のトーストで出す。
+  // まだ一覧が読み込まれていなければ、全文を上部のトーストで出す
   useEffect(() => {
     if (!pending) return;
     const timer = setTimeout(() => {
       if (startedRef.current) return;
-      startedRef.current = true;
-      clearStampSavedMessage(window.sessionStorage);
-      stampDiag({
-        event: "timeout",
-        hadKey: true,
-        itemCount: pending.items.length,
-        toast: true,
-        waitMs: Date.now() - pendingSinceRef.current,
-      });
-      setFallbackMessage(planWaitTimeout(pending).fallback);
-      setPending(null);
+      const cur = latestRef.current;
+      if (cur.loaded) {
+        const plan = decideBind(pending, cur.listAccounts, cur.tab, true);
+        if (plan) startNotices(pending, plan, "timeout");
+        return;
+      }
+      startNotices(
+        pending,
+        { tab: cur.tab, notices: {}, firstId: null, fallback: planWaitTimeout(pending).fallback },
+        "timeout"
+      );
     }, STAMP_WAIT_MS);
     return () => clearTimeout(timer);
   }, [pending]);
 
-  // 案内が出たら、最初の行を画面の中央へ動かす。7秒で案内を、2秒で強調を消す
+  // 案内が出たら、最初の行を画面の中央へ動かす。7秒で案内を消す
   useEffect(() => {
     if (Object.keys(notices).length === 0) return;
     const id = scrollTargetRef.current;
@@ -193,10 +202,8 @@ export default function AccountList() {
         .querySelector(`[data-account-id="${CSS.escape(id)}"]`)
         ?.scrollIntoView({ block: "center", behavior: "smooth" });
     }
-    const flashTimer = setTimeout(() => setFlashIds(new Set()), STAMP_FLASH_MS);
     const noticeTimer = setTimeout(() => setNotices({}), STAMP_NOTICE_MS);
     return () => {
-      clearTimeout(flashTimer);
       clearTimeout(noticeTimer);
     };
   }, [notices]);
@@ -427,7 +434,6 @@ export default function AccountList() {
                         key={acc.id}
                         account={acc}
                         notice={noticeFor(acc.id)}
-                        flash={flashIds.has(acc.id)}
                         subText={categoryLabel(acc)}
                       />
                     ))}
@@ -463,7 +469,6 @@ export default function AccountList() {
                             key={acc.id}
                             account={acc}
                             notice={noticeFor(acc.id)}
-                            flash={flashIds.has(acc.id)}
                             subText={categoryLabel(acc)}
                             highlightOverdue
                           />
@@ -486,7 +491,6 @@ export default function AccountList() {
                     key={acc.id}
                     account={acc}
                     notice={noticeFor(acc.id)}
-                    flash={flashIds.has(acc.id)}
                     subText={expiry ? `${expiry.getFullYear()}年${expiry.getMonth() + 1}月期限` : ""}
                     highlightOverdue
                   />
@@ -529,7 +533,6 @@ export default function AccountList() {
                 key={acc.id}
                 account={acc}
                 notice={noticeFor(acc.id)}
-                flash={flashIds.has(acc.id)}
                 subText={categoryLabel(acc)}
               />
             ))}
@@ -593,7 +596,6 @@ export default function AccountList() {
                         key={acc.id}
                         account={acc}
                         notice={noticeFor(acc.id)}
-                        flash={flashIds.has(acc.id)}
                         subText={expiry
                             ? `${expiry.getFullYear()}年${expiry.getMonth() + 1}月期限`
                             : acc.name.includes("期間")

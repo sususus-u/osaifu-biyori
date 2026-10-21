@@ -4,7 +4,6 @@
 export const STAMP_SAVED_MESSAGE_KEY = "tamari:stampSavedMessage";
 export const STAMP_TOAST_MS = 4000; // 上部のトースト(代わりの案内)
 export const STAMP_NOTICE_MS = 7000; // 行の下の案内
-export const STAMP_FLASH_MS = 2000; // 行の強調
 export const STAMP_WAIT_MS = 3000; // 一覧の読み込みを待つ上限。超えたら上部のトーストへ切り替える
 
 export interface MessageStorage {
@@ -86,6 +85,20 @@ export function takeStampSavedMessage(storage: MessageStorage | null): StampSave
   const v = peekStampSavedMessage(storage);
   clearStampSavedMessage(storage);
   return v;
+}
+
+// 結びつけを始めてよいか。items があるのに行が全部は見つからない間は、待つ(null)。
+// 一覧の最初の読み込みは、保存した直後の項目をまだ含まないことがあり、先に上部のトーストを出さないため。
+// 全部見つかる、または待ち時間を超えた(timedOut)ときに、計画を返す。items が空(古い形式)は待たない
+export function decideBind(
+  payload: StampSavedPayload,
+  accounts: ListAccount[],
+  currentTab: ListTab,
+  timedOut: boolean
+): StampNoticePlan | null {
+  const plan = planStampNotices(payload, accounts, currentTab);
+  if (plan.fallback !== null && payload.items.length > 0 && !timedOut) return null;
+  return plan;
 }
 
 // 読み込みを待ちきれなかったとき(STAMP_WAIT_MS 超)は、行に結びつけず、全文を上部のトーストへ

@@ -77,8 +77,6 @@ interface AccountRowProps {
   highlightOverdue?: boolean;
   // 行の直下に出す案内の枠。<a> の外(下)に置くので、タップしても編集画面へは飛ばない
   notice?: ReactNode;
-  // true のあいだ、行をブランド色の薄い背景で強調する(保存した行を見つけやすくする)
-  flash?: boolean;
 }
 
 export default function AccountRow({
@@ -86,7 +84,6 @@ export default function AccountRow({
   subText,
   highlightOverdue = false,
   notice,
-  flash = false,
 }: AccountRowProps) {
   return (
     <>
@@ -102,7 +99,6 @@ export default function AccountRow({
         textDecoration: "none",
         color: "inherit",
         ...(highlightOverdue ? { background: isOverdueUnupdated(account) ? "#fdf3e7" : "transparent" } : {}),
-        ...(flash ? { background: "#f1e3df", transition: "background 0.6s" } : {}),
       }}
     >
       <div>
