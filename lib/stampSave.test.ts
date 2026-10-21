@@ -654,3 +654,36 @@ test("読み取りの一言: 期限なし/期限ありの文。期限を手で�
     "自動で設定しました: 種類=商品券・切手、単位=円(変更できます)"
   );
 });
+
+// ---- 「置き換える」の扱い(切手は出さない。切手以外は前後の値つきの確認) ----
+import { isStampLikeEntry } from "./stampMerge.ts";
+import { REPLACE_NO_CHANGE, replaceChanges } from "./replaceConfirm.ts";
+
+test("切手のとき、「置き換える」を出さない: 名前のゆれ、または 種類=商品券・切手 かつ グループ名=切手", () => {
+  assert.equal(isStampLikeEntry({ name: "切手 1円", category: "electronic_money", groupName: "" }), true);
+  assert.equal(isStampLikeEntry({ name: "切手１円", category: "electronic_money", groupName: "" }), true);
+  assert.equal(isStampLikeEntry({ name: "記念切手", category: "gift_certificate", groupName: "切手" }), true);
+});
+
+test("切手以外では、「置き換える」が出る(切手の判定に当たらない)", () => {
+  assert.equal(isStampLikeEntry({ name: "PayPay残高", category: "electronic_money", groupName: "PayPay" }), false);
+  assert.equal(isStampLikeEntry({ name: "記念切手", category: "gift_certificate", groupName: "" }), false);
+  assert.equal(isStampLikeEntry({ name: "図書カード", category: "gift_certificate", groupName: "図書カード" }), false);
+});
+
+test("置き換えの説明: 変わるものだけ。残高だけ/期限も/額面・枚数/単位と桁区切り", () => {
+  const base = { balance: 1000, expiry: null, faceValue: null, quantity: null };
+  assert.deepEqual(replaceChanges(base, { ...base, balance: 25000 }, "円"), ["残高: 1,000円 → 25,000円"]);
+  assert.deepEqual(replaceChanges(base, { ...base, balance: 500, expiry: "2027-03-31" }, "ポイント"), [
+    "残高: 1,000ポイント → 500ポイント",
+    "期限: なし → 2027-03-31",
+  ]);
+  assert.deepEqual(replaceChanges({ ...base, faceValue: 500, quantity: 3 }, { ...base, faceValue: 1000, quantity: 5 }, "円"), ["額面: 500円 → 1,000円", "枚数: 3枚 → 5枚"]);
+});
+
+test("置き換えの説明: 変わらない項目は出ない。何も変わらなければ空(画面は「変わる項目はありません」)", () => {
+  const same = { balance: 100, expiry: "2027-01-01", faceValue: 10, quantity: 2 };
+  assert.deepEqual(replaceChanges(same, { ...same }, "円"), []);
+  assert.equal(REPLACE_NO_CHANGE, "変わる項目はありません。");
+  assert.deepEqual(replaceChanges({ ...same, expiry: "2027-01-01" }, { ...same, expiry: null }, "円"), ["期限: 2027-01-01 → なし"]);
+});

@@ -27,11 +27,12 @@ import { db } from "@/lib/firebase";
 import { guessServiceInfo } from "@/lib/knownServices";
 import { getYenValue } from "@/lib/accountUtils";
 import BusyIndicator from "@/components/BusyIndicator";
+import { replaceChanges, REPLACE_NO_CHANGE, REPLACE_WARNING } from "@/lib/replaceConfirm";
 import { busyPreparing, waitForPaint } from "@/lib/busyView";
 import { stashStampSavedMessage } from "@/lib/stampToast";
 import { STAMP_NAME_BG, stampNameView } from "@/lib/stampNameView";
 import { NO_TOUCH, stampAutoApply, stampAutoRestore, stampAutoSummary, type StampAutoState, type StampTouched } from "@/lib/stampAuto";
-import { isStampGroupEntry, STAMP_DEFAULT_NAME, STAMP_MANUAL_PLACEHOLDER, canonicalStampName, manualAddNotice, parseStampFace, stampEntryMode, stampFaceFromName, stampNameFromFace, switchStampMode, normalizeName, pickAddTarget, toExistingItem, type ExistingItem } from "@/lib/stampMerge";
+import { isStampLikeEntry, isStampGroupEntry, STAMP_DEFAULT_NAME, STAMP_MANUAL_PLACEHOLDER, canonicalStampName, manualAddNotice, parseStampFace, stampEntryMode, stampFaceFromName, stampNameFromFace, switchStampMode, normalizeName, pickAddTarget, toExistingItem, type ExistingItem } from "@/lib/stampMerge";
 import { useAuth } from "@/contexts/AuthProvider";
 import { prepareScanImage } from "@/lib/scanImage";
 import {
@@ -104,6 +105,28 @@ const CATEGORY_UNIT_DEFAULTS: Partial<Record<AccountCategory, string>> = {
   coupon: "枚",
 };
 
+// Firestore の期限(Timestamp)を YYYY-MM-DD にする。なければ null
+function expiryString(v: unknown): string | null {
+  const t = v as { toDate?: () => Date } | null | undefined;
+  if (!t || typeof t.toDate !== "function") return null;
+  const d = t.toDate();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+// 確認の説明(変わる項目と、戻せない旨)
+function replaceDescription(lines: string[]) {
+  return (
+    <>
+      {(lines.length > 0 ? lines : [REPLACE_NO_CHANGE]).map((l) => (
+        <span key={l} style={{ display: "block" }}>
+          {l}
+        </span>
+      ))}
+      <span style={{ display: "block", marginTop: 8 }}>{REPLACE_WARNING}</span>
+    </>
+  );
+}
+
 export default function AccountForm({ accountId }: { accountId?: string }) {
   const router = useRouter();
   const { uid, isLoading } = useAuth();
@@ -149,6 +172,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
   // 現物の写真を縮めている間(縮小が終わるまで画面が変わらないため、待たされていることを伝える)
   const [isPreparingPhoto, setIsPreparingPhoto] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showReplaceConfirm, setShowReplaceConfirm] = useState(false);
   const [isFetchingExisting, setIsFetchingExisting] = useState(isEditMode);
   const [errorMessage, setErrorMessage] = useState("");
   const [scanProgress, setScanProgress] = useState<{ current: number; total: number } | null>(
@@ -162,7 +186,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
   const [expiryLowConfidence, setExpiryLowConfidence] = useState(false);
   // 新規登録時、名前欄からフォーカスが外れた際に同名の既存サービスが見つかった場合の情報
   // 同じ名前(空白・全角数字のゆれを除く)の既存の項目。足し先は、種類・額面を見て、下の pickAddTarget で選ぶ
-  const [sameNameItems, setSameNameItems] = useState<(ExistingItem & { type: AccountType })[]>([]);
+  const [sameNameItems, setSameNameItems] = useState<(ExistingItem & { type: AccountType; expiry: string | null })[]>([]);
   const pickedDuplicate = pickAddTarget(sameNameItems, { name, category });
   const duplicateCount = pickedDuplicate.count;
   const duplicateAccount = pickedDuplicate.target
@@ -173,6 +197,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
         type: pickedDuplicate.target.type,
         faceValue: pickedDuplicate.target.faceValue,
         itemQuantity: pickedDuplicate.target.itemQuantity,
+        expiry: pickedDuplicate.target.expiry,
       }
     : null;
 
@@ -406,7 +431,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
       const found = snap.docs.flatMap((d) => {
         const item = toExistingItem(d.id, d.data());
         return item && normalizeName(item.name) === normalizeName(name)
-          ? [{ ...item, type: (d.data() as AccountDoc).type }]
+          ? [{ ...item, type: (d.data() as AccountDoc).type, expiry: expiryString(d.data().expiryDate) }]
           : [];
       });
       setSameNameItems(found);
@@ -1400,14 +1425,16 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
               )}
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <button
-                type="button"
-                onClick={handleReplaceExisting}
-                disabled={isSubmitting || isDeleting}
-                className="btn-primary"
-              >
-                {isSubmitting ? "保存中..." : "置き換える"}
-              </button>
+              {!isStampLikeEntry({ name, category, groupName }) && (
+                <button
+                  type="button"
+                  onClick={() => setShowReplaceConfirm(true)}
+                  disabled={isSubmitting || isDeleting}
+                  className="btn-primary"
+                >
+                  {isSubmitting ? "保存中..." : "置き換える"}
+                </button>
+              )}
               {duplicateAccount.type === "finite" && (
                 <button
                   type="button"
@@ -1492,6 +1519,37 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
           busy={isRecordingOutcome}
           onConfirm={() => handleOutcome(pendingOutcome)}
           onClose={() => setPendingOutcome(null)}
+        />
+      )}
+      {showReplaceConfirm && duplicateAccount && (
+        <ConfirmSheet
+          title="置き換えますか?"
+          description={replaceDescription(
+            replaceChanges(
+              {
+                balance: duplicateAccount.currentBalance,
+                expiry: duplicateAccount.expiry,
+                faceValue: duplicateAccount.faceValue,
+                quantity: duplicateAccount.itemQuantity,
+              },
+              {
+                balance: balance === "" ? null : Number(balance),
+                expiry: expiryDate === "" ? null : expiryDate,
+                faceValue: faceValue === "" ? null : Number(faceValue),
+                quantity: itemQuantity === "" ? null : Number(itemQuantity),
+              },
+              balanceUnit || "円"
+            )
+          )}
+          confirmLabel="置き換える"
+          busyLabel="置き換え中..."
+          variant="danger"
+          busy={isSubmitting}
+          onConfirm={async () => {
+            await handleReplaceExisting();
+            setShowReplaceConfirm(false);
+          }}
+          onClose={() => setShowReplaceConfirm(false)}
         />
       )}
     </>

@@ -50,12 +50,22 @@ import {
   type SaveRow,
 } from "@/lib/stampMerge";
 import BusyIndicator from "@/components/BusyIndicator";
+import ConfirmSheet from "@/components/ConfirmSheet";
+import { replaceChanges, REPLACE_NO_CHANGE, REPLACE_WARNING } from "@/lib/replaceConfirm";
 import { scanStampSummary } from "@/lib/stampAuto";
 import { STAMP_NAME_BG } from "@/lib/stampNameView";
 import { busyViewForPhysical, waitForPaint } from "@/lib/busyView";
 import { saveStamps } from "@/lib/stampSave";
 import { stashStampSavedMessage } from "@/lib/stampToast";
 import { firestoreStampDeps } from "@/lib/stampSaveFirestore";
+
+// Firestore の期限(Timestamp)を YYYY-MM-DD にする。なければ null
+function timestampToDateString(v: unknown): string | null {
+  const t = v as { toDate?: () => Date } | null | undefined;
+  if (!t || typeof t.toDate !== "function") return null;
+  const d = t.toDate();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 export default function ScanPhysicalUpload() {
   const router = useRouter();
@@ -69,7 +79,9 @@ export default function ScanPhysicalUpload() {
   // 確認フォームの状態
   const [matchedAccountId, setMatchedAccountId] = useState<string | null>(null);
   const [existingBalance, setExistingBalance] = useState<number | null>(null);
-  const [, setExistingFaceValue] = useState<number | null>(null);
+  const [existingFaceValue, setExistingFaceValue] = useState<number | null>(null);
+  const [existingExpiry, setExistingExpiry] = useState<string | null>(null);
+  const [showReplaceConfirm, setShowReplaceConfirm] = useState(false);
   const [existingQuantity, setExistingQuantity] = useState<number | null>(null);
   const [name, setName] = useState("");
   const [totalAmount, setTotalAmount] = useState("");
@@ -133,6 +145,7 @@ export default function ScanPhysicalUpload() {
     setMatchedAccountId(null);
     setExistingBalance(null);
     setExistingFaceValue(null);
+    setExistingExpiry(null);
     setExistingQuantity(null);
 
     try {
@@ -196,6 +209,7 @@ export default function ScanPhysicalUpload() {
           setMatchedAccountId(existingDoc.id);
           setExistingBalance(existingData.currentBalance ?? null);
           setExistingFaceValue(existingData.faceValue ?? null);
+          setExistingExpiry(timestampToDateString(existingData.expiryDate));
           setExistingQuantity(existingData.itemQuantity ?? null);
         }
       }
@@ -377,6 +391,42 @@ export default function ScanPhysicalUpload() {
       )}
 
       {busy && <BusyIndicator title={busy.title} note={busy.note} />}
+      {showReplaceConfirm && (
+        <ConfirmSheet
+          title="置き換えますか?"
+          description={
+            <>
+              {(() => {
+                const lines = replaceChanges(
+                  { balance: existingBalance, expiry: existingExpiry, faceValue: existingFaceValue, quantity: existingQuantity },
+                  {
+                    balance: totalAmount === "" ? null : Number(totalAmount),
+                    expiry: expiryDate === "" ? null : expiryDate,
+                    faceValue: unitAmount === "" ? null : Number(unitAmount),
+                    quantity: quantity === "" ? null : Number(quantity),
+                  },
+                  "円"
+                );
+                return (lines.length > 0 ? lines : [REPLACE_NO_CHANGE]).map((l) => (
+                  <span key={l} style={{ display: "block" }}>
+                    {l}
+                  </span>
+                ));
+              })()}
+              <span style={{ display: "block", marginTop: 8 }}>{REPLACE_WARNING}</span>
+            </>
+          }
+          confirmLabel="置き換える"
+          busyLabel="置き換え中..."
+          variant="danger"
+          busy={isSaving}
+          onConfirm={async () => {
+            await handleSave("replace");
+            setShowReplaceConfirm(false);
+          }}
+          onClose={() => setShowReplaceConfirm(false)}
+        />
+      )}
       {errorMessage && <p style={{ fontSize: 13, color: "#b3261e" }}>{errorMessage}</p>}
       {savedMessage && <p style={{ fontSize: 13, color: "#2a7a3b", whiteSpace: "pre-line" }}>{savedMessage}</p>}
 
@@ -573,7 +623,7 @@ export default function ScanPhysicalUpload() {
             <div className="action-row">
               <button
                 type="button"
-                onClick={() => handleSave("replace")}
+                onClick={() => setShowReplaceConfirm(true)}
                 disabled={isSaving}
                 className="btn-primary"
                 style={{ flex: 1 }}

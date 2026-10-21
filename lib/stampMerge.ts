@@ -167,6 +167,12 @@ export function groupNameForNewItem(name: string): string {
   return isStampName(canonicalStampName(name)) ? STAMP_DEFAULT_NAME : name;
 }
 
+// 手動の登録で、いま入力している項目が切手か(名前が「切手 N円」と同じ(ゆれを除く)、または、種類が商品券・切手で、
+// グループ名が「切手」)。切手は、枚数を足して管理するので、同名の確認で「置き換える」を出さない
+export function isStampLikeEntry(o: { name: string; category: string; groupName: string }): boolean {
+  return isStampName(canonicalStampName(o.name)) || (o.category === "gift_certificate" && o.groupName.trim() === STAMP_DEFAULT_NAME);
+}
+
 // 額面から、名前「切手 N円」を作る
 export function stampNameFromFace(n: number): string {
   return `切手 ${n}円`;
