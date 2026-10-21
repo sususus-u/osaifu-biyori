@@ -27,6 +27,8 @@ import { db } from "@/lib/firebase";
 import { guessServiceInfo } from "@/lib/knownServices";
 import { getYenValue } from "@/lib/accountUtils";
 import BusyIndicator from "@/components/BusyIndicator";
+import { manualAdd, MANUAL_ADD_CHANGED_MESSAGE } from "@/lib/manualAdd";
+import { firestoreManualAddDeps } from "@/lib/manualAddFirestore";
 import { replaceChanges, REPLACE_NO_CHANGE, REPLACE_WARNING } from "@/lib/replaceConfirm";
 import { busyPreparing, waitForPaint } from "@/lib/busyView";
 import { stashStampSavedMessage } from "@/lib/stampToast";
@@ -734,33 +736,31 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
 
     setIsSubmitting(true);
     try {
-      const now = serverTimestamp();
-      const newBalance = (duplicateAccount.currentBalance ?? 0) + (balance === "" ? 0 : Number(balance));
-      // 額面は1枚あたりの単価なので加算せず、今回入力した値で上書きする
-      const newFaceValue = faceValue === "" ? duplicateAccount.faceValue ?? 0 : Number(faceValue);
-      const newItemQuantity =
-        (duplicateAccount.itemQuantity ?? 0) + (itemQuantity === "" ? 0 : Number(itemQuantity));
-
-      await updateDoc(doc(db, "accounts", duplicateAccount.id), {
-        currentBalance: newBalance,
-        yenExchangeRate: yenExchangeRate === "" ? null : Number(yenExchangeRate),
-        exchangeUnitCount: exchangeUnitCount === "" ? null : Number(exchangeUnitCount),
-        exchangeUnitYen: exchangeUnitYen === "" ? null : Number(exchangeUnitYen),
-        faceValue: newFaceValue,
-        itemQuantity: newItemQuantity,
-        lastUpdatedAt: now,
-        updatedAt: now,
-      });
-      await addDoc(collection(db, "accounts", duplicateAccount.id, "updates"), {
-        recordedAt: now,
-        balance: newBalance,
-        expiryDate: expiryDate ? Timestamp.fromDate(new Date(expiryDate)) : null,
-        source: "manual" as const,
-        confirmedByUser: true,
-      });
-      // 足した行の下に案内を出す(読み取りの保存と同じ仕組み)。合計は、上で保存した値から作る
       const addQuantity = itemQuantity === "" ? 0 : Number(itemQuantity);
       const addBalance = balance === "" ? 0 : Number(balance);
+      // トランザクションの中で、足す先を読み直して条件を確かめ、最新の値に足す(履歴も同じトランザクション)
+      const result = await manualAdd(firestoreManualAddDeps(uid!), {
+        id: duplicateAccount.id,
+        name,
+        category,
+        addBalance,
+        addQuantity,
+        faceValue: faceValue === "" ? null : Number(faceValue),
+        extraFields: {
+          yenExchangeRate: yenExchangeRate === "" ? null : Number(yenExchangeRate),
+          exchangeUnitCount: exchangeUnitCount === "" ? null : Number(exchangeUnitCount),
+          exchangeUnitYen: exchangeUnitYen === "" ? null : Number(exchangeUnitYen),
+        },
+        historyExtra: { expiryDate: expiryDate ? Timestamp.fromDate(new Date(expiryDate)) : null },
+      });
+      if (!result.ok) {
+        setSameNameItems([]);
+        setErrorMessage(MANUAL_ADD_CHANGED_MESSAGE);
+        return;
+      }
+      const newBalance = result.newBalance;
+      const newItemQuantity = result.newQuantity;
+      // 足した行の下に案内を出す(読み取りの保存と同じ仕組み)。合計は、トランザクションが保存した値から作る
       const text = manualAddNotice({
         name: duplicateAccount.name,
         addQuantity,
