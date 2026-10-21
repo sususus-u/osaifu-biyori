@@ -49,6 +49,8 @@ import {
   validateStampRows,
   type SaveRow,
 } from "@/lib/stampMerge";
+import BusyIndicator from "@/components/BusyIndicator";
+import { busyViewForPhysical, waitForPaint } from "@/lib/busyView";
 import { saveStamps } from "@/lib/stampSave";
 import { stashStampSavedMessage } from "@/lib/stampToast";
 import { firestoreStampDeps } from "@/lib/stampSaveFirestore";
@@ -79,6 +81,7 @@ export default function ScanPhysicalUpload() {
   const [scanIsStamp, setScanIsStamp] = useState(false);
   // 額面ごとの項目で保存する(足す/作る)のは、複数の額面、読み取り結果が切手、または名前が「切手 N円」の形のとき。
   // 額面が1種類の切手以外(商品券など)、または手で名前を「切手」などに変えたときは、今までどおり1件(置き換える/追加する)
+  const busy = busyViewForPhysical(isPreparing, isProcessing);
   const stampMode = rows.length > 1 || scanIsStamp || isStampName(name);
   const rowName = (r: ScanRow) =>
     saveRowName({ rowCount: rows.length, name, scanIsStamp, rowName: r.name, faceValue: r.faceValue });
@@ -206,6 +209,7 @@ export default function ScanPhysicalUpload() {
     setPreviewUrl(URL.createObjectURL(file));
     setErrorMessage("");
     setIsPreparing(true);
+    await waitForPaint(); // 表示を先に描画してから、重い縮小を始める
     let prepared: { base64: string; mediaType: string };
     try {
       prepared = await prepareScanImage(file);
@@ -367,8 +371,7 @@ export default function ScanPhysicalUpload() {
         </div>
       )}
 
-      {isPreparing && <p style={{ fontSize: 13, color: "#999" }}>画像を準備しています...</p>}
-      {isProcessing && <p style={{ fontSize: 13, color: "#999" }}>画像を読み取っています...</p>}
+      {busy && <BusyIndicator title={busy.title} note={busy.note} />}
       {errorMessage && <p style={{ fontSize: 13, color: "#b3261e" }}>{errorMessage}</p>}
       {savedMessage && <p style={{ fontSize: 13, color: "#2a7a3b", whiteSpace: "pre-line" }}>{savedMessage}</p>}
 
@@ -575,7 +578,7 @@ export default function ScanPhysicalUpload() {
             <button
               type="button"
               onClick={() => handleSave("replace")}
-              disabled={isSaving}
+              disabled={isSaving || isProcessing || isPreparing}
               className="btn-primary"
               style={{ width: "100%" }}
             >

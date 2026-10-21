@@ -10,6 +10,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Lightbulb } from "lucide-react";
 import { authFetch } from "@/lib/authFetch";
+import BusyIndicator from "@/components/BusyIndicator";
+import { busyViewForScan, waitForPaint } from "@/lib/busyView";
 import { prepareScanImage, readScanJson } from "@/lib/scanImage";
 import {
   collection,
@@ -93,6 +95,7 @@ export default function ScanUpload() {
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
+  const busy = busyViewForScan(isProcessing, statusMessage);
   // 既存口座と一致した項目。null の間は確認画面を出さない
   const [matchItems, setMatchItems] = useState<MatchItem[] | null>(null);
   // 確認画面での保存後に、続けて新規登録フォームへ渡す項目
@@ -108,6 +111,7 @@ export default function ScanUpload() {
     setPendingQueueItems([]);
     setPreviewUrl(URL.createObjectURL(file));
     setIsProcessing(true);
+    await waitForPaint(); // 表示を先に描画してから、重い縮小を始める
 
     try {
       const { base64, mediaType } = await prepareScanImage(file);
@@ -528,7 +532,8 @@ export default function ScanUpload() {
         </div>
       )}
 
-      {statusMessage && <p style={{ fontSize: 13, color: "#999" }}>{statusMessage}</p>}
+      {busy && <BusyIndicator title={busy.title} note={busy.note} />}
+      {!isProcessing && statusMessage && <p style={{ fontSize: 13, color: "#999" }}>{statusMessage}</p>}
       {errorMessage && (
         <div>
           <p style={{ fontSize: 13, color: "#b3261e" }}>{errorMessage}</p>

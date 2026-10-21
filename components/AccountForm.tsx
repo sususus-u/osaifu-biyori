@@ -26,6 +26,8 @@ import {
 import { db } from "@/lib/firebase";
 import { guessServiceInfo } from "@/lib/knownServices";
 import { getYenValue } from "@/lib/accountUtils";
+import BusyIndicator from "@/components/BusyIndicator";
+import { busyPreparing, waitForPaint } from "@/lib/busyView";
 import { canonicalStampName, findSameName } from "@/lib/stampMerge";
 import { useAuth } from "@/contexts/AuthProvider";
 import { prepareScanImage } from "@/lib/scanImage";
@@ -348,6 +350,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
 
     setErrorMessage("");
     setIsPreparingPhoto(true);
+    await waitForPaint(); // 表示を先に描画してから、重い縮小を始める
     try {
       const { base64, mediaType } = await prepareScanImage(file);
       sessionStorage.setItem(
@@ -733,11 +736,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
             >
               現物を撮影して登録
             </button>
-            {isPreparingPhoto && (
-              <p style={{ fontSize: 13, color: "#999", textAlign: "center", marginTop: 8 }}>
-                画像を準備しています...
-              </p>
-            )}
+            {isPreparingPhoto && <BusyIndicator title={busyPreparing().title} note={busyPreparing().note} />}
             <input
               ref={physicalFileInputRef}
               type="file"

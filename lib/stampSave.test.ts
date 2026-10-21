@@ -360,3 +360,20 @@ test("同名の確認: 「切手1円」と入力すると、既にある「切�
   assert.equal(findSameName(items, "切手3円"), undefined);
   assert.equal(findSameName(items, "  "), undefined);
 });
+
+// ---- 読み込み中の表示の条件 ----
+import { busyViewForPhysical, busyViewForScan, BUSY_PREPARING, BUSY_READING } from "./busyView.ts";
+
+test("切手の読み取り: 準備中、読み取り中の順に出る。どちらでもなければ出ない(終わると消える)", () => {
+  assert.equal(busyViewForPhysical(true, false)!.title, BUSY_PREPARING);
+  assert.equal(busyViewForPhysical(false, true)!.title, BUSY_READING);
+  assert.equal(busyViewForPhysical(false, false), null);
+  assert.ok(busyViewForPhysical(false, true)!.note.includes("数秒"));
+});
+
+test("スクショの読み取り: 処理中だけ出る。文が空なら準備中、読み取りの文なら読み取り中、ほかはその文", () => {
+  assert.equal(busyViewForScan(false, "画像を読み取っています..."), null);
+  assert.equal(busyViewForScan(true, "")!.title, BUSY_PREPARING);
+  assert.equal(busyViewForScan(true, "画像を読み取っています...")!.title, BUSY_READING);
+  assert.equal(busyViewForScan(true, "既存のサービスを確認しています...")!.title, "既存のサービスを確認しています…");
+});

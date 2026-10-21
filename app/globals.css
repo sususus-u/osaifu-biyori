@@ -544,3 +544,58 @@ button {
     flex: 1;
   }
 }
+
+/* 写真の準備中・読み取り中の表示(components/BusyIndicator.tsx) */
+.busy-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.4);
+}
+.busy-card {
+  width: 100%;
+  max-width: 320px;
+  padding: 24px 20px;
+  text-align: center;
+  background: #fff;
+  border-radius: var(--radius-card, 12px);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
+}
+.busy-spinner {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 14px;
+  border: 5px solid var(--brand-surface);
+  border-top-color: var(--brand);
+  border-radius: 50%;
+  animation: busy-spin 0.9s linear infinite;
+}
+.busy-title {
+  margin: 0 0 6px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--brand);
+}
+.busy-note {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #666;
+}
+@keyframes busy-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes busy-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .busy-spinner {
+    border-color: var(--brand);
+    animation: busy-pulse 1.6s ease-in-out infinite;
+  }
+}
