@@ -16,6 +16,7 @@ import {
 } from "firebase/firestore";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { db } from "@/lib/firebase";
+import { displayAccountName } from "@/lib/stampMerge";
 import { useAuth } from "@/contexts/AuthProvider";
 import type { AccountDoc, OutcomeEventDoc } from "@/types/firestore";
 
@@ -240,7 +241,7 @@ export default function ReportsPage() {
                   fontSize: 14,
                 }}
               >
-                <p style={{ margin: "0 0 2px", fontWeight: 500 }}>{row.account.name}</p>
+                <p style={{ margin: "0 0 2px", fontWeight: 500 }}>{displayAccountName(row.account.name)}</p>
                 <p style={{ margin: 0, fontSize: 13, color: row.hasData ? "#555" : "#bbb" }}>
                   {row.hasData
                     ? `${formatBalance(row.startBalance, row.account.balanceUnit)} → ${formatBalance(row.endBalance, row.account.balanceUnit)}`
@@ -264,7 +265,7 @@ export default function ReportsPage() {
                   fontSize: 14,
                 }}
               >
-                <p style={{ margin: "0 0 2px", fontWeight: 500 }}>{row.account.name}</p>
+                <p style={{ margin: "0 0 2px", fontWeight: 500 }}>{displayAccountName(row.account.name)}</p>
                 <p style={{ margin: 0, fontSize: 13, color: row.hasData ? "#555" : "#bbb" }}>
                   {row.hasData
                     ? `${formatBalance(row.startBalance, row.account.balanceUnit)} → ${formatBalance(row.endBalance, row.account.balanceUnit)}`

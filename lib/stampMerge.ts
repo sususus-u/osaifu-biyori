@@ -92,6 +92,25 @@ export function normalizeName(name: string): string {
     .replace(/[\s　]+/g, "");
 }
 
+// 「切手 N円」と同じ名前(空白、全角数字のゆれを除いて)なら、「切手 N円」(半角スペース1つ、半角数字)の形にする。
+// それ以外(「記念切手 1円」など)は、そのまま返す。表示と、手動・読み取りの保存で使う(足し算の判定の normalizeName と同じ規則)
+export function canonicalStampName(name: string): string {
+  const m = /^切手(\d+)円$/.exec(normalizeName(name));
+  return m ? `切手 ${m[1]}円` : name;
+}
+
+// 画面に出す名前。保存した名前は変えず、表示だけ統一する
+export function displayAccountName(name: string): string {
+  return canonicalStampName(name);
+}
+
+// 同じ名前(空白と全角数字のゆれを除いて)の項目を探す。手で登録するときの同名の確認用。空の名前は見つけない
+export function findSameName<T extends { name: string }>(items: T[], name: string): T | undefined {
+  const key = normalizeName(name);
+  if (key === "") return undefined;
+  return items.find((i) => normalizeName(i.name) === key);
+}
+
 function matches(item: ExistingItem, row: SaveRow): boolean {
   return (
     item.category === "gift_certificate" &&

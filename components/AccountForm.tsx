@@ -26,6 +26,7 @@ import {
 import { db } from "@/lib/firebase";
 import { guessServiceInfo } from "@/lib/knownServices";
 import { getYenValue } from "@/lib/accountUtils";
+import { canonicalStampName, findSameName } from "@/lib/stampMerge";
 import { useAuth } from "@/contexts/AuthProvider";
 import { prepareScanImage } from "@/lib/scanImage";
 import {
@@ -366,17 +367,17 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
   async function handleNameBlur() {
     if (isEditMode || !uid || !name.trim()) return;
     try {
-      const q = query(
-        collection(db, "accounts"),
-        where("ownerId", "==", uid),
-        where("name", "==", name.trim())
-      );
+      // 名前の空白と全角数字のゆれは同じとみなす(「切手1円」と「切手 1円」)ので、ownerId だけで取得して絞る
+      const q = query(collection(db, "accounts"), where("ownerId", "==", uid));
       const snap = await getDocs(q);
-      if (snap.empty) {
+      const existing = findSameName(
+        snap.docs.map((d) => ({ name: String((d.data() as AccountDoc).name ?? ""), doc: d })),
+        name
+      )?.doc;
+      if (!existing) {
         setDuplicateAccount(null);
         return;
       }
-      const existing = snap.docs[0];
       const data = existing.data() as AccountDoc;
       setDuplicateAccount({
         id: existing.id,
@@ -433,7 +434,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
     const now = serverTimestamp();
     const payload = {
       ownerId: uid,
-      name: name.trim(),
+      name: canonicalStampName(name.trim()),
       groupName: groupName.trim() || null,
       category,
       ...(isOther ? { customCategoryLabel: customCategoryLabel.trim() } : {}),

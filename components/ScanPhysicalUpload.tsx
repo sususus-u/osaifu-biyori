@@ -43,6 +43,7 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthProvider";
 import {
   isScannedStamp,
+  canonicalStampName,
   isStampName,
   saveRowName,
   validateStampRows,
@@ -276,8 +277,8 @@ export default function ScanPhysicalUpload() {
       } else {
         await addDoc(collection(db, "accounts"), {
           ownerId: uid,
-          name: name.trim(),
-          groupName: name.trim(),
+          name: canonicalStampName(name.trim()),
+          groupName: canonicalStampName(name.trim()),
           category: "gift_certificate",
           isYenBased: true,
           type: "finite",
@@ -308,7 +309,7 @@ export default function ScanPhysicalUpload() {
   async function handleSaveStamps() {
     if (!uid) return;
     const saveRows: SaveRow[] = rows.map((r) => ({
-      name: rowName(r).trim(),
+      name: canonicalStampName(rowName(r).trim()),
       faceValue: Number(r.faceValue),
       count: Number(r.count),
     }));

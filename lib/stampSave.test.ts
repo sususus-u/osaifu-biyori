@@ -329,3 +329,34 @@ test("同じ保存の中の「切手 1円」と「切手1円」の行は、1つ�
   const plan = planStampSave([], [row("切手 1円", 1, 5), row("切手1円", 1, 4)]);
   assert.deepEqual(plan, [{ kind: "create", name: "切手 1円", faceValue: 1, count: 9, amount: 9 }]);
 });
+
+// ---- 名前の表示と保存の統一 ----
+import { canonicalStampName, displayAccountName, findSameName } from "./stampMerge.ts";
+
+test("表示: 「切手1円」「切手　1円」「切手 １円」は、すべて「切手 1円」。空白・全角数字のゆれだけを直す", () => {
+  for (const n of ["切手1円", "切手　1円", "切手 １円", " 切手  1円 ", "切手 1円"]) {
+    assert.equal(displayAccountName(n), "切手 1円");
+  }
+  assert.equal(displayAccountName("切手 10円"), "切手 10円");
+});
+
+test("表示: 「記念切手 1円」などはそのまま。「切手 1円」と「切手 2円」は別", () => {
+  assert.equal(displayAccountName("記念切手 1円"), "記念切手 1円");
+  assert.equal(displayAccountName("切手"), "切手");
+  assert.equal(displayAccountName("PayPay残高"), "PayPay残高");
+  assert.notEqual(displayAccountName("切手1円"), displayAccountName("切手2円"));
+});
+
+test("保存の正規化: 「切手 N円」と同じ名前だけ、「切手 N円」にする。別の名前は変えない", () => {
+  assert.equal(canonicalStampName("切手１円"), "切手 1円");
+  assert.equal(canonicalStampName("記念切手1円"), "記念切手1円");
+  assert.equal(canonicalStampName("楽天ポイント"), "楽天ポイント");
+});
+
+test("同名の確認: 「切手1円」と入力すると、既にある「切手 1円」が見つかる。別の額面は見つからない", () => {
+  const items = [{ name: "切手 1円" }, { name: "切手 2円" }];
+  assert.equal(findSameName(items, "切手1円"), items[0]);
+  assert.equal(findSameName(items, "切手　２円"), items[1]);
+  assert.equal(findSameName(items, "切手3円"), undefined);
+  assert.equal(findSameName(items, "  "), undefined);
+});

@@ -8,6 +8,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { Timestamp } from "firebase/firestore";
 import type { AccountDoc } from "@/types/firestore";
+import { displayAccountName } from "@/lib/stampMerge";
 import { getYenValue } from "@/lib/accountUtils";
 
 export interface AccountWithId extends AccountDoc {
@@ -102,7 +103,7 @@ export default function AccountRow({
       }}
     >
       <div>
-        <p style={{ margin: 0, fontWeight: 500 }}>{account.name}</p>
+        <p style={{ margin: 0, fontWeight: 500 }}>{displayAccountName(account.name)}</p>
         <p style={{ margin: 0, fontSize: 12, color: "#999" }}>{subText}</p>
       </div>
       <p style={{ margin: 0 }}>{balanceDisplay(account)}</p>

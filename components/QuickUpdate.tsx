@@ -18,6 +18,7 @@ import {
   Timestamp,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { displayAccountName } from "@/lib/stampMerge";
 import { useAuth } from "@/contexts/AuthProvider";
 import type { AccountDoc } from "@/types/firestore";
 
@@ -89,7 +90,7 @@ export default function QuickUpdate() {
   // グループ名(未設定なら口座名)でまとめる。例:「楽天ポイント」に通常/期間限定の2口座
   const groups = new Map<string, AccountWithId[]>();
   for (const acc of accounts) {
-    const key = acc.groupName?.trim() || acc.name;
+    const key = displayAccountName(acc.groupName?.trim() || acc.name);
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key)!.push(acc);
   }
@@ -224,7 +225,7 @@ export default function QuickUpdate() {
       {editingRows.map((row, index) => (
         <div key={row.account.id} className="space-y-3 border-t pt-4 first:border-t-0 first:pt-0">
           {editingRows.length > 1 && (
-            <p className="text-sm font-medium text-gray-700">{row.account.name}</p>
+            <p className="text-sm font-medium text-gray-700">{displayAccountName(row.account.name)}</p>
           )}
           <div>
             <label className="block text-sm font-medium mb-1">残高</label>

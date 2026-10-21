@@ -31,6 +31,7 @@ import {
   type StampNoticePlan,
   type StampSavedPayload,
 } from "@/lib/stampToast";
+import { displayAccountName } from "@/lib/stampMerge";
 import { getYenValue } from "@/lib/accountUtils";
 
 function monthKey(date: Date) {
@@ -260,7 +261,7 @@ export default function AccountList() {
 
   const serviceGroups = new Map<string, AccountWithId[]>();
   for (const acc of accounts) {
-    const key = acc.groupName?.trim() || acc.name;
+    const key = displayAccountName(acc.groupName?.trim() || acc.name);
     if (!serviceGroups.has(key)) serviceGroups.set(key, []);
     serviceGroups.get(key)!.push(acc);
   }
