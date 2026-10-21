@@ -101,6 +101,41 @@ export function canonicalStampName(name: string): string {
   return m ? `切手 ${m[1]}円` : name;
 }
 
+export const MAX_STAMP_FACE_VALUE = 1_000_000; // 額面の上限(円)
+
+export type StampFaceParse =
+  | { kind: "empty" }
+  | { kind: "ok"; value: number }
+  | { kind: "invalid"; message: string };
+
+// 手動の登録画面で、グループ名が「切手」のときの額面の数字入力を確かめる。
+// 全角数字は半角にする。空欄は未入力。整数で1以上、上限は MAX_STAMP_FACE_VALUE。小数・負の数・文字は不可
+export function parseStampFace(raw: string): StampFaceParse {
+  const t = raw.replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0)).replace(/[\s　]+/g, "");
+  if (t === "") return { kind: "empty" };
+  if (!/^\d+$/.test(t)) return { kind: "invalid", message: "額面は、1以上の整数(数字だけ)で入力してください。" };
+  const n = Number(t);
+  if (n < 1) return { kind: "invalid", message: "額面は、1円以上で入力してください。" };
+  if (n > MAX_STAMP_FACE_VALUE) return { kind: "invalid", message: `額面は、${MAX_STAMP_FACE_VALUE.toLocaleString("ja-JP")}円以下で入力してください。` };
+  return { kind: "ok", value: n };
+}
+
+// 手動の登録で、名前を額面の数字入力にするか(グループ名が「切手」の新規登録だけ。編集モードでは出さない)
+export function isStampGroupEntry(isEditMode: boolean, groupName: string): boolean {
+  return !isEditMode && groupName.trim() === "切手";
+}
+
+// 額面から、名前「切手 N円」を作る
+export function stampNameFromFace(n: number): string {
+  return `切手 ${n}円`;
+}
+
+// 名前が「切手 N円」の形(ゆれを除く)なら、N。違えば null
+export function stampFaceFromName(name: string): number | null {
+  const m = /^切手 (\d+)円$/.exec(canonicalStampName(name));
+  return m ? Number(m[1]) : null;
+}
+
 // 画面に出す名前。保存した名前は変えず、表示だけ統一する
 export function displayAccountName(name: string): string {
   return canonicalStampName(name);

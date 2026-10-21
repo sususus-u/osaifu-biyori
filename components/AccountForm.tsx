@@ -29,7 +29,7 @@ import { getYenValue } from "@/lib/accountUtils";
 import BusyIndicator from "@/components/BusyIndicator";
 import { busyPreparing, waitForPaint } from "@/lib/busyView";
 import { stashStampSavedMessage } from "@/lib/stampToast";
-import { canonicalStampName, manualAddNotice, normalizeName, pickAddTarget, toExistingItem, type ExistingItem } from "@/lib/stampMerge";
+import { canonicalStampName, isStampGroupEntry, manualAddNotice, parseStampFace, stampFaceFromName, stampNameFromFace, normalizeName, pickAddTarget, toExistingItem, type ExistingItem } from "@/lib/stampMerge";
 import { useAuth } from "@/contexts/AuthProvider";
 import { prepareScanImage } from "@/lib/scanImage";
 import {
@@ -124,6 +124,11 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
   // 編集モードで読み込んだ既存のyenExchangeRateを、ユーザーがこの2欄を触るまで上書きしないためのフラグ
   const [exchangeRateTouched, setExchangeRateTouched] = useState(false);
   const [faceValue, setFaceValue] = useState("");
+  // グループ名が「切手」のときの名前の入力(額面の数字)。stampManual は「名称を自分で付ける」。
+  // savedManualName は、数字入力へ戻すとき、手で打った名前を失わないための控え
+  const [stampFaceInput, setStampFaceInput] = useState("");
+  const [stampManual, setStampManual] = useState(false);
+  const [savedManualName, setSavedManualName] = useState("");
   const [itemQuantity, setItemQuantity] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
   // 有効期限を「期間限定」「期限なし」のどちらにするか。null は未選択(新規登録時は選択必須)
@@ -170,6 +175,14 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
   const isOther = category === "other";
   const isGiftCertificate = category === "gift_certificate";
   const isPoints = category === "points";
+
+  // グループ名が「切手」の新規登録では、名前を額面の数字入力にする(編集モードでは出さず、今の名前のまま)。
+  // 名前がすでに別の名称(読み取りの引き継ぎなど)なら、自動では数字入力にしない
+  const stampGroup = isStampGroupEntry(isEditMode, groupName);
+  const showStampNumeric =
+    stampGroup && !stampManual && (name === "" || stampFaceInput !== "" || stampFaceFromName(name) !== null);
+  const stampFaceShown =
+    stampFaceInput !== "" ? stampFaceInput : stampFaceFromName(name) !== null ? String(stampFaceFromName(name)) : "";
 
   // グループ名に応じた名前欄の候補(該当サービスがなければ全サービスの一覧にフォールバック)
   const nameCandidates = SERVICE_ACCOUNT_NAME_VARIANTS[groupName.trim()] ?? KNOWN_ACCOUNT_NAMES;
@@ -393,6 +406,34 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
     }
   }
 
+  // 額面の数字入力。名前を「切手 N円」にし、額面の欄にも同じ値を入れる。種類は商品券・切手にそろえる(名前が決まる入力のとき)
+  function applyStampFace(raw: string) {
+    setStampFaceInput(raw);
+    setSameNameItems([]);
+    const r = parseStampFace(raw);
+    if (r.kind === "ok") {
+      setName(stampNameFromFace(r.value));
+      setFaceValue(String(r.value));
+      if (category !== "gift_certificate") handleCategoryChange("gift_certificate");
+    } else {
+      setName("");
+    }
+  }
+
+  // 「名称を自分で付ける」/「額面の数字で入力する」の切り替え。手で打った名前は控えて、戻しても失わない
+  function toggleStampManual() {
+    setSameNameItems([]);
+    if (showStampNumeric) {
+      setStampManual(true);
+      if (savedManualName) setName(savedManualName);
+    } else {
+      setSavedManualName(name);
+      setStampManual(false);
+      const r = parseStampFace(stampFaceShown);
+      setName(r.kind === "ok" ? stampNameFromFace(r.value) : "");
+    }
+  }
+
   function handleCategoryChange(newCategory: AccountCategory) {
     setCategory(newCategory);
     const defaults = CATEGORY_DEFAULTS[newCategory];
@@ -411,6 +452,17 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
     if (!uid) {
       setErrorMessage("ログイン処理が完了していません。少し待ってからもう一度お試しください。");
       return false;
+    }
+    if (showStampNumeric) {
+      const r = parseStampFace(stampFaceShown);
+      if (r.kind === "invalid") {
+        setErrorMessage(r.message);
+        return false;
+      }
+      if (r.kind === "empty") {
+        setErrorMessage("額面(円)を数字で入力してください。名称を自分で付けるときは、下のボタンで切り替えます。");
+        return false;
+      }
     }
     if (!name.trim()) {
       setErrorMessage("名前を入力してください。");
@@ -849,7 +901,43 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
         </div>
 
         <div className="field">
-          <label>名前</label>
+          <label>{showStampNumeric ? "額面(切手 ○円)" : "名前"}</label>
+          {showStampNumeric && (
+            <>
+              <div style={{ position: "relative" }}>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={stampFaceShown}
+                  onChange={(e) => applyStampFace(e.target.value)}
+                  onBlur={handleNameBlur}
+                  placeholder="例:84"
+                  aria-label="額面(円)"
+                  style={{ paddingRight: 32 }}
+                />
+                <span
+                  style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", fontSize: 13, color: "#999" }}
+                >
+                  円
+                </span>
+              </div>
+              <p style={{ fontSize: 13, color: "#999", marginTop: 6 }}>
+                名前: {name || "(額面を入れると「切手 ○円」になります)"}
+              </p>
+            </>
+          )}
+          {stampGroup && (
+            <button
+              type="button"
+              onClick={toggleStampManual}
+              style={{ border: "none", background: "none", color: "var(--brand)", fontSize: 13, padding: "4px 0", textDecoration: "underline" }}
+            >
+              {showStampNumeric ? "名称を自分で付ける(記念切手など)" : "額面の数字で入力する"}
+            </button>
+          )}
+          {!showStampNumeric && (
+          <>
           <div style={{ position: "relative" }}>
             <input
               type="text"
@@ -894,6 +982,8 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
               <option key={candidateName} value={candidateName} />
             ))}
           </datalist>
+          </>
+          )}
         </div>
 
         <div className="field">

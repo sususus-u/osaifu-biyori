@@ -474,3 +474,40 @@ test("古い形式の案内(文字列だけ、items の text だけ)も、注意
   data.set("tamari:stampSavedMessage", "切手 1円に5枚追加しました(合計23枚)");
   assert.deepEqual(takeStampSavedMessage(st), { message: "切手 1円に5枚追加しました(合計23枚)", items: [] });
 });
+
+// ---- 手動の登録: グループ名「切手」の額面の数字入力 ----
+import { isStampGroupEntry, MAX_STAMP_FACE_VALUE, parseStampFace, stampFaceFromName, stampNameFromFace } from "./stampMerge.ts";
+
+test("数字入力から名前: 「84」「８４」は「切手 84円」。前後の空白は無視", () => {
+  for (const raw of ["84", "８４", " 84 ", "８ ４"]) {
+    const r = parseStampFace(raw);
+    assert.equal(r.kind, "ok");
+    if (r.kind === "ok") assert.equal(stampNameFromFace(r.value), "切手 84円");
+  }
+});
+
+test("数字入力: 空欄は未入力。0、負の数、小数、文字、上限超えは不可。上限ちょうどは可", () => {
+  assert.equal(parseStampFace("").kind, "empty");
+  assert.equal(parseStampFace("  ").kind, "empty");
+  for (const bad of ["0", "00", "-5", "1.5", "１．５", "abc", "84円", String(MAX_STAMP_FACE_VALUE + 1)]) {
+    assert.equal(parseStampFace(bad).kind, "invalid", bad);
+  }
+  assert.equal(parseStampFace(String(MAX_STAMP_FACE_VALUE)).kind, "ok");
+});
+
+test("名前から額面を戻す(名称を自分で付けた名前は対象外)。足し先の規則は、この名前でそのまま動く", () => {
+  assert.equal(stampFaceFromName("切手 84円"), 84);
+  assert.equal(stampFaceFromName("切手８４円"), 84);
+  assert.equal(stampFaceFromName("記念切手 84円"), null);
+  assert.equal(stampFaceFromName(""), null);
+  const r = pickAddTarget([ex("a", "切手 84円", 84, 1)], { name: stampNameFromFace(84), category: "electronic_money" });
+  assert.equal(r.target!.id, "a");
+});
+
+test("数字入力にするのは、グループ名が「切手」の新規登録だけ。編集モードや別のグループ名では出ない(名前は変わらない)", () => {
+  assert.equal(isStampGroupEntry(false, "切手"), true);
+  assert.equal(isStampGroupEntry(false, " 切手 "), true);
+  assert.equal(isStampGroupEntry(true, "切手"), false);
+  assert.equal(isStampGroupEntry(false, "記念切手"), false);
+  assert.equal(isStampGroupEntry(false, ""), false);
+});
