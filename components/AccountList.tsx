@@ -27,7 +27,6 @@ import {
   peekStampSavedMessage,
   decideBind,
   planWaitTimeout,
-  stampDiag,
   type StampNoticePlan,
   type StampSavedPayload,
 } from "@/lib/stampToast";
@@ -92,7 +91,6 @@ export default function AccountList() {
   const scrollTargetRef = useRef<string | null>(null);
   // 案内の表示を始めたか(始めたら storage から消す。StrictMode の二重実行で、同じ案内を2回出さない)
   const startedRef = useRef(false);
-  const pendingSinceRef = useRef(0);
   const [tab, setTab] = useState<"withExpiry" | "noExpiry" | "byGroup">(() => {
     if (typeof window === "undefined") return "withExpiry";
     const stored = sessionStorage.getItem("account-list-tab");
@@ -131,25 +129,15 @@ export default function AccountList() {
   useEffect(() => {
     if (startedRef.current) return;
     const taken = peekStampSavedMessage(window.sessionStorage);
-    stampDiag({ event: "mount", hadKey: taken !== null, itemCount: taken ? taken.items.length : 0 });
-    pendingSinceRef.current = Date.now();
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (taken) setPending(taken);
   }, []);
 
   // 表示を始める(1回だけ)。storage から消し、行の下の案内と、上部のトースト(行が見つからない分だけ)を出す
-  function startNotices(p: StampSavedPayload, plan: StampNoticePlan, event: "bind" | "timeout") {
+  function startNotices(plan: StampNoticePlan) {
     if (startedRef.current) return;
     startedRef.current = true;
     clearStampSavedMessage(window.sessionStorage);
-    stampDiag({
-      event,
-      hadKey: true,
-      itemCount: p.items.length,
-      found: Object.keys(plan.notices).length,
-      toast: plan.fallback !== null,
-      waitMs: Date.now() - pendingSinceRef.current,
-    });
     setPending(null);
     setTab(plan.tab);
     setNotices(plan.notices);
@@ -169,7 +157,7 @@ export default function AccountList() {
   useEffect(() => {
     if (!pending || !loaded || startedRef.current) return;
     const plan = decideBind(pending, listAccounts, tab, false);
-    if (plan) startNotices(pending, plan, "bind");
+    if (plan) startNotices(plan);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pending, loaded, accounts, tab]);
 
@@ -182,14 +170,10 @@ export default function AccountList() {
       const cur = latestRef.current;
       if (cur.loaded) {
         const plan = decideBind(pending, cur.listAccounts, cur.tab, true);
-        if (plan) startNotices(pending, plan, "timeout");
+        if (plan) startNotices(plan);
         return;
       }
-      startNotices(
-        pending,
-        { tab: cur.tab, notices: {}, firstId: null, fallback: planWaitTimeout(pending).fallback },
-        "timeout"
-      );
+      startNotices({ tab: cur.tab, notices: {}, firstId: null, fallback: planWaitTimeout(pending).fallback });
     }, STAMP_WAIT_MS);
     return () => clearTimeout(timer);
   }, [pending]);

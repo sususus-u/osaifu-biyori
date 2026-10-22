@@ -117,23 +117,6 @@ export function planWaitTimeout(payload: StampSavedPayload): { fallback: string 
   return { fallback: payload.message };
 }
 
-// 診断用([stamp-notice 診断])。件数と有無と時間だけで、案内の本文・id は含めない。効果の確認後に取り消す(BRAND.md)
-export interface StampDiag {
-  event: "mount" | "bind" | "timeout";
-  hadKey: boolean;
-  itemCount: number;
-  found?: number;
-  toast?: boolean;
-  waitMs?: number;
-}
-export function stampDiag(d: StampDiag): void {
-  try {
-    console.warn("[stamp-notice 診断]", JSON.stringify(d));
-  } catch {
-    // 診断が出ないだけ
-  }
-}
-
 // ---- 一覧での出し先 ----
 
 export type ListTab = "withExpiry" | "noExpiry" | "byGroup";
