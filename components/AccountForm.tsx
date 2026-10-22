@@ -19,7 +19,6 @@ import {
   query,
   where,
   updateDoc,
-  deleteDoc,
   serverTimestamp,
   Timestamp,
 } from "firebase/firestore";
@@ -29,6 +28,8 @@ import { getYenValue } from "@/lib/accountUtils";
 import BusyIndicator from "@/components/BusyIndicator";
 import { manualAdd, MANUAL_ADD_CHANGED_MESSAGE } from "@/lib/manualAdd";
 import { firestoreManualAddDeps } from "@/lib/manualAddFirestore";
+import { deleteAccounts } from "@/lib/deleteAccount";
+import { firestoreDeleteAccountDeps } from "@/lib/deleteAccountFirestore";
 import { replaceChanges, REPLACE_NO_CHANGE, REPLACE_WARNING } from "@/lib/replaceConfirm";
 import { busyPreparing, waitForPaint } from "@/lib/busyView";
 import { stashStampSavedMessage } from "@/lib/stampToast";
@@ -788,7 +789,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
 
     setIsDeleting(true);
     try {
-      await deleteDoc(doc(db, "accounts", accountId));
+      await deleteAccounts([accountId], firestoreDeleteAccountDeps);
       router.push("/");
     } catch (error) {
       console.error(error);
@@ -822,7 +823,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
       });
 
       if (accountType === "finite") {
-        await deleteDoc(doc(db, "accounts", accountId));
+        await deleteAccounts([accountId], firestoreDeleteAccountDeps);
       } else {
         await updateDoc(doc(db, "accounts", accountId), {
           currentBalance: 0,
