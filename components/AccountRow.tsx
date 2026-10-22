@@ -119,7 +119,7 @@ export default function AccountRow({
             fontSize: 14,
             borderTop: "0.5px solid #f0f0f0",
             cursor: "pointer",
-            ...(selected ? { background: "#fbf3ee" } : {}),
+            ...(selected ? { background: "#efd5cc" } : {}),
           }}
         >
           <CheckMark state={selected ? "all" : "none"} />

@@ -316,6 +316,18 @@ export default function AccountList() {
     );
   }
 
+  // 選択モードの操作ボタン: 枠線つき、高さ44px以上、濃い文字色(白地に #6e2a32 でコントラスト比は約 10:1)
+  const selectBtnStyle = {
+    minHeight: 44,
+    padding: "0 16px",
+    fontSize: 14,
+    fontWeight: 600,
+    color: "var(--brand)",
+    background: "#fff",
+    border: "1.5px solid var(--brand)",
+    borderRadius: 999,
+  } as const;
+
   function toggleMonth(key: string) {
     setExpandedMonths((prev) => {
       const next = new Set(prev);
@@ -375,28 +387,40 @@ export default function AccountList() {
 
       {/* 選択モードの操作。通常のときは「選択」ボタンだけ */}
       {selectMode ? (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
-          <button type="button" className="btn-ghost" style={{ minHeight: 44 }} onClick={exitSelectMode}>
-            キャンセル
-          </button>
-          <button
-            type="button"
-            className="btn-ghost"
-            style={{ minHeight: 44 }}
-            onClick={() => applySelection(selectAllInTab(selectedIds, currentTabIds))}
-          >
-            すべて選択
-          </button>
-          <span aria-live="polite" style={{ fontSize: 13, color: "#666" }}>
-            {selectedIds.size}件を選択中
-          </span>
+        <div
+          style={{
+            position: "sticky",
+            top: 0,
+            zIndex: 20,
+            margin: "0 -20px 12px",
+            padding: "10px 20px",
+            background: "#fff",
+            borderBottom: "1px solid #d9cfcf",
+            boxShadow: "0 2px 6px rgba(0,0,0,0.06)",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <button type="button" style={selectBtnStyle} onClick={exitSelectMode}>
+              キャンセル
+            </button>
+            <button
+              type="button"
+              style={selectBtnStyle}
+              onClick={() => applySelection(selectAllInTab(selectedIds, currentTabIds))}
+            >
+              すべて選択
+            </button>
+            <span aria-live="polite" style={{ fontSize: 15, fontWeight: 600, color: "#222", marginLeft: "auto" }}>
+              {selectedIds.size}件を選択中
+            </span>
+          </div>
           {currentTabIds.length > SELECTION_LIMIT && (
-            <p style={{ flexBasis: "100%", margin: 0, fontSize: 12, color: "#999" }}>
+            <p style={{ margin: "6px 0 0", fontSize: 12, color: "#555" }}>
               「すべて選択」は、先頭の{SELECTION_LIMIT}件までです
             </p>
           )}
           {limitNote && (
-            <p role="status" style={{ flexBasis: "100%", margin: 0, fontSize: 12, color: "#b3261e" }}>
+            <p role="status" style={{ margin: "6px 0 0", fontSize: 13, fontWeight: 600, color: "#b3261e" }}>
               {SELECTION_LIMIT_MESSAGE}
             </p>
           )}
@@ -726,27 +750,49 @@ export default function AccountList() {
         </div>
       )}
 
-      {/* 選択モードの操作バー。スクロールする領域の下に貼りつく(下部ナビは別の枠なので重ならない)。削除は段階2で有効にする */}
+      {/* 選択モードの下部バー。画面の下(下部ナビ .tabbar の上)に固定する。.tabbar は高さ78pxの別の枠。
+          一覧の末尾に同じ高さの余白を足して、最後の行が隠れないようにする。削除は段階2で有効にする */}
       {selectMode && (
-        <div
-          style={{
-            position: "sticky",
-            bottom: 0,
-            marginTop: 16,
-            padding: "10px 0",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 8,
-            background: "#fff",
-            borderTop: "0.5px solid #eee",
-          }}
-        >
-          <span style={{ fontSize: 13, color: "#666" }}>{selectedIds.size}件を選択中</span>
-          <button type="button" className="btn-ghost" disabled style={{ minHeight: 44 }}>
-            削除(準備中)
-          </button>
-        </div>
+        <>
+          <div aria-hidden="true" style={{ height: 80 }} />
+          <div
+            style={{
+              position: "fixed",
+              bottom: 78,
+              left: "50%",
+              transform: "translateX(-50%)",
+              width: "min(100%, 480px)",
+              zIndex: 20,
+              boxSizing: "border-box",
+              padding: "10px 20px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 8,
+              background: "#fff",
+              borderTop: "1px solid #d9cfcf",
+              boxShadow: "0 -2px 6px rgba(0,0,0,0.06)",
+            }}
+          >
+            <span style={{ fontSize: 15, fontWeight: 600, color: "#222" }}>{selectedIds.size}件を選択中</span>
+            <button
+              type="button"
+              disabled
+              style={{
+                minHeight: 44,
+                padding: "0 16px",
+                fontSize: 14,
+                fontWeight: 600,
+                color: "#555",
+                background: "#eee",
+                border: "1.5px solid #bbb",
+                borderRadius: 999,
+              }}
+            >
+              削除(準備中)
+            </button>
+          </div>
+        </>
       )}
 
       <div style={{ textAlign: "center", marginTop: 20 }}>
