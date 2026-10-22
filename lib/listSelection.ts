@@ -72,3 +72,23 @@ export const SELECTION_LIMIT_MESSAGE = `一度に選べるのは${SELECTION_LIMI
 export function exitSelection(): Set<string> {
   return new Set();
 }
+
+// 今のタブの全項目が選ばれているか(「すべて選択」を押した結果と同じ状態か)。
+// 上限があるので、ほかのタブで選んだ分を引いた残りの枠(capacity)で、先頭から選べるだけ選ばれていれば「全部」とみなす。
+// 項目がないタブは false
+export function isAllSelectedInTab(current: Set<string>, tabIds: string[]): boolean {
+  const inTab = tabIds.filter((id) => current.has(id));
+  const capacity = SELECTION_LIMIT - (current.size - inTab.length);
+  const expected = tabIds.slice(0, Math.max(0, Math.min(tabIds.length, capacity)));
+  return expected.length > 0 && inTab.length === expected.length && expected.every((id) => current.has(id));
+}
+
+// 「すべて選択 / すべて解除」のトグル。全部選ばれていれば今のタブの選択を外し(ほかのタブは残す)、そうでなければ選ぶ
+export function toggleSelectAllInTab(current: Set<string>, tabIds: string[]): SelectionResult {
+  if (isAllSelectedInTab(current, tabIds)) {
+    const next = new Set(current);
+    for (const id of tabIds) next.delete(id);
+    return { next, truncated: false };
+  }
+  return selectAllInTab(current, tabIds);
+}

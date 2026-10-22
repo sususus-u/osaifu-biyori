@@ -9,6 +9,8 @@ import {
   groupState,
   pruneSelection,
   exitSelection,
+  isAllSelectedInTab,
+  toggleSelectAllInTab,
 } from "./listSelection.ts";
 
 const ids = (n: number, p = "a") => Array.from({ length: n }, (_, i) => `${p}${i}`);
@@ -70,4 +72,49 @@ test("addMany: 選択済みは数えない", () => {
 
 test("モードを抜けたら、選択は空になる", () => {
   assert.equal(exitSelection().size, 0);
+});
+
+test("すべて選択のトグル: 全部でないとき(0件、一部)は選ぶ。全部のときは外す", () => {
+  const tab = ids(3);
+  const r1 = toggleSelectAllInTab(new Set(), tab);
+  assert.equal(r1.next.size, 3);
+  assert.equal(isAllSelectedInTab(r1.next, tab), true);
+  const part = toggleSelectAllInTab(new Set(["a1"]), tab);
+  assert.equal(part.next.size, 3);
+  const r2 = toggleSelectAllInTab(r1.next, tab);
+  assert.equal(r2.next.size, 0);
+});
+
+test("すべて選択のトグル: 解除は今のタブだけ。ほかのタブの選択は残る", () => {
+  const tab = ids(3);
+  const cur = new Set([...tab, "other1", "other2"]);
+  assert.equal(isAllSelectedInTab(cur, tab), true);
+  const r = toggleSelectAllInTab(cur, tab);
+  assert.deepEqual([...r.next].sort(), ["other1", "other2"]);
+});
+
+test("すべて選択のトグル: 50件を超えるタブは先頭50件。その50件が選ばれていれば「全部」で、押すと外す", () => {
+  const tab = ids(60);
+  const r1 = toggleSelectAllInTab(new Set(), tab);
+  assert.equal(r1.next.size, SELECTION_LIMIT);
+  assert.equal(r1.truncated, true);
+  assert.equal(isAllSelectedInTab(r1.next, tab), true);
+  assert.equal(toggleSelectAllInTab(r1.next, tab).next.size, 0);
+});
+
+test("すべて選択のトグル: ほかのタブで選んだ分で枠が減っていても、入る分が選ばれていれば「全部」", () => {
+  const tab = ids(60);
+  const others = new Set(ids(10, "o"));
+  const r1 = toggleSelectAllInTab(others, tab);
+  assert.equal(r1.next.size, SELECTION_LIMIT);
+  assert.equal(isAllSelectedInTab(r1.next, tab), true);
+  const r2 = toggleSelectAllInTab(r1.next, tab);
+  assert.equal(r2.next.size, 10);
+});
+
+test("すべて選択のトグル: 項目がないタブでも壊れない", () => {
+  assert.equal(isAllSelectedInTab(new Set(), []), false);
+  assert.equal(isAllSelectedInTab(new Set(["x"]), []), false);
+  const r = toggleSelectAllInTab(new Set(["x"]), []);
+  assert.deepEqual([...r.next], ["x"]);
 });

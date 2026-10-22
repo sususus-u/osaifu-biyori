@@ -25,7 +25,8 @@ import {
   exitSelection,
   groupState,
   pruneSelection,
-  selectAllInTab,
+  isAllSelectedInTab,
+  toggleSelectAllInTab,
   toggleGroup,
   toggleOne,
   type SelectionResult,
@@ -289,6 +290,7 @@ export default function AccountList() {
   // 選択モード。一覧から消えた項目は、選択から外して数える
   const selectedIds = pruneSelection(selected, accounts.map((a) => a.id));
   const currentTabIds = (tab === "withExpiry" ? withExpiry : tab === "noExpiry" ? noExpiry : accounts).map((a) => a.id);
+  const allSelectedInTab = isAllSelectedInTab(selectedIds, currentTabIds);
   function applySelection(r: SelectionResult) {
     setSelected(r.next);
     setLimitNote(r.truncated);
@@ -406,9 +408,9 @@ export default function AccountList() {
             <button
               type="button"
               style={selectBtnStyle}
-              onClick={() => applySelection(selectAllInTab(selectedIds, currentTabIds))}
+              onClick={() => applySelection(toggleSelectAllInTab(selectedIds, currentTabIds))}
             >
-              すべて選択
+              {allSelectedInTab ? "すべて解除" : "すべて選択"}
             </button>
             <span aria-live="polite" style={{ fontSize: 15, fontWeight: 600, color: "#222", marginLeft: "auto" }}>
               {selectedIds.size}件を選択中
