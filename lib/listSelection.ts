@@ -98,3 +98,34 @@ export function toggleSelectAllInTab(current: Set<string>, tabIds: string[]): Se
 export function selectionAfterTabChange<T extends string>(current: Set<string>, from: T, to: T): Set<string> {
   return from === to ? current : new Set();
 }
+
+export interface GroupButtonView {
+  state: "none" | "some" | "all";
+  // ボタンの文言
+  text: string;
+  // スクリーンリーダー向け(名前つき。状態と、押すとどうなるか)
+  ariaLabel: string;
+}
+
+// グループ見出しのボタンの文言。0件: 「まとめて選ぶ」(50件を超えるグループは「(50件まで)」つき)/
+// 一部: 「まとめて選ぶ(選択数/全件数)」/ 全部: 「まとめて解除」
+export function groupButtonView(current: Set<string>, ids: string[], name: string): GroupButtonView {
+  const state = groupState(current, ids);
+  const n = ids.filter((id) => current.has(id)).length;
+  if (state === "all") {
+    return { state, text: "まとめて解除", ariaLabel: `${name}: ${ids.length}件すべて選択中。押すと、このグループの選択を外します` };
+  }
+  if (state === "some") {
+    return {
+      state,
+      text: `まとめて選ぶ(${n}/${ids.length})`,
+      ariaLabel: `${name}: ${ids.length}件のうち${n}件が選択されています。押すと、残りも選びます${ids.length > SELECTION_LIMIT ? `(一度に選べるのは${SELECTION_LIMIT}件まで)` : ""}`,
+    };
+  }
+  const over = ids.length > SELECTION_LIMIT;
+  return {
+    state,
+    text: over ? `まとめて選ぶ(${SELECTION_LIMIT}件まで)` : "まとめて選ぶ",
+    ariaLabel: `${name}: 選択されていません。押すと、${over ? `先頭の${SELECTION_LIMIT}件を` : `${ids.length}件を`}まとめて選びます`,
+  };
+}

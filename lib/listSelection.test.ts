@@ -9,6 +9,7 @@ import {
   groupState,
   pruneSelection,
   exitSelection,
+  groupButtonView,
   selectionAfterTabChange,
   isAllSelectedInTab,
   toggleSelectAllInTab,
@@ -125,4 +126,27 @@ test("タブの切り替え: 選択が空になる。同じタブを押しても
   assert.equal(selectionAfterTabChange(cur, "noExpiry", "byGroup").size, 0);
   assert.equal(selectionAfterTabChange(cur, "byGroup", "byGroup"), cur);
   assert.equal(cur.size, 2); // 元の Set は変えない
+});
+
+test("グループ見出しの文言: 0件、一部、全部、上限", () => {
+  const g = ["a", "b", "c", "d"];
+  const none = groupButtonView(new Set(), g, "楽天");
+  assert.equal(none.text, "まとめて選ぶ");
+  assert.equal(none.state, "none");
+  const some = groupButtonView(new Set(["a"]), g, "楽天");
+  assert.equal(some.text, "まとめて選ぶ(1/4)");
+  assert.equal(some.state, "some");
+  assert.ok(some.ariaLabel.includes("4件のうち1件が選択されています"));
+  const all = groupButtonView(new Set(g), g, "楽天");
+  assert.equal(all.text, "まとめて解除");
+  assert.equal(all.state, "all");
+  assert.ok(all.ariaLabel.startsWith("楽天"));
+  // 50件を超えるグループ: 0件のときは「50件まで」。選べるだけ選んだ後は一部のまま(全部にはならない)
+  const big = ids(60);
+  assert.equal(groupButtonView(new Set(), big, "大").text, "まとめて選ぶ(50件まで)");
+  const filled = toggleGroup(new Set(), big).next;
+  const v = groupButtonView(filled, big, "大");
+  assert.equal(v.state, "some");
+  assert.equal(v.text, "まとめて選ぶ(50/60)");
+  assert.equal(groupButtonView(new Set(), [], "空").text, "まとめて選ぶ");
 });

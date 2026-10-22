@@ -24,7 +24,7 @@ import {
   SELECTION_LIMIT_MESSAGE,
   exitSelection,
   selectionAfterTabChange,
-  groupState,
+  groupButtonView,
   pruneSelection,
   isAllSelectedInTab,
   toggleSelectAllInTab,
@@ -310,10 +310,12 @@ export default function AccountList() {
     return { selectMode, selected: selectedIds.has(id), onToggleSelect: () => applySelection(toggleOne(selectedIds, id)) };
   }
   function groupCheck(label: string, ids: string[]) {
+    const v = groupButtonView(selectedIds, ids, label);
     return (
       <GroupCheck
-        state={groupState(selectedIds, ids)}
-        label={`${label}をまとめて選ぶ`}
+        state={v.state}
+        text={v.text}
+        ariaLabel={v.ariaLabel}
         onClick={() => applySelection(toggleGroup(selectedIds, ids))}
       />
     );
