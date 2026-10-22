@@ -9,6 +9,7 @@ import {
   groupState,
   pruneSelection,
   exitSelection,
+  selectionAfterTabChange,
   isAllSelectedInTab,
   toggleSelectAllInTab,
 } from "./listSelection.ts";
@@ -117,4 +118,11 @@ test("すべて選択のトグル: 項目がないタブでも壊れない", () 
   assert.equal(isAllSelectedInTab(new Set(["x"]), []), false);
   const r = toggleSelectAllInTab(new Set(["x"]), []);
   assert.deepEqual([...r.next], ["x"]);
+});
+
+test("タブの切り替え: 選択が空になる。同じタブを押しても変わらない", () => {
+  const cur = new Set(["a", "b"]);
+  assert.equal(selectionAfterTabChange(cur, "noExpiry", "byGroup").size, 0);
+  assert.equal(selectionAfterTabChange(cur, "byGroup", "byGroup"), cur);
+  assert.equal(cur.size, 2); // 元の Set は変えない
 });

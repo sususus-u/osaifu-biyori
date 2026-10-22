@@ -92,3 +92,9 @@ export function toggleSelectAllInTab(current: Set<string>, tabIds: string[]): Se
   }
   return selectAllInTab(current, tabIds);
 }
+
+// タブを切り替えたとき: 選択は空にする(選択の対象が、いつも画面に見えている項目だけになる)。
+// 同じタブをもう一度押した(切り替えではない)ときは、変えない。選択モードは続く(ここでは選択だけを扱う)
+export function selectionAfterTabChange<T extends string>(current: Set<string>, from: T, to: T): Set<string> {
+  return from === to ? current : new Set();
+}

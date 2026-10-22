@@ -23,6 +23,7 @@ import {
   SELECTION_LIMIT,
   SELECTION_LIMIT_MESSAGE,
   exitSelection,
+  selectionAfterTabChange,
   groupState,
   pruneSelection,
   isAllSelectedInTab,
@@ -456,6 +457,9 @@ export default function AccountList() {
             key={t.key}
             onClick={() => {
               setTab(t.key as typeof tab);
+              // 選択モードは続け、選択だけ空にする(同じタブなら変えない)
+              setSelected((cur) => selectionAfterTabChange(cur, tab, t.key as typeof tab));
+              if (t.key !== tab) setLimitNote(false);
               setNotices((cur) => clearNoticesOnTabChange(cur));
             }}
             style={{
