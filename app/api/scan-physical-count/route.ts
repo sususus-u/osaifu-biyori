@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { guardAiRead } from "@/lib/usageLimit";
-import { buildScanDiagnostic, buildScanErrorDiagnostic } from "@/lib/scanDiagnostic"; // 診断(一時的)
+import { buildScanLog, buildScanErrorLog } from "@/lib/scanLog";
 import { PHYSICAL_SCAN_PROMPT } from "@/lib/physicalScanPrompt";
 import { resolvePhysicalScanModel } from "@/lib/physicalScanModel";
 import { readWithRetry, type ScanAttempt } from "@/lib/physicalScanRetry";
@@ -19,7 +19,7 @@ const SCAN_MAX_TOKENS = 1000;
 export async function POST(req: NextRequest) {
   // AI読み取りの回数を1つ使ったあとで失敗したときに、その1回分を戻すための関数。
   let refund: (() => Promise<void>) | null = null;
-  let stopReason: string | null = null; // 診断(一時的)
+  let stopReason: string | null = null; // 運用ログ用
   try {
     const { imageBase64, mediaType } = await req.json();
     if (!imageBase64) {
@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
       const textBlock = message.content.find((block) => block.type === "text");
       const rawText = textBlock && "text" in textBlock ? textBlock.text : "{}";
       const cleaned = rawText.replace(/```json|```/g, "").trim();
-      stopReason = message.stop_reason; // 診断(一時的)
+      stopReason = message.stop_reason; // 運用ログ用
       try {
         return { parsed: JSON.parse(cleaned), stopReason: message.stop_reason };
       } catch {
@@ -82,11 +82,7 @@ export async function POST(req: NextRequest) {
 
     // 全項目 null のときだけ、同じ画像で1回呼び直す(利用回数は guardAiRead の1回分のまま)
     const result = await readWithRetry(callAi);
-    result.attempts.forEach((a, i) => {
-      // 診断(一時的)
-      const note = `試行=${i + 1}/${result.attempts.length} 再試行=${result.retried ? "あり" : result.skippedBySlow ? "なし(1回目が遅い)" : "なし"}`;
-      console.warn(buildScanDiagnostic(a.parsed, a.stopReason, note));
-    });
+    console.warn(buildScanLog(result.attempts.map((a) => a.stopReason), result.retried, result.skippedBySlow)); // 運用ログ(1行)
     const parsed = result.attempts[result.attempts.length - 1].parsed;
     // 再試行しても JSON が読めなかったときは、今までどおり失敗として返す(回数は戻す)
     if (parsed === null) throw new Error("AIの応答をJSONとして読めなかった");
@@ -94,7 +90,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(parsed);
   } catch (error) {
     console.error(error);
-    console.warn(buildScanErrorDiagnostic(error, stopReason)); // 診断(一時的)
+    console.warn(buildScanErrorLog(error, stopReason));
     // AIの呼び出しや結果の読み取りで失敗した分は、回数に含めない
     await refund?.();
     return NextResponse.json({ error: "読み取りに失敗しました" }, { status: 500 });
