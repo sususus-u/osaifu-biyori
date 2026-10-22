@@ -10,6 +10,7 @@ import { Timestamp } from "firebase/firestore";
 import type { AccountDoc } from "@/types/firestore";
 import { displayAccountName } from "@/lib/stampMerge";
 import { getYenValue } from "@/lib/accountUtils";
+import { CheckMark } from "@/components/SelectCheck";
 
 export interface AccountWithId extends AccountDoc {
   id: string;
@@ -78,6 +79,10 @@ interface AccountRowProps {
   highlightOverdue?: boolean;
   // 行の直下に出す案内の枠。<a> の外(下)に置くので、タップしても編集画面へは飛ばない
   notice?: ReactNode;
+  // 選択モード: 行全体が「チェックの切り替え」になり、編集画面へは移らない(通常のときは <Link> のまま)
+  selectMode?: boolean;
+  selected?: boolean;
+  onToggleSelect?: () => void;
 }
 
 export default function AccountRow({
@@ -85,7 +90,49 @@ export default function AccountRow({
   subText,
   highlightOverdue = false,
   notice,
+  selectMode = false,
+  selected = false,
+  onToggleSelect,
 }: AccountRowProps) {
+  if (selectMode) {
+    return (
+      <>
+        <div
+          role="checkbox"
+          aria-checked={selected}
+          aria-label={displayAccountName(account.name)}
+          tabIndex={0}
+          data-account-id={account.id}
+          onClick={onToggleSelect}
+          onKeyDown={(e) => {
+            if (e.key === " " || e.key === "Enter") {
+              e.preventDefault();
+              onToggleSelect?.();
+            }
+          }}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            minHeight: 44,
+            padding: "12px 14px",
+            fontSize: 14,
+            borderTop: "0.5px solid #f0f0f0",
+            cursor: "pointer",
+            ...(selected ? { background: "#fbf3ee" } : {}),
+          }}
+        >
+          <CheckMark state={selected ? "all" : "none"} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ margin: 0, fontWeight: 500 }}>{displayAccountName(account.name)}</p>
+            <p style={{ margin: 0, fontSize: 12, color: "#999" }}>{subText}</p>
+          </div>
+          <p style={{ margin: 0 }}>{balanceDisplay(account)}</p>
+        </div>
+        {notice}
+      </>
+    );
+  }
   return (
     <>
     <Link

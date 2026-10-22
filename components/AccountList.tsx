@@ -18,6 +18,18 @@ import { CATEGORY_DEFAULTS, type AccountCategory, type AccountDoc } from "@/type
 import AccountRow, { type AccountWithId } from "@/components/AccountRow";
 import StampRowNotice from "@/components/StampRowNotice";
 import StampSavedToast from "@/components/StampSavedToast";
+import { GroupCheck } from "@/components/SelectCheck";
+import {
+  SELECTION_LIMIT,
+  SELECTION_LIMIT_MESSAGE,
+  exitSelection,
+  groupState,
+  pruneSelection,
+  selectAllInTab,
+  toggleGroup,
+  toggleOne,
+  type SelectionResult,
+} from "@/lib/listSelection";
 import {
   STAMP_TOAST_MS,
   STAMP_WAIT_MS,
@@ -97,6 +109,10 @@ export default function AccountList() {
     if (stored === "withExpiry" || stored === "noExpiry" || stored === "byGroup") return stored;
     return "withExpiry";
   });
+  // 選択モード(複数削除の段階1。削除はまだない)。選択は id の Set で、タブを越えて保持する
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [limitNote, setLimitNote] = useState(false);
   const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set());
   const [sortMode, setSortMode] = useState<"balance" | "name">("balance");
   const [withExpirySortMode, setWithExpirySortMode] = useState<"expiry" | "balance" | "name">(
@@ -270,6 +286,36 @@ export default function AccountList() {
     return a.localeCompare(b, "ja");
   });
 
+  // 選択モード。一覧から消えた項目は、選択から外して数える
+  const selectedIds = pruneSelection(selected, accounts.map((a) => a.id));
+  const currentTabIds = (tab === "withExpiry" ? withExpiry : tab === "noExpiry" ? noExpiry : accounts).map((a) => a.id);
+  function applySelection(r: SelectionResult) {
+    setSelected(r.next);
+    setLimitNote(r.truncated);
+  }
+  function enterSelectMode() {
+    setSelectMode(true);
+    setLimitNote(false);
+  }
+  function exitSelectMode() {
+    setSelectMode(false);
+    setSelected(exitSelection());
+    setLimitNote(false);
+  }
+  // 行に渡す、選択モードの props
+  function rowSelect(id: string) {
+    return { selectMode, selected: selectedIds.has(id), onToggleSelect: () => applySelection(toggleOne(selectedIds, id)) };
+  }
+  function groupCheck(label: string, ids: string[]) {
+    return (
+      <GroupCheck
+        state={groupState(selectedIds, ids)}
+        label={`${label}をまとめて選ぶ`}
+        onClick={() => applySelection(toggleGroup(selectedIds, ids))}
+      />
+    );
+  }
+
   function toggleMonth(key: string) {
     setExpandedMonths((prev) => {
       const next = new Set(prev);
@@ -326,6 +372,44 @@ export default function AccountList() {
           </div>
         </div>
       </div>
+
+      {/* 選択モードの操作。通常のときは「選択」ボタンだけ */}
+      {selectMode ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+          <button type="button" className="btn-ghost" style={{ minHeight: 44 }} onClick={exitSelectMode}>
+            キャンセル
+          </button>
+          <button
+            type="button"
+            className="btn-ghost"
+            style={{ minHeight: 44 }}
+            onClick={() => applySelection(selectAllInTab(selectedIds, currentTabIds))}
+          >
+            すべて選択
+          </button>
+          <span aria-live="polite" style={{ fontSize: 13, color: "#666" }}>
+            {selectedIds.size}件を選択中
+          </span>
+          {currentTabIds.length > SELECTION_LIMIT && (
+            <p style={{ flexBasis: "100%", margin: 0, fontSize: 12, color: "#999" }}>
+              「すべて選択」は、先頭の{SELECTION_LIMIT}件までです
+            </p>
+          )}
+          {limitNote && (
+            <p role="status" style={{ flexBasis: "100%", margin: 0, fontSize: 12, color: "#b3261e" }}>
+              {SELECTION_LIMIT_MESSAGE}
+            </p>
+          )}
+        </div>
+      ) : (
+        accounts.length > 0 && (
+          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
+            <button type="button" className="btn-ghost" style={{ minHeight: 44 }} onClick={enterSelectMode}>
+              選択
+            </button>
+          </div>
+        )
+      )}
 
       <div
         style={{
@@ -396,23 +480,41 @@ export default function AccountList() {
               )}
               {withExpiryUndated.length > 0 && (
                 <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-                  <p
-                    style={{
-                      margin: 0,
-                      padding: "10px 14px",
-                      fontSize: 13,
-                      fontWeight: 500,
-                      background: "#faf8f6",
-                    }}
-                  >
-                    期限未設定
-                  </p>
+                  {selectMode ? (
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        padding: "10px 14px",
+                        fontSize: 13,
+                        fontWeight: 500,
+                        background: "#faf8f6",
+                      }}
+                    >
+                      {groupCheck("期限未設定", withExpiryUndated.map((a) => a.id))}
+                      <span>期限未設定</span>
+                    </div>
+                  ) : (
+                    <p
+                      style={{
+                        margin: 0,
+                        padding: "10px 14px",
+                        fontSize: 13,
+                        fontWeight: 500,
+                        background: "#faf8f6",
+                      }}
+                    >
+                      期限未設定
+                    </p>
+                  )}
                   <div>
                     {withExpiryUndated.map((acc) => (
                       <AccountRow
                         key={acc.id}
                         account={acc}
                         notice={noticeFor(acc.id)}
+                        {...rowSelect(acc.id)}
                         subText={categoryLabel(acc)}
                       />
                     ))}
@@ -425,22 +527,44 @@ export default function AccountList() {
                 const items = groups.get(key)!;
                 return (
                   <div key={key} className="card" style={{ padding: 0, overflow: "hidden" }}>
-                    <button
-                      onClick={() => toggleMonth(key)}
-                      style={{
-                        width: "100%",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        padding: "10px 14px",
-                        fontSize: 13,
-                        fontWeight: 500,
-                        background: "#faf8f6",
-                        border: "none",
-                      }}
-                    >
-                      <span>{key}</span>
-                      <span style={{ color: "#bbb" }}>{expanded ? "－" : "＋"}</span>
-                    </button>
+                    {selectMode ? (
+                      <div style={{ display: "flex", alignItems: "center", background: "#faf8f6", paddingLeft: 14 }}>
+                        {groupCheck(key, items.map((a) => a.id))}
+                        <button
+                          onClick={() => toggleMonth(key)}
+                          style={{
+                            flex: 1,
+                            display: "flex",
+                            justifyContent: "space-between",
+                            padding: "10px 14px 10px 8px",
+                            fontSize: 13,
+                            fontWeight: 500,
+                            background: "#faf8f6",
+                            border: "none",
+                          }}
+                        >
+                          <span>{key}</span>
+                          <span style={{ color: "#bbb" }}>{expanded ? "－" : "＋"}</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => toggleMonth(key)}
+                        style={{
+                          width: "100%",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          padding: "10px 14px",
+                          fontSize: 13,
+                          fontWeight: 500,
+                          background: "#faf8f6",
+                          border: "none",
+                        }}
+                      >
+                        <span>{key}</span>
+                        <span style={{ color: "#bbb" }}>{expanded ? "－" : "＋"}</span>
+                      </button>
+                    )}
                     {expanded && (
                       <div>
                         {items.map((acc) => (
@@ -448,6 +572,7 @@ export default function AccountList() {
                             key={acc.id}
                             account={acc}
                             notice={noticeFor(acc.id)}
+                            {...rowSelect(acc.id)}
                             subText={categoryLabel(acc)}
                             highlightOverdue
                           />
@@ -470,6 +595,7 @@ export default function AccountList() {
                     key={acc.id}
                     account={acc}
                     notice={noticeFor(acc.id)}
+                    {...rowSelect(acc.id)}
                     subText={expiry ? `${expiry.getFullYear()}年${expiry.getMonth() + 1}月期限` : ""}
                     highlightOverdue
                   />
@@ -512,6 +638,7 @@ export default function AccountList() {
                 key={acc.id}
                 account={acc}
                 notice={noticeFor(acc.id)}
+                {...rowSelect(acc.id)}
                 subText={categoryLabel(acc)}
               />
             ))}
@@ -561,7 +688,14 @@ export default function AccountList() {
                       background: "#faf8f6",
                     }}
                   >
-                    <span>{key}</span>
+                    {selectMode ? (
+                      <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        {groupCheck(key, items.map((a) => a.id))}
+                        <span>{key}</span>
+                      </span>
+                    ) : (
+                      <span>{key}</span>
+                    )}
                     {total > 0 && (
                       <span style={{ fontFamily: "var(--font-heading)", fontSize: 22, fontWeight: 700 }}>
                         ¥{total.toLocaleString()}
@@ -575,6 +709,7 @@ export default function AccountList() {
                         key={acc.id}
                         account={acc}
                         notice={noticeFor(acc.id)}
+                        {...rowSelect(acc.id)}
                         subText={expiry
                             ? `${expiry.getFullYear()}年${expiry.getMonth() + 1}月期限`
                             : acc.name.includes("期間")
@@ -588,6 +723,29 @@ export default function AccountList() {
               );
             })}
           </div>
+        </div>
+      )}
+
+      {/* 選択モードの操作バー。スクロールする領域の下に貼りつく(下部ナビは別の枠なので重ならない)。削除は段階2で有効にする */}
+      {selectMode && (
+        <div
+          style={{
+            position: "sticky",
+            bottom: 0,
+            marginTop: 16,
+            padding: "10px 0",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 8,
+            background: "#fff",
+            borderTop: "0.5px solid #eee",
+          }}
+        >
+          <span style={{ fontSize: 13, color: "#666" }}>{selectedIds.size}件を選択中</span>
+          <button type="button" className="btn-ghost" disabled style={{ minHeight: 44 }}>
+            削除(準備中)
+          </button>
         </div>
       )}
 
