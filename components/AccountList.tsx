@@ -19,6 +19,15 @@ import AccountRow, { type AccountWithId } from "@/components/AccountRow";
 import StampRowNotice from "@/components/StampRowNotice";
 import StampSavedToast from "@/components/StampSavedToast";
 import { GroupCheck } from "@/components/SelectCheck";
+import ConfirmSheet from "@/components/ConfirmSheet";
+import {
+  afterBulkDelete,
+  buildDeleteConfirm,
+  deleteSelectedAccounts,
+  errorKind,
+  failureMessage,
+} from "@/lib/deleteAccount";
+import { firestoreDeleteAccountDeps } from "@/lib/deleteAccountFirestore";
 import {
   SELECTION_LIMIT,
   SELECTION_LIMIT_MESSAGE,
@@ -115,6 +124,10 @@ export default function AccountList() {
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [limitNote, setLimitNote] = useState(false);
+  // 削除の確認(複数削除の段階2)。deleteError は確認シートの中に出す
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set());
   const [sortMode, setSortMode] = useState<"balance" | "name">("balance");
   const [withExpirySortMode, setWithExpirySortMode] = useState<"expiry" | "balance" | "name">(
@@ -295,6 +308,30 @@ export default function AccountList() {
   function applySelection(r: SelectionResult) {
     setSelected(r.next);
     setLimitNote(r.truncated);
+  }
+  // 削除する項目: 今のタブで選んだもの(タブを切り替えると選択は空になるので、見えている項目だけ)
+  const deleteIds = currentTabIds.filter((id) => selectedIds.has(id));
+  const deleteConfirm = buildDeleteConfirm(
+    deleteIds.map((id) => displayAccountName(accounts.find((a) => a.id === id)?.name ?? ""))
+  );
+  async function runDelete() {
+    if (deleting || deleteIds.length === 0) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await deleteSelectedAccounts(deleteIds, firestoreDeleteAccountDeps);
+      const done = afterBulkDelete(deleteIds.length);
+      setConfirmOpen(done.confirmOpen);
+      setSelectMode(done.selectMode);
+      setSelected(done.selected);
+      setLimitNote(false);
+      setFallbackMessage(done.toast); // 上部のトースト(行の下の案内は、消えた行には使えない)
+    } catch (error) {
+      console.error("複数削除に失敗", errorKind(error)); // 種類だけ。項目名・uid は出さない
+      setDeleteError(failureMessage(error));
+    } finally {
+      setDeleting(false);
+    }
   }
   function enterSelectMode() {
     setSelectMode(true);
@@ -785,22 +822,54 @@ export default function AccountList() {
             <span style={{ fontSize: 15, fontWeight: 600, color: "#222" }}>{selectedIds.size}件を選択中</span>
             <button
               type="button"
-              disabled
+              disabled={deleteIds.length === 0}
+              onClick={() => {
+                setDeleteError(null);
+                setConfirmOpen(true);
+              }}
               style={{
                 minHeight: 44,
                 padding: "0 16px",
                 fontSize: 14,
                 fontWeight: 600,
-                color: "#555",
-                background: "#eee",
-                border: "1.5px solid #bbb",
+                color: deleteIds.length === 0 ? "#555" : "#fff",
+                background: deleteIds.length === 0 ? "#eee" : "#b3261e",
+                border: deleteIds.length === 0 ? "1.5px solid #bbb" : "1.5px solid #b3261e",
                 borderRadius: 999,
               }}
             >
-              削除(準備中)
+              削除
             </button>
           </div>
         </>
+      )}
+
+      {confirmOpen && deleteIds.length > 0 && (
+        <ConfirmSheet
+          title={deleteConfirm.title}
+          description={
+            <>
+              <ul style={{ margin: "0 0 8px", paddingLeft: 18, textAlign: "left" }}>
+                {deleteConfirm.shown.map((n, i) => (
+                  <li key={i}>{n}</li>
+                ))}
+                {deleteConfirm.restText && <li style={{ listStyle: "none", marginLeft: -18 }}>{deleteConfirm.restText}</li>}
+              </ul>
+              <p style={{ margin: 0 }}>{deleteConfirm.note}</p>
+              {deleteError && (
+                <p role="alert" style={{ margin: "8px 0 0", color: "#b3261e", fontWeight: 600 }}>
+                  {deleteError}
+                </p>
+              )}
+            </>
+          }
+          confirmLabel={deleteConfirm.confirmLabel}
+          busyLabel="削除中..."
+          variant="danger"
+          busy={deleting}
+          onConfirm={runDelete}
+          onClose={() => setConfirmOpen(false)}
+        />
       )}
 
       <div style={{ textAlign: "center", marginTop: 20 }}>
