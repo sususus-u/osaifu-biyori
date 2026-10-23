@@ -1,7 +1,7 @@
-// AI読み取り(スクショ読み取り・現物の写真読み取り)の1日あたりの利用回数を、
-// アカウント(uid)ごとにサーバー側で数える(サーバー側専用)。
-// 記録場所: usage_counts_tamari/{uid}_{日本時間の日付}
-//   { uid, date, ai_read_count, updated_at, expireAt }
+// AI読み取り(スクショ読み取り・現物の写真読み取り)の利用回数を、
+// アカウント(uid)ごとにサーバー側で数える(サーバー側専用)。1日の回数(安全弁)と月の回数の両方。
+// 記録場所: usage_counts_tamari/{uid}_{日本時間の日付} と usage_counts_tamari/{uid}_{日本時間の年月}
+//   { uid, date または month, ai_read_count, updated_at, expireAt }
 // このアプリは、まもりびより(usage_counts_mamori)・たべびより(usage_counts_tabe)と
 // 同じFirebaseプロジェクト(okizukibiyori)を使うため、コレクション名をアプリ専用にしている。
 // 数えるのはAdmin SDKを使うこの処理だけで、画面からは誰も書き込めない。
@@ -10,57 +10,83 @@ import { NextResponse } from "next/server";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { adminDb } from "@/lib/firebaseAdmin";
 import { verifyBearerIdToken } from "@/lib/verifyIdToken";
+import { consumeCore, refundCore } from "@/lib/usageCore";
+import {
+  getPlan,
+  isPlanEnforced,
+  jstDateString,
+  jstMonthString,
+  monthlyAiReadLimit,
+  monthlyLimitMessage,
+} from "@/lib/planLimits";
 
 // 1アカウントが1日に使える、AI読み取りの回数(スクショ・現物の写真の合計)。
-// 仮の数字。変更するときはここだけを書き換える。
+// 月の回数とは別に、暴走を防ぐ安全弁として残す。仮の数字。変更するときはここだけを書き換える。
 export const DAILY_AI_READ_LIMIT = 20;
 
 const COLLECTION = "usage_counts_tamari";
 // 古い記録はFirestoreのTTL(expireAtフィールド)で消せるよう、期限を入れておく。
-const RETENTION_DAYS = 7;
-const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
+const DAILY_RETENTION_DAYS = 7;
+const MONTHLY_RETENTION_DAYS = 62;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
-// 日本時間の深夜0時で日付が切り替わるようにする。
-function jstDateString(now = Date.now()): string {
-  return new Date(now + JST_OFFSET_MS).toISOString().slice(0, 10);
-}
+type Consumed = { refund: () => Promise<void> } | { blocked: "daily" | "monthly"; monthlyLimit: number };
 
-// 今日の回数が上限未満なら1つ増やし、その1回分を戻すための関数を返す。
-// 上限に達していれば何もせずnullを返す。
+// 今日と今月の回数を数え、上限未満なら1つ増やし、その1回分を戻すための関数を返す。
+// 日次の上限なら "daily"、月の上限(スイッチがオンのときだけ)なら "monthly" を返し、何も増やさない。
 // 確認と加算を1つのトランザクションで行うため、同じ利用者から同時に何度呼ばれても
 // 上限を超えない(サーバー側SDKのトランザクションは読んだドキュメントをロックする)。
 // Firestoreに問い合わせられない場合は例外を投げる。
-async function consumeAiRead(uid: string): Promise<(() => Promise<void>) | null> {
+async function consumeAiRead(uid: string): Promise<Consumed> {
   const date = jstDateString();
-  const ref = adminDb.collection(COLLECTION).doc(`${uid}_${date}`);
-  const allowed = await adminDb.runTransaction(async (tx) => {
-    const snap = await tx.get(ref);
-    const value: unknown = snap.exists ? snap.get("ai_read_count") : 0;
-    const current = typeof value === "number" && Number.isInteger(value) ? value : 0;
-    if (current >= DAILY_AI_READ_LIMIT) return false;
-    tx.set(
-      ref,
-      {
-        uid,
-        date,
-        ai_read_count: current + 1,
-        updated_at: Timestamp.now(),
-        expireAt: Timestamp.fromMillis(Date.now() + RETENTION_DAYS * 24 * 60 * 60 * 1000),
-      },
-      { merge: true },
-    );
-    return true;
-  });
-  if (!allowed) return null;
-  // AI側のエラーで結果を返せなかった分を1回戻す。加算したのと同じ日付の記録を減らす
-  // (途中で日付をまたいでも翌日分を減らさない)。上限の確認は要らないので
+  const month = jstMonthString();
+  const ids = { daily: `${uid}_${date}`, monthly: `${uid}_${month}` };
+  const monthlyLimit = monthlyAiReadLimit(await getPlan(uid));
+  const ref = (id: string) => adminDb.collection(COLLECTION).doc(id);
+  const result = await consumeCore(
+    (fn) =>
+      adminDb.runTransaction((t) =>
+        fn({
+          async read(id) {
+            const snap = await t.get(ref(id));
+            const value: unknown = snap.exists ? snap.get("ai_read_count") : 0;
+            return typeof value === "number" && Number.isInteger(value) ? value : 0;
+          },
+          write(id, count) {
+            const isDaily = id === ids.daily;
+            t.set(
+              ref(id),
+              {
+                uid,
+                ...(isDaily ? { date } : { month }),
+                ai_read_count: count,
+                updated_at: Timestamp.now(),
+                expireAt: Timestamp.fromMillis(
+                  Date.now() + (isDaily ? DAILY_RETENTION_DAYS : MONTHLY_RETENTION_DAYS) * DAY_MS,
+                ),
+              },
+              { merge: true },
+            );
+          },
+        }),
+      ),
+    ids,
+    { daily: DAILY_AI_READ_LIMIT, monthly: monthlyLimit, enforceMonthly: isPlanEnforced() },
+  );
+  if (result !== "ok") return { blocked: result, monthlyLimit };
+  // AI側のエラーで結果を返せなかった分を戻す。加算したのと同じ日付・月の記録を減らす
+  // (途中で日付をまたいでも翌日・翌月分を減らさない)。上限の確認は要らないので
   // トランザクションは使わない。戻す処理自体の失敗は記録だけして、例外は投げない。
-  return async function refund() {
-    try {
-      await ref.update({ ai_read_count: FieldValue.increment(-1), updated_at: Timestamp.now() });
-    } catch (error) {
-      console.error("usage refund error", error);
-    }
+  return {
+    async refund() {
+      try {
+        await refundCore(async (id) => {
+          await ref(id).update({ ai_read_count: FieldValue.increment(-1), updated_at: Timestamp.now() });
+        }, ids);
+      } catch (error) {
+        console.error("usage refund error", error);
+      }
+    },
   };
 }
 
@@ -82,9 +108,9 @@ export async function guardAiRead(authorization: string | null): Promise<GuardRe
       response: NextResponse.json({ error: "ログインを確認できませんでした" }, { status: 401 }),
     };
   }
-  let refund: (() => Promise<void>) | null;
+  let consumed: Consumed;
   try {
-    refund = await consumeAiRead(uid);
+    consumed = await consumeAiRead(uid);
   } catch (error) {
     console.error("usage count error", error);
     return {
@@ -95,7 +121,16 @@ export async function guardAiRead(authorization: string | null): Promise<GuardRe
       ),
     };
   }
-  if (!refund) {
+  if ("blocked" in consumed) {
+    if (consumed.blocked === "monthly") {
+      return {
+        ok: false,
+        response: NextResponse.json(
+          { error: monthlyLimitMessage(consumed.monthlyLimit), code: "monthly_limit", limit: consumed.monthlyLimit },
+          { status: 429 },
+        ),
+      };
+    }
     return {
       ok: false,
       response: NextResponse.json(
@@ -104,5 +139,5 @@ export async function guardAiRead(authorization: string | null): Promise<GuardRe
       ),
     };
   }
-  return { ok: true, refund };
+  return { ok: true, refund: consumed.refund };
 }
