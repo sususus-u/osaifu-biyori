@@ -687,3 +687,14 @@ test("置き換えの説明: 変わらない項目は出ない。何も変わら
   assert.equal(REPLACE_NO_CHANGE, "変わる項目はありません。");
   assert.deepEqual(replaceChanges({ ...same, expiry: "2027-01-01" }, { ...same, expiry: null }, "円"), ["期限: 2027-01-01 → なし"]);
 });
+
+import { showTopNameField } from "./stampMerge.ts";
+
+test("上の名前の欄: 切手の読み取りのときだけ隠す(保存の名前は行ごと)", () => {
+  assert.equal(showTopNameField(true), false);
+  assert.equal(showTopNameField(false), true);
+  // 隠すとき、保存に使われる名前は上の名前ではなく、行の名前(額面が1種類でも)
+  assert.equal(saveRowName({ rowCount: 1, name: "切手", scanIsStamp: true, faceValue: "1" }), "切手 1円");
+  assert.equal(saveRowName({ rowCount: 1, name: "切手", scanIsStamp: true, rowName: "記念切手 1円", faceValue: "1" }), "記念切手 1円");
+  assert.equal(saveRowName({ rowCount: 2, name: "切手", scanIsStamp: true, faceValue: "84" }), "切手 84円");
+});

@@ -46,6 +46,7 @@ import {
   canonicalStampName,
   isStampName,
   saveRowName,
+  showTopNameField,
   validateStampRows,
   type SaveRow,
 } from "@/lib/stampMerge";
@@ -470,23 +471,25 @@ export default function ScanPhysicalUpload() {
             </p>
           )}
 
-          <div className="field">
-            <label>名前</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => {
-                setName(e.target.value);
-                setScanIsStamp(false);
-              }}
-              placeholder="例:切手、図書カード"
-            />
-            {nameUnrecognized && (
-              <p style={{ fontSize: 12, color: "#b3261e" }}>
-                文字を読み取れませんでした。手入力してください
-              </p>
-            )}
-          </div>
+          {showTopNameField(scanIsStamp) && (
+            <div className="field">
+              <label>名前</label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setScanIsStamp(false);
+                }}
+                placeholder="例:切手、図書カード"
+              />
+              {nameUnrecognized && (
+                <p style={{ fontSize: 12, color: "#b3261e" }}>
+                  文字を読み取れませんでした。手入力してください
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="field">
             <label>額面 × 枚数</label>
@@ -502,22 +505,26 @@ export default function ScanPhysicalUpload() {
                   style={{ width: "100%", marginBottom: 4 }}
                 />
               )}
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                 <input
                   type="number"
                   value={row.faceValue}
                   onChange={(e) => changeRows(updateRow(rows, i, { faceValue: e.target.value }))}
                   placeholder="額面(1枚あたり)"
-                  style={{ flex: 1 }}
+                  aria-label={stampMode ? "額面(1枚あたり、円)" : undefined}
+                  style={{ flex: 1, minWidth: 0 }}
                 />
+                {stampMode && <span style={{ color: "#666", whiteSpace: "nowrap" }}>円</span>}
                 <span style={{ color: "#999" }}>×</span>
                 <input
                   type="number"
                   value={row.count}
                   onChange={(e) => changeRows(updateRow(rows, i, { count: e.target.value }))}
                   placeholder="枚数"
-                  style={{ flex: 1 }}
+                  aria-label={stampMode ? "枚数(枚)" : undefined}
+                  style={{ flex: 1, minWidth: 0 }}
                 />
+                {stampMode && <span style={{ color: "#666", whiteSpace: "nowrap" }}>枚</span>}
                 {rows.length > 1 && (
                   <button
                     type="button"

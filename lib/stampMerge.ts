@@ -64,6 +64,13 @@ export function saveRowName(o: {
   return o.rowName ?? defaultRowName(isStampName(o.name) || o.scanIsStamp ? "切手" : o.name, o.faceValue);
 }
 
+// 上の「名前」の欄を出すか。読み取り結果が切手のときは、保存する名前は行ごとの名前(saveRowName)で、
+// 上の名前は使われない(空かどうかの確認にだけ使うが、読み取った「切手」が入っている)ので、隠す。
+// 手で名前を変えた(scanIsStamp が false)ときや、切手以外は、今までどおり出す
+export function showTopNameField(scanIsStamp: boolean): boolean {
+  return !scanIsStamp;
+}
+
 // 行の名前の初期値。額面が整数でなければ空(まだ決められない)
 export function defaultRowName(base: string, faceValue: string): string {
   const f = Number(faceValue);
