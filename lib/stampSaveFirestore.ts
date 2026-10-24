@@ -12,6 +12,7 @@ import {
 import { db } from "./firebase";
 import { groupNameForNewItem, toExistingItem } from "./stampMerge.ts";
 import type { StampSaveDeps } from "./stampSave.ts";
+import { guardNewRecords } from "./recordLimitClient";
 
 // expiry は、利用者が入力したときだけ渡す(切手は基本、期限がない)。足すときは、渡されたときだけ上書きする
 export function firestoreStampDeps(uid: string, expiry: Timestamp | null): StampSaveDeps {
@@ -23,6 +24,12 @@ export function firestoreStampDeps(uid: string, expiry: Timestamp | null): Stamp
         const item = toExistingItem(d.id, d.data());
         return item ? [item] : [];
       });
+    },
+    checkCreate(creates) {
+      return guardNewRecords(
+        uid,
+        creates.map((c) => ({ groupName: groupNameForNewItem(c.name), category: "gift_certificate" })),
+      );
     },
     runTransaction(fn) {
       return runTransaction(db, (t) =>

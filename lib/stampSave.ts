@@ -9,6 +9,7 @@ import {
   stampItemText,
   stampSaveMessage,
 } from "./stampMerge.ts";
+import { RecordLimitError } from "./recordLimit.ts";
 
 // 保存した項目の ID と案内(一覧で、該当の行の下に案内を出すために使う)
 export interface StampSaveResult {
@@ -28,6 +29,8 @@ export interface StampTx {
 export interface StampSaveDeps {
   // 本人の項目を取る(名前のゆれはクエリで吸収できないため、絞り込みは planStampSave で行う)
   listMine(): Promise<ExistingItem[]>;
+  // 新しい項目を作る前の、件数の上限の確認(省略できる)。止めるときは案内の文、許可なら null
+  checkCreate?(creates: { name: string }[]): Promise<string | null>;
   // fn が失敗(例外)したら何も書かない。競合したときは fn を呼び直してよい
   runTransaction<T>(fn: (tx: StampTx) => Promise<T>): Promise<T>;
 }
@@ -35,6 +38,11 @@ export interface StampSaveDeps {
 export async function saveStamps(deps: StampSaveDeps, rows: SaveRow[]): Promise<StampSaveResult> {
   const candidates = await deps.listMine();
   const plan0 = planStampSave(candidates, rows);
+  const creates = plan0.flatMap((p) => (p.kind === "create" ? [{ name: p.name }] : []));
+  if (creates.length > 0 && deps.checkCreate) {
+    const blocked = await deps.checkCreate(creates);
+    if (blocked) throw new RecordLimitError(blocked);
+  }
   const targetIds = plan0.flatMap((p) => (p.kind === "add" ? [p.id] : []));
   // 足す対象の候補が2件以上あったか(トランザクションの中では、足す先の1件しか読まないので、ここで控える)
   const multipleIds = new Set(plan0.flatMap((p) => (p.kind === "add" && p.multiple ? [p.id] : [])));

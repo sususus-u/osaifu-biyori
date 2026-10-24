@@ -58,6 +58,8 @@ import { scanStampSummary } from "@/lib/stampAuto";
 import { STAMP_NAME_BG } from "@/lib/stampNameView";
 import { busyViewForPhysical, waitForPaint } from "@/lib/busyView";
 import { saveStamps } from "@/lib/stampSave";
+import { guardNewRecords } from "@/lib/recordLimitClient";
+import { RecordLimitError } from "@/lib/recordLimit";
 import { stashStampSavedMessage } from "@/lib/stampToast";
 import { firestoreStampDeps } from "@/lib/stampSaveFirestore";
 
@@ -300,6 +302,13 @@ export default function ScanPhysicalUpload() {
           updatedAt: now,
         });
       } else {
+        const blocked = await guardNewRecords(uid, [
+          { groupName: canonicalStampName(name.trim()), category: "gift_certificate" },
+        ]);
+        if (blocked) {
+          setErrorMessage(blocked);
+          return;
+        }
         await addDoc(collection(db, "accounts"), {
           ownerId: uid,
           name: canonicalStampName(name.trim()),
@@ -353,6 +362,10 @@ export default function ScanPhysicalUpload() {
       stashStampSavedMessage(window.sessionStorage, { message: result.message, items: result.items });
       setTimeout(() => router.push("/"), 300);
     } catch (error) {
+      if (error instanceof RecordLimitError) {
+        setErrorMessage(error.message);
+        return;
+      }
       console.error(error);
       setErrorMessage("保存に失敗しました。何も保存されていません。もう一度お試しください。");
     } finally {

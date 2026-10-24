@@ -37,6 +37,7 @@ import { STAMP_NAME_BG, stampNameView } from "@/lib/stampNameView";
 import { NO_TOUCH, stampAutoApply, stampAutoRestore, stampAutoSummary, type StampAutoState, type StampTouched } from "@/lib/stampAuto";
 import { isStampLikeEntry, isStampGroupEntry, STAMP_DEFAULT_NAME, STAMP_MANUAL_PLACEHOLDER, canonicalStampName, manualAddNotice, parseStampFace, stampEntryMode, stampFaceFromName, stampNameFromFace, switchStampMode, normalizeName, pickAddTarget, toExistingItem, type ExistingItem } from "@/lib/stampMerge";
 import { useAuth } from "@/contexts/AuthProvider";
+import { guardNewRecords } from "@/lib/recordLimitClient";
 import { prepareScanImage } from "@/lib/scanImage";
 import {
   CATEGORY_DEFAULTS,
@@ -697,6 +698,11 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
         await addDoc(collection(db, "accounts", accountId, "updates"), updateRecord);
         router.push("/");
       } else {
+        const blocked = uid ? await guardNewRecords(uid, [{ groupName: payload.groupName, category: payload.category }]) : null;
+        if (blocked) {
+          setErrorMessage(blocked);
+          return;
+        }
         const docRef = await addDoc(collection(db, "accounts"), { ...payload, createdAt: now });
         await addDoc(collection(db, "accounts", docRef.id, "updates"), updateRecord);
         goToNextQueueItemOrHome();
