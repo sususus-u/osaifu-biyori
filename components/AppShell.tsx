@@ -7,7 +7,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createContext, useContext, useEffect, useState } from "react";
-import { Wallet, Plus, Menu, LayoutGrid, Bell, BellOff, ChevronLeft } from "lucide-react";
+import { Plus, Menu, LayoutGrid, Bell, BellOff, ChevronLeft } from "lucide-react";
+import ClipboardLinesIcon from "@/components/icons/ClipboardLinesIcon";
 import { doc, onSnapshot, type Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthProvider";
@@ -154,7 +155,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   const tabs = [
-    { href: "/", label: "一覧", icon: Wallet, active: pathname === "/" },
+    { href: "/", label: "一覧", icon: ClipboardLinesIcon, active: pathname === "/" },
     {
       href: "/accounts/new",
       label: "登録",
