@@ -9,7 +9,7 @@ import {
   stampItemText,
   stampSaveMessage,
 } from "./stampMerge.ts";
-import { RecordLimitError } from "./recordLimit.ts";
+import { RecordLimitError } from "./hubRecordCheck.ts";
 
 // 保存した項目の ID と案内(一覧で、該当の行の下に案内を出すために使う)
 export interface StampSaveResult {

@@ -372,3 +372,12 @@
 - 段階3(予定): getPlan をハブから取得する形に差し替える(`/api/plan-limits` が返すプランも変わる)。段階4(予定): サーバー強制(サーバー経由の作成API、またはカウンター)。
 - オンにして試す方法: Vercel の Preview の環境にだけ ENFORCE_PLAN_LIMITS=true を入れて再デプロイ → 31件目の新規登録で、案内が出て保存されない → 終わったら削除。Production にはオンにしない(全員が無料の30件・月10回で止まる)。
 - テスト: `lib/recordLimit.test.ts`。
+
+## 利用上限(プラン)の段階2b(依頼101。ハブの合計の確認に接続。強制はオフのまま)
+- 内容: 保存の前の確認を、おさいふびより単独の数え方から、ハブの `POST /api/records/check`(4アプリ合計。ハブ c0384c8)への問い合わせに置き換えた。ブラウザ → おさいふびよりの中継 `POST /api/records-check`(ログイン必須。IDトークンを検証し、そのままハブへ渡す。appId は "tamari-biyori" に固定。中継のタイムアウト4秒)→ ハブ。ハブは CORS を開けていないため、中継が要る。ハブのアドレスは環境変数 HUB_RECORDS_CHECK_URL(未設定なら本番のハブ)。
+- 問い合わせの関数: `checkCreate`(`lib/hubRecordCheck.ts`。タイムアウト5秒)。ハブが ok:false を返したときだけ止め、ハブの message をそのまま出す。タイムアウト、通信の失敗、5xx、401/400、形の違う返事は、許可(保存を止めない。ログに種類だけ)。
+- 入れた場所: 手動の新規登録、読み取りの保存の切手以外、切手の保存(作る行があるときだけ)。増える件数は `newRecordCount`(`lib/recordCount.ts`。切手は、切手がすでにあれば0、なければ1。ほかは作る数)。0なら問い合わせない(足す・編集・残高の更新)。切手を作るときだけ、すでに切手があるかを1件読んで調べる(読み取り1回)。
+- 取り除いた(ハブの src/lib/record-count.ts にコピー済みだった部分): `checkRecordLimit`、`recordLimitMessage`(旧 `lib/recordLimit.ts`)、`countRecords`、`toCountItem`、`/api/plan-limits`。残した: 増える件数の数え方(`newRecordCount`、`isStampRecord`)、`RecordLimitError`(`lib/hubRecordCheck.ts` へ移した)。PLAN_LIMITS は AI 読み取りの月の回数で使うので残る。
+- スイッチ: おさいふびより側では見ない(ハブが ENFORCE_PLAN_LIMITS を判断)。ハブがオフなら ok:true で、案内は出ない。無駄な問い合わせを省く案: ハブが ok と一緒に enforce:false を返すなら、おさいふびよりが10分ほど覚えて問い合わせを省く(段階2cの候補。ハブの変更が先)。
+- 段階2c(予定): 上の省略。まもりびより・たべびよりの接続(各アプリ)。段階3(予定): getPlan をハブから取得。段階4(予定): サーバー強制。
+- テスト: `lib/recordLimit.test.ts`(増える件数、問い合わせの許可・超過・タイムアウト・通信失敗・5xx、足すときは問い合わせない)。

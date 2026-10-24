@@ -59,7 +59,7 @@ import { STAMP_NAME_BG } from "@/lib/stampNameView";
 import { busyViewForPhysical, waitForPaint } from "@/lib/busyView";
 import { saveStamps } from "@/lib/stampSave";
 import { guardNewRecords } from "@/lib/recordLimitClient";
-import { RecordLimitError } from "@/lib/recordLimit";
+import { RecordLimitError } from "@/lib/hubRecordCheck";
 import { stashStampSavedMessage } from "@/lib/stampToast";
 import { firestoreStampDeps } from "@/lib/stampSaveFirestore";
 
