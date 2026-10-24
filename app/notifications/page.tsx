@@ -61,7 +61,7 @@ function PushToggle() {
       if (!res.ok) {
         setMessage(
           data.error === "no_subscription"
-            ? "この端末では通知が許可されていません。ハブ側の通知設定をご確認ください。"
+            ? "この端末では通知が許可されていません。ホームの通知設定をご確認ください。"
             : "切り替えに失敗しました。時間をおいて再度お試しください。",
         );
         return;

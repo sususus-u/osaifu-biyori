@@ -40,17 +40,17 @@ export default function LoginGuide() {
 
         {handoffFailed && (
           <p role="alert" style={{ fontSize: 13, color: "#777", lineHeight: 1.7 }}>
-            ハブのログインを引き継げませんでした。もう一度ハブから開いてください
+            ホームのログインを引き継げませんでした。もう一度ホームから開いてください
           </p>
         )}
         {blocked && (
           <p role="alert" style={{ fontSize: 13, color: "#777", lineHeight: 1.7 }}>
-            ログインできませんでした。ハブから開き直してください
+            ログインできませんでした。ホームから開き直してください
           </p>
         )}
 
         <button type="button" className="btn-primary" onClick={handleLogin} style={{ maxWidth: 280 }}>
-          ハブでログインする
+          ホームでログインする
         </button>
 
         <nav style={{ display: "flex", gap: 16, fontSize: 12 }}>
