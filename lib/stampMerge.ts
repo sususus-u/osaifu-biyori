@@ -71,6 +71,14 @@ export function showTopNameField(scanIsStamp: boolean): boolean {
   return !scanIsStamp;
 }
 
+// 上の「名前」の欄の下の説明(切手以外。切手のときは欄ごと隠すので出さない)。
+// 行が1つ: 名前欄の名前がそのまま保存される。行が複数: 各行の名前の元になる(行の名前は、行ごとに直せる)
+export function topNameHint(rowCount: number): string {
+  return rowCount > 1
+    ? "各行の名前の元になります。保存される名前は、下の行ごとの名前です。"
+    : "保存される名前です。";
+}
+
 // 行の名前の初期値。額面が整数でなければ空(まだ決められない)
 export function defaultRowName(base: string, faceValue: string): string {
   const f = Number(faceValue);

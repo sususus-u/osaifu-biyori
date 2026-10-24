@@ -698,3 +698,13 @@ test("上の名前の欄: 切手の読み取りのときだけ隠す(保存の�
   assert.equal(saveRowName({ rowCount: 1, name: "切手", scanIsStamp: true, rowName: "記念切手 1円", faceValue: "1" }), "記念切手 1円");
   assert.equal(saveRowName({ rowCount: 2, name: "切手", scanIsStamp: true, faceValue: "84" }), "切手 84円");
 });
+
+import { topNameHint } from "./stampMerge.ts";
+
+test("上の名前の説明: 行が1つなら保存される名前、複数なら行の名前の元", () => {
+  assert.equal(topNameHint(1), "保存される名前です。");
+  assert.match(topNameHint(2), /各行の名前の元/);
+  // 説明どおり、行が1つの切手以外は名前欄の名前がそのまま保存される。複数は行の名前(なければ「名前 額面円」)
+  assert.equal(saveRowName({ rowCount: 1, name: "図書カード", scanIsStamp: false, faceValue: "500" }), "図書カード");
+  assert.equal(saveRowName({ rowCount: 2, name: "商品券", scanIsStamp: false, faceValue: "1000" }), "商品券 1000円");
+});

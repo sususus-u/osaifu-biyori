@@ -47,6 +47,7 @@ import {
   isStampName,
   saveRowName,
   showTopNameField,
+  topNameHint,
   validateStampRows,
   type SaveRow,
 } from "@/lib/stampMerge";
@@ -483,6 +484,7 @@ export default function ScanPhysicalUpload() {
                 }}
                 placeholder="例:切手、図書カード"
               />
+              <p style={{ fontSize: 12, color: "#999", margin: "4px 0 0" }}>{topNameHint(rows.length)}</p>
               {nameUnrecognized && (
                 <p style={{ fontSize: 12, color: "#b3261e" }}>
                   文字を読み取れませんでした。手入力してください
@@ -511,20 +513,20 @@ export default function ScanPhysicalUpload() {
                   value={row.faceValue}
                   onChange={(e) => changeRows(updateRow(rows, i, { faceValue: e.target.value }))}
                   placeholder="額面(1枚あたり)"
-                  aria-label={stampMode ? "額面(1枚あたり、円)" : undefined}
+                  aria-label="額面(1枚あたり、円)"
                   style={{ flex: 1, minWidth: 0 }}
                 />
-                {stampMode && <span style={{ color: "#666", whiteSpace: "nowrap" }}>円</span>}
+                <span style={{ color: "#666", whiteSpace: "nowrap" }}>円</span>
                 <span style={{ color: "#999" }}>×</span>
                 <input
                   type="number"
                   value={row.count}
                   onChange={(e) => changeRows(updateRow(rows, i, { count: e.target.value }))}
                   placeholder="枚数"
-                  aria-label={stampMode ? "枚数(枚)" : undefined}
+                  aria-label="枚数(枚)"
                   style={{ flex: 1, minWidth: 0 }}
                 />
-                {stampMode && <span style={{ color: "#666", whiteSpace: "nowrap" }}>枚</span>}
+                <span style={{ color: "#666", whiteSpace: "nowrap" }}>枚</span>
                 {rows.length > 1 && (
                   <button
                     type="button"
