@@ -48,6 +48,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - ブランド(正式): おきづきびより。ドメイン okizukibiyori.com。
 - ハブ: 画面の名前「おきづきびより」。リポジトリ kizuki-biyori-hub(次に変える予定。変わったら、改めて直す)。Claude Code の名乗り「ハブ」。
 - 利用者に見える呼び名は「ホーム」。「ハブ」は、開発の中の呼び名で、画面には出さない。
+- ログインの案内では「ホーム」を使わず、「ログイン」だけにする(ホームは、ヘッダーのロゴのリンクなど、行き先として必要な場所だけ)。
 - まもりびより: 画面の名前「まもりびより」。リポジトリ mamori-biyori(旧: mimamori-hoken-app)。名乗り「まもりびより」。旧名: みまもり保険手帳。
 - たべびより: 画面の名前「たべびより」。リポジトリ tabe-biyori(旧: tabegoro-app)。名乗り「たべびより」。旧名: たべゴロっとチェック。
 - おさいふびより: 画面の名前「おさいふびより」。リポジトリ osaifu-biyori(旧: mimamori-point-app)。名乗り「おさいふびより」。旧名: たまりびより、まもりポイント。

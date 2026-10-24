@@ -1,7 +1,7 @@
 "use client";
 
 // ハブにログインしていないときに出す案内の画面。
-// 出すのは、ブランド名・「ハブでログインする」ボタン・規約とプライバシーポリシーへのリンクだけ。
+// 出すのは、ブランド名・「ログイン」ボタン・規約とプライバシーポリシーへのリンクだけ。
 // ハブへは自動では移動せず、必ずボタンを押してもらう。
 
 import { useState } from "react";
@@ -50,7 +50,7 @@ export default function LoginGuide() {
         )}
 
         <button type="button" className="btn-primary" onClick={handleLogin} style={{ maxWidth: 280 }}>
-          ホームでログインする
+          ログイン
         </button>
 
         <nav style={{ display: "flex", gap: 16, fontSize: 12 }}>
