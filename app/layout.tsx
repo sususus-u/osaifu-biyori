@@ -5,7 +5,7 @@ import AppShell from "@/components/AppShell";
 
 export const metadata: Metadata = {
   title: "おさいふびより",
-  description: "ポイント・電子マネーの期限管理アプリ",
+  description: "ポイント・電子マネーの期限管理サービス",
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },

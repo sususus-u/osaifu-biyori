@@ -71,7 +71,7 @@ export default function LogoutButton() {
       {confirming && (
         <ConfirmSheet
           title="ログアウトしますか?"
-          description="この端末に残っているこのアプリのデータも消えます。"
+          description="この端末に残っている、おさいふびよりのデータも消えます。"
           confirmLabel="ログアウトする"
           busyLabel="処理中…"
           variant="normal"

@@ -40,12 +40,12 @@ export default function LoginGuide() {
 
         {handoffFailed && (
           <p role="alert" style={{ fontSize: 13, color: "#777", lineHeight: 1.7 }}>
-            ログインを引き継げませんでした。アプリを閉じて、もう一度開いてください
+            ログインを引き継げませんでした。おさいふびよりを閉じて、もう一度開いてください
           </p>
         )}
         {blocked && (
           <p role="alert" style={{ fontSize: 13, color: "#777", lineHeight: 1.7 }}>
-            ログインできませんでした。アプリを閉じて、もう一度開いてください
+            ログインできませんでした。おさいふびよりを閉じて、もう一度開いてください
           </p>
         )}
 
