@@ -400,3 +400,9 @@
 ## 下のメニュー「一覧」のアイコン(依頼128、2026-10-24。3アプリ共通の決定)
 - 変えた(見た目だけ): 「一覧」を、財布(lucide の Wallet)から、クリップボードに横線2本の絵(`components/icons/ClipboardLinesIcon.tsx`、`AppShell.tsx` の tabs)にした。ほかのアイコンと同じ作り(lucide-react と同じ、24×24、線だけ、太さ2、角は丸く、currentColor、表示の大きさ20)。動き、ラベル「一覧」、色の決まり(選択中が濃い)は同じ。アプリのアイコン(manifest)は変えていない。AGENTS.md に1行足した。
 - 案②(点を足す): 右の「メニュー」(横線3本)と紛らわしければ、左に点を足したクリップボード(点と横線)に変える。スマホの実物で確認してから決める。
+
+## Firestore のルールの古い写しを消した(依頼190、2026-10-25)
+- 消したもの: `firestore.rules`(2026-10-06 から更新されていない古い写し。正本とは中身が違っていた)。
+- 置いたもの: `FIRESTORE_RULES.md`(正本はハブの `firestore-rules/firestore.rules.txt`。ここにはルールを置かない。公開は Firebase コンソール)。
+- firebase.json は、もとから rules の指定がない(database と location だけ)ので、変えていない。README に、ルールを貼る・公開する案内はなかった。上の古い節の「firestore.rules を確認」は、当時の記録なので、そのまま。
+- 型チェック・lint・テスト216件・ビルド通過。
