@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { guardAiRead } from "@/lib/usageLimit";
+import { isSpendLimitError, aiPausedBody, aiPausedLog } from "@/lib/aiPaused";
 import { buildScanLog, buildScanErrorLog } from "@/lib/scanLog";
 import { PHYSICAL_SCAN_PROMPT } from "@/lib/physicalScanPrompt";
 import { resolvePhysicalScanModel } from "@/lib/physicalScanModel";
@@ -93,6 +94,10 @@ export async function POST(req: NextRequest) {
     console.warn(buildScanErrorLog(error, stopReason));
     // AIの呼び出しや結果の読み取りで失敗した分は、回数に含めない
     await refund?.();
+    if (isSpendLimitError(error)) {
+      console.error(aiPausedLog("scan-physical-count"));
+      return NextResponse.json(aiPausedBody(), { status: 503 });
+    }
     return NextResponse.json({ error: "読み取りに失敗しました" }, { status: 500 });
   }
 }

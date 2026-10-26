@@ -406,3 +406,9 @@
 - 置いたもの: `FIRESTORE_RULES.md`(正本はハブの `firestore-rules/firestore.rules.txt`。ここにはルールを置かない。公開は Firebase コンソール)。
 - firebase.json は、もとから rules の指定がない(database と location だけ)ので、変えていない。README に、ルールを貼る・公開する案内はなかった。上の古い節の「firestore.rules を確認」は、当時の記録なので、そのまま。
 - 型チェック・lint・テスト216件・ビルド通過。
+
+## AI の利用額の上限に届いたときの文(依頼214、2026-10-26。ハブの点検の M8、依頼210の(a)〜(c))
+- いつ: Claude Console の月の利用額の上限に届くと、Anthropic API が 400 の invalid_request_error で断る(クレジットの残高切れも同じ扱い)。それ以外の失敗は、今までどおり 500 と「読み取りに失敗しました」。
+- サーバー: スクショの読み取り(scan-account)と現物の読み取り(scan-physical-count)は、そのときだけ、回数を戻したうえで 503 と `{ error: "ただいま AI の読み取りを休んでいます。手入力で登録できます。", code: "ai_paused" }` を返し、ログに `[AI_PAUSED] osaifu-biyori {窓口}: …` を1行出す(`lib/aiPaused.ts`)。
+- 画面: 今までどおり、サーバーの文をそのまま出す(`readScanJson`)。スクショの読み取りの画面は、もとから、エラーの下に「手入力で登録する」がある。
+- テスト: `lib/aiPaused.test.ts`。型チェック・lint・テスト221件・ビルド通過。上限の状態は作れないので、実際の画面は確かめていない。

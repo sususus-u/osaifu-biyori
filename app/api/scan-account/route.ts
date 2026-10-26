@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { guardAiRead } from "@/lib/usageLimit";
+import { isSpendLimitError, aiPausedBody, aiPausedLog } from "@/lib/aiPaused";
 
 export async function POST(req: NextRequest) {
   // AI読み取りの回数を1つ使ったあとで失敗したときに、その1回分を戻すための関数。
@@ -105,6 +106,10 @@ JSONを作成する前に、まず画面に表示されているすべての項�
     console.error(error);
     // AIの呼び出しや結果の読み取りで失敗した分は、回数に含めない
     await refund?.();
+    if (isSpendLimitError(error)) {
+      console.error(aiPausedLog("scan-account"));
+      return NextResponse.json(aiPausedBody(), { status: 503 });
+    }
     return NextResponse.json({ error: "読み取りに失敗しました" }, { status: 500 });
   }
 }
