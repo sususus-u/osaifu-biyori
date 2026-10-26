@@ -76,7 +76,8 @@ interface AccountRowProps {
   subText: string;
   // true のとき、期限が過ぎた継続型の行を薄いオレンジで塗る(「期限未設定」と「期限なし」の行は false)
   highlightOverdue?: boolean;
-  // 保存した直後の行の印(薄い色)。保存の知らせは、画面の下の知らせ(BottomToast)で出す(依頼229)
+  // 保存した直後の行の印(左の端に、サービスの色の線。依頼231。期限が過ぎた行のクリーム色の塗りと見分けるため、塗らない)。
+  // 保存の知らせは、画面の下の知らせ(BottomToast)で出す(依頼229)
   highlighted?: boolean;
   // 選択モード: 行全体が「チェックの切り替え」になり、編集画面へは移らない(通常のときは <Link> のまま)
   selectMode?: boolean;
@@ -145,7 +146,7 @@ export default function AccountRow({
         textDecoration: "none",
         color: "inherit",
         ...(highlightOverdue ? { background: isOverdueUnupdated(account) ? "#fdf3e7" : "transparent" } : {}),
-        ...(highlighted ? { background: "#f8ebe6" } : {}),
+        ...(highlighted ? { boxShadow: "inset 4px 0 0 var(--brand)" } : {}),
       }}
     >
       <div>

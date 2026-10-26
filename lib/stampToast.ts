@@ -2,7 +2,7 @@
 // 画面が切り替わると切手の画面の表示は消えるため、sessionStorage に1回分だけ入れ、一覧が開いたときに読んですぐ消す。
 // storage は引数で受けるので、テストでは偽物を使う。
 export const STAMP_SAVED_MESSAGE_KEY = "tamari:stampSavedMessage";
-export const STAMP_TOAST_MS = 4000; // 画面の下の知らせ(BottomToast)の、数秒で消える分の時間
+export const STAMP_TOAST_MS = 6000; // 画面の下の知らせ(BottomToast)の、「元に戻す」が無い分の消えるまでの時間(依頼231)
 export const STAMP_WAIT_MS = 3000; // 一覧の読み込みを待つ上限。超えたら上部のトーストへ切り替える
 
 export interface MessageStorage {
@@ -21,6 +21,8 @@ export interface SavedItem {
 export interface StampSavedPayload {
   message: string; // まとめた文(複数行は改行)
   items: SavedItem[]; // 古い形式(文字列だけ)から読んだときは空
+  // 「元に戻す」で取り消せる登録の項目の ID(依頼231)。登録だけのときに入る。無ければ「元に戻す」は出さない
+  undoIds?: string[];
 }
 
 // 入れる。storage が使えない(例外)ときは、黙って何もしない(保存そのものは済んでいる)
@@ -31,6 +33,22 @@ export function stashStampSavedMessage(storage: MessageStorage | null, payload: 
   } catch {
     // 案内が出ないだけ
   }
+}
+
+// 足して入れる(依頼231)。スクショを続けて登録する途中は、前の分に足し、最後に一覧に戻ったときに、まとめて出す。
+// 「元に戻す」は、全部が登録のときだけ残す(更新や追加が混じると、取り消せない分があるため)
+export function mergeSavedPayload(prev: StampSavedPayload | null, next: StampSavedPayload): StampSavedPayload {
+  if (!prev) return next;
+  const merged: StampSavedPayload = {
+    message: [prev.message, next.message].filter((m) => m.trim() !== "").join("\n"),
+    items: [...prev.items, ...next.items],
+  };
+  if (prev.undoIds && next.undoIds) merged.undoIds = [...prev.undoIds, ...next.undoIds];
+  return merged;
+}
+
+export function appendStampSavedMessage(storage: MessageStorage | null, payload: StampSavedPayload): void {
+  stashStampSavedMessage(storage, mergeSavedPayload(peekStampSavedMessage(storage), payload));
 }
 
 function isSavedItem(v: unknown): v is SavedItem {
@@ -53,10 +71,11 @@ export function peekStampSavedMessage(storage: MessageStorage | null): StampSave
     if (raw === null || raw.trim() === "") return null;
     if (raw.trimStart().startsWith("{")) {
       try {
-        const v = JSON.parse(raw) as { message?: unknown; items?: unknown };
+        const v = JSON.parse(raw) as { message?: unknown; items?: unknown; undoIds?: unknown };
         if (typeof v.message === "string" && v.message.trim() !== "") {
           const items = Array.isArray(v.items) ? v.items.filter(isSavedItem) : [];
-          return { message: v.message, items };
+          const undoIds = Array.isArray(v.undoIds) ? v.undoIds.filter((x): x is string => typeof x === "string" && x !== "") : [];
+          return undoIds.length > 0 ? { message: v.message, items, undoIds } : { message: v.message, items };
         }
         return null;
       } catch {

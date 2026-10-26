@@ -32,7 +32,8 @@ import { deleteAccounts } from "@/lib/deleteAccount";
 import { firestoreDeleteAccountDeps } from "@/lib/deleteAccountFirestore";
 import { replaceChanges, REPLACE_NO_CHANGE, REPLACE_WARNING } from "@/lib/replaceConfirm";
 import { busyPreparing, waitForPaint } from "@/lib/busyView";
-import { stashStampSavedMessage } from "@/lib/stampToast";
+import { appendStampSavedMessage, stashStampSavedMessage, type StampSavedPayload } from "@/lib/stampToast";
+import { createdNotice, deletedNotice, updatedNotice } from "@/lib/savedNotice";
 import { STAMP_NAME_BG, stampNameView } from "@/lib/stampNameView";
 import { NO_TOUCH, stampAutoApply, stampAutoRestore, stampAutoSummary, type StampAutoState, type StampTouched } from "@/lib/stampAuto";
 import { isStampLikeEntry, isStampGroupEntry, STAMP_DEFAULT_NAME, STAMP_MANUAL_PLACEHOLDER, canonicalStampName, manualAddNotice, parseStampFace, stampEntryMode, stampFaceFromName, stampNameFromFace, switchStampMode, normalizeName, pickAddTarget, toExistingItem, type ExistingItem } from "@/lib/stampMerge";
@@ -594,6 +595,13 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
   // 「置き換える」「今回の分を追加する」経由でもキューを引き継がないと、
   // 残りの項目がsessionStorageに取り残されたまま次のスキャンで上書きされ、
   // ユーザーには「保存されなかった」ように見えてしまう。
+  // 一覧に戻ったときに、画面の下に出す知らせを入れておく(依頼231)。
+  // スクショを続けて登録する途中は、前の分に足し、最後に一覧に戻ったときに、まとめて出す
+  function rememberSaved(payload: StampSavedPayload) {
+    if (sessionStorage.getItem("scan-prefill-queue")) appendStampSavedMessage(window.sessionStorage, payload);
+    else stashStampSavedMessage(window.sessionStorage, payload);
+  }
+
   function goToNextQueueItemOrHome() {
     const raw = sessionStorage.getItem("scan-prefill-queue");
     if (raw) {
@@ -696,6 +704,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
       if (isEditMode && accountId) {
         await updateDoc(doc(db, "accounts", accountId), payload);
         await addDoc(collection(db, "accounts", accountId, "updates"), updateRecord);
+        rememberSaved(updatedNotice(accountId, name));
         router.push("/");
       } else {
         const blocked = uid ? await guardNewRecords(uid, [{ groupName: payload.groupName, category: payload.category }]) : null;
@@ -705,6 +714,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
         }
         const docRef = await addDoc(collection(db, "accounts"), { ...payload, createdAt: now });
         await addDoc(collection(db, "accounts", docRef.id, "updates"), updateRecord);
+        rememberSaved(createdNotice(docRef.id, name));
         goToNextQueueItemOrHome();
       }
     } catch (error) {
@@ -726,6 +736,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
       const { payload, updateRecord } = buildPayloadAndUpdateRecord();
       await updateDoc(doc(db, "accounts", duplicateAccount.id), payload);
       await addDoc(collection(db, "accounts", duplicateAccount.id, "updates"), updateRecord);
+      rememberSaved(updatedNotice(duplicateAccount.id, duplicateAccount.name));
       goToNextQueueItemOrHome();
     } catch (error) {
       console.error(error);
@@ -777,7 +788,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
         unit: balanceUnit || "円",
         multiple: duplicateCount > 1,
       });
-      stashStampSavedMessage(window.sessionStorage, {
+      rememberSaved({
         message: text,
         items: [{ id: duplicateAccount.id, kind: "add", text }],
       });
@@ -796,6 +807,8 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
     setIsDeleting(true);
     try {
       await deleteAccounts([accountId], firestoreDeleteAccountDeps);
+      // 削除は、履歴も消えるので、戻せない(「元に戻す」は付けない)
+      stashStampSavedMessage(window.sessionStorage, deletedNotice(name));
       router.push("/");
     } catch (error) {
       console.error(error);

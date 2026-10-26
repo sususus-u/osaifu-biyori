@@ -22,10 +22,12 @@ import ConfirmSheet from "@/components/ConfirmSheet";
 import {
   afterBulkDelete,
   buildDeleteConfirm,
+  deleteAccounts,
   deleteSelectedAccounts,
   errorKind,
   failureMessage,
 } from "@/lib/deleteAccount";
+import { UNDO_DONE_MESSAGE, UNDO_FAILED_MESSAGE } from "@/lib/savedNotice";
 import { firestoreDeleteAccountDeps } from "@/lib/deleteAccountFirestore";
 import {
   SELECTION_LIMIT,
@@ -110,6 +112,10 @@ export default function AccountList() {
   const [pending, setPending] = useState<StampSavedPayload | null>(null);
   const [notices, setNotices] = useState<Record<string, string>>({});
   const [fallbackMessage, setFallbackMessage] = useState<string | null>(null);
+  // 「元に戻す」で取り消せる登録(依頼231)。あれば、知らせに「元に戻す」を付け、次の操作か ✕ まで出す
+  const [undoIds, setUndoIds] = useState<string[] | null>(null);
+  const [undoBusy, setUndoBusy] = useState(false);
+  const [undoFailed, setUndoFailed] = useState(false);
   const scrollTargetRef = useRef<string | null>(null);
   // 案内の表示を始めたか(始めたら storage から消す。StrictMode の二重実行で、同じ案内を2回出さない)
   const startedRef = useRef(false);
@@ -164,11 +170,12 @@ export default function AccountList() {
   }, []);
 
   // 表示を始める(1回だけ)。storage から消し、行の下の案内と、上部のトースト(行が見つからない分だけ)を出す
-  function startNotices(plan: StampNoticePlan) {
+  function startNotices(plan: StampNoticePlan, undo: string[] | undefined) {
     if (startedRef.current) return;
     startedRef.current = true;
     clearStampSavedMessage(window.sessionStorage);
     setPending(null);
+    setUndoIds(undo && undo.length > 0 ? undo : null);
     setTab(plan.tab);
     setNotices(plan.notices);
     setFallbackMessage(plan.fallback);
@@ -187,7 +194,7 @@ export default function AccountList() {
   useEffect(() => {
     if (!pending || !loaded || startedRef.current) return;
     const plan = decideBind(pending, listAccounts, tab, false);
-    if (plan) startNotices(plan);
+    if (plan) startNotices(plan, pending.undoIds);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pending, loaded, accounts, tab]);
 
@@ -200,10 +207,10 @@ export default function AccountList() {
       const cur = latestRef.current;
       if (cur.loaded) {
         const plan = decideBind(pending, cur.listAccounts, cur.tab, true);
-        if (plan) startNotices(plan);
+        if (plan) startNotices(plan, pending.undoIds);
         return;
       }
-      startNotices({ tab: cur.tab, notices: {}, firstId: null, fallback: planWaitTimeout(pending).fallback });
+      startNotices({ tab: cur.tab, notices: {}, firstId: null, fallback: planWaitTimeout(pending).fallback }, pending.undoIds);
     }, STAMP_WAIT_MS);
     return () => clearTimeout(timer);
   }, [pending]);
@@ -220,10 +227,37 @@ export default function AccountList() {
     }
   }, [notices]);
 
-  // 画面の下の知らせ(依頼229)。行が見つかった分は、閉じるまで出す(今までの行の下の案内と同じ)。
-  // 見つからない分・削除の知らせだけのときは、数秒で消える
+  // 画面の下の知らせ(依頼229・依頼231)。「元に戻す」が無いものは6秒で消え、行の印も一緒に消える。
+  // 登録の知らせは「元に戻す」付きで、次の操作か ✕ まで出す
   const noticeText = Object.values(notices).join("\n");
-  const toastText = [noticeText, fallbackMessage].filter(Boolean).join("\n");
+  const toastText = undoFailed
+    ? UNDO_FAILED_MESSAGE
+    : [noticeText, fallbackMessage].filter(Boolean).join("\n");
+
+  function closeToast() {
+    setNotices({});
+    setFallbackMessage(null);
+    setUndoIds(null);
+    setUndoFailed(false);
+  }
+
+  // 「元に戻す」: 登録した項目を消す(履歴も一緒に。登録した直後なので、履歴は登録の1件だけ)
+  async function handleUndo() {
+    if (!undoIds || undoBusy) return;
+    setUndoBusy(true);
+    try {
+      await deleteAccounts(undoIds, firestoreDeleteAccountDeps);
+      setNotices({});
+      setUndoIds(null);
+      setUndoFailed(false);
+      setFallbackMessage(UNDO_DONE_MESSAGE);
+    } catch (error) {
+      console.error("登録の取り消しに失敗", errorKind(error)); // 種類だけ。項目名・uid は出さない
+      setUndoFailed(true);
+    } finally {
+      setUndoBusy(false);
+    }
+  }
 
   const isLimitedOrHasExpiry = (a: AccountWithId) => Boolean(a.expiryDate) || a.name.includes("期間");
 
@@ -381,12 +415,12 @@ export default function AccountList() {
       {toastText && (
         <BottomToast
           message={toastText}
-          durationMs={noticeText ? undefined : STAMP_TOAST_MS}
+          durationMs={STAMP_TOAST_MS}
           lift={selectMode ? SELECT_BAR_LIFT : 0}
-          onClose={() => {
-            setNotices({});
-            setFallbackMessage(null);
-          }}
+          done={!undoFailed}
+          onClose={closeToast}
+          onUndo={undoIds ? handleUndo : undefined}
+          undoBusy={undoBusy}
         />
       )}
       <div className="card" style={{ marginBottom: 12 }}>
@@ -494,6 +528,8 @@ export default function AccountList() {
               setSelected((cur) => selectionAfterTabChange(cur, tab, t.key as typeof tab));
               if (t.key !== tab) setLimitNote(false);
               setNotices((cur) => clearNoticesOnTabChange(cur));
+              setUndoIds(null);
+              setUndoFailed(false);
             }}
             style={{
               flex: 1,
