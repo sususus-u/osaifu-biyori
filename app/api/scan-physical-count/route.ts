@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 入力が正しいときだけ、アカウントごとの1日の回数を1つ使う(上限なら429を返し、AIは呼ばない)。
-    const guard = await guardAiRead(req.headers.get("authorization"));
+    const guard = await guardAiRead(req.headers.get("authorization"), "scanPhysical", "scan-physical-count");
     if (!guard.ok) return guard.response;
     refund = guard.refund;
 
