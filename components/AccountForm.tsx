@@ -34,6 +34,8 @@ import { replaceChanges, REPLACE_NO_CHANGE, REPLACE_WARNING } from "@/lib/replac
 import { busyPreparing, waitForPaint } from "@/lib/busyView";
 import { appendStampSavedMessage, stashStampSavedMessage, type StampSavedPayload } from "@/lib/stampToast";
 import { createdNotice, deletedNotice, updatedNotice } from "@/lib/savedNotice";
+import { captureBefore } from "@/lib/undoRestoreFirestore";
+import { makeUndoCapture } from "@/lib/undoRestore";
 import { STAMP_NAME_BG, stampNameView } from "@/lib/stampNameView";
 import { NO_TOUCH, stampAutoApply, stampAutoRestore, stampAutoSummary, type StampAutoState, type StampTouched } from "@/lib/stampAuto";
 import { isStampLikeEntry, isStampGroupEntry, STAMP_DEFAULT_NAME, STAMP_MANUAL_PLACEHOLDER, canonicalStampName, manualAddNotice, parseStampFace, stampEntryMode, stampFaceFromName, stampNameFromFace, switchStampMode, normalizeName, pickAddTarget, toExistingItem, type ExistingItem } from "@/lib/stampMerge";
@@ -702,9 +704,11 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
       const { now, payload, updateRecord } = buildPayloadAndUpdateRecord();
 
       if (isEditMode && accountId) {
+        // 「元に戻す」で直す前の中身に戻せるよう、書く直前の値を読んでおく(依頼232)
+        const before = await captureBefore(accountId, Object.keys(payload));
         await updateDoc(doc(db, "accounts", accountId), payload);
-        await addDoc(collection(db, "accounts", accountId, "updates"), updateRecord);
-        rememberSaved(updatedNotice(accountId, name));
+        const updateRef = await addDoc(collection(db, "accounts", accountId, "updates"), updateRecord);
+        rememberSaved(updatedNotice(accountId, name, { id: accountId, before, updateIds: [updateRef.id] }));
         router.push("/");
       } else {
         const blocked = uid ? await guardNewRecords(uid, [{ groupName: payload.groupName, category: payload.category }]) : null;
@@ -734,9 +738,12 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
     setIsSubmitting(true);
     try {
       const { payload, updateRecord } = buildPayloadAndUpdateRecord();
+      const before = await captureBefore(duplicateAccount.id, Object.keys(payload));
       await updateDoc(doc(db, "accounts", duplicateAccount.id), payload);
-      await addDoc(collection(db, "accounts", duplicateAccount.id, "updates"), updateRecord);
-      rememberSaved(updatedNotice(duplicateAccount.id, duplicateAccount.name));
+      const updateRef = await addDoc(collection(db, "accounts", duplicateAccount.id, "updates"), updateRecord);
+      rememberSaved(
+        updatedNotice(duplicateAccount.id, duplicateAccount.name, { id: duplicateAccount.id, before, updateIds: [updateRef.id] })
+      );
       goToNextQueueItemOrHome();
     } catch (error) {
       console.error(error);
@@ -757,18 +764,21 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
       const addQuantity = itemQuantity === "" ? 0 : Number(itemQuantity);
       const addBalance = balance === "" ? 0 : Number(balance);
       // トランザクションの中で、足す先を読み直して条件を確かめ、最新の値に足す(履歴も同じトランザクション)
-      const result = await manualAdd(firestoreManualAddDeps(uid!), {
+      // 「元に戻す」で足す前の値に戻せるよう、トランザクションで読んだ値と、足した履歴の ID を控える(依頼232)
+      const capture = makeUndoCapture();
+      const extraFields = {
+        yenExchangeRate: yenExchangeRate === "" ? null : Number(yenExchangeRate),
+        exchangeUnitCount: exchangeUnitCount === "" ? null : Number(exchangeUnitCount),
+        exchangeUnitYen: exchangeUnitYen === "" ? null : Number(exchangeUnitYen),
+      };
+      const result = await manualAdd(firestoreManualAddDeps(uid!, capture), {
         id: duplicateAccount.id,
         name,
         category,
         addBalance,
         addQuantity,
         faceValue: faceValue === "" ? null : Number(faceValue),
-        extraFields: {
-          yenExchangeRate: yenExchangeRate === "" ? null : Number(yenExchangeRate),
-          exchangeUnitCount: exchangeUnitCount === "" ? null : Number(exchangeUnitCount),
-          exchangeUnitYen: exchangeUnitYen === "" ? null : Number(exchangeUnitYen),
-        },
+        extraFields,
         historyExtra: { expiryDate: expiryDate ? Timestamp.fromDate(new Date(expiryDate)) : null },
       });
       if (!result.ok) {
@@ -788,9 +798,18 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
         unit: balanceUnit || "円",
         multiple: duplicateCount > 1,
       });
+      const restore = capture.restoreFor(duplicateAccount.id, [
+        "currentBalance",
+        ...Object.keys(extraFields),
+        "faceValue",
+        "itemQuantity",
+        "lastUpdatedAt",
+        "updatedAt",
+      ]);
       rememberSaved({
         message: text,
         items: [{ id: duplicateAccount.id, kind: "add", text }],
+        undo: { createIds: [], restores: [restore] },
       });
       goToNextQueueItemOrHome();
     } catch (error) {
@@ -1515,7 +1534,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
       {showDeleteModal && (
         <ConfirmSheet
           title={"「" + (name || "このサービス") + "」を削除しますか?"}
-          description="削除すると、元に戻せません。"
+          description="元に戻せません。履歴も一緒に消えます。"
           confirmLabel="削除する"
           busyLabel="削除中..."
           variant="danger"

@@ -22,12 +22,13 @@ import ConfirmSheet from "@/components/ConfirmSheet";
 import {
   afterBulkDelete,
   buildDeleteConfirm,
-  deleteAccounts,
   deleteSelectedAccounts,
   errorKind,
   failureMessage,
 } from "@/lib/deleteAccount";
-import { UNDO_DONE_MESSAGE, UNDO_FAILED_MESSAGE } from "@/lib/savedNotice";
+import { UNDO_FAILED_MESSAGE } from "@/lib/savedNotice";
+import { undoDoneMessage, type SavedUndo } from "@/lib/undoRestore";
+import { runSavedUndo } from "@/lib/undoRestoreFirestore";
 import { firestoreDeleteAccountDeps } from "@/lib/deleteAccountFirestore";
 import {
   SELECTION_LIMIT,
@@ -112,8 +113,8 @@ export default function AccountList() {
   const [pending, setPending] = useState<StampSavedPayload | null>(null);
   const [notices, setNotices] = useState<Record<string, string>>({});
   const [fallbackMessage, setFallbackMessage] = useState<string | null>(null);
-  // 「元に戻す」で取り消せる登録(依頼231)。あれば、知らせに「元に戻す」を付け、次の操作か ✕ まで出す
-  const [undoIds, setUndoIds] = useState<string[] | null>(null);
+  // 「元に戻す」の中身(依頼231・依頼232。登録と更新)。あれば、知らせに「元に戻す」を付け、次の操作か ✕ まで出す
+  const [undo, setUndo] = useState<SavedUndo | null>(null);
   const [undoBusy, setUndoBusy] = useState(false);
   const [undoFailed, setUndoFailed] = useState(false);
   const scrollTargetRef = useRef<string | null>(null);
@@ -170,12 +171,12 @@ export default function AccountList() {
   }, []);
 
   // 表示を始める(1回だけ)。storage から消し、行の下の案内と、上部のトースト(行が見つからない分だけ)を出す
-  function startNotices(plan: StampNoticePlan, undo: string[] | undefined) {
+  function startNotices(plan: StampNoticePlan, nextUndo: SavedUndo | undefined) {
     if (startedRef.current) return;
     startedRef.current = true;
     clearStampSavedMessage(window.sessionStorage);
     setPending(null);
-    setUndoIds(undo && undo.length > 0 ? undo : null);
+    setUndo(nextUndo ?? null);
     setTab(plan.tab);
     setNotices(plan.notices);
     setFallbackMessage(plan.fallback);
@@ -194,7 +195,7 @@ export default function AccountList() {
   useEffect(() => {
     if (!pending || !loaded || startedRef.current) return;
     const plan = decideBind(pending, listAccounts, tab, false);
-    if (plan) startNotices(plan, pending.undoIds);
+    if (plan) startNotices(plan, pending.undo);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pending, loaded, accounts, tab]);
 
@@ -207,10 +208,10 @@ export default function AccountList() {
       const cur = latestRef.current;
       if (cur.loaded) {
         const plan = decideBind(pending, cur.listAccounts, cur.tab, true);
-        if (plan) startNotices(plan, pending.undoIds);
+        if (plan) startNotices(plan, pending.undo);
         return;
       }
-      startNotices({ tab: cur.tab, notices: {}, firstId: null, fallback: planWaitTimeout(pending).fallback }, pending.undoIds);
+      startNotices({ tab: cur.tab, notices: {}, firstId: null, fallback: planWaitTimeout(pending).fallback }, pending.undo);
     }, STAMP_WAIT_MS);
     return () => clearTimeout(timer);
   }, [pending]);
@@ -228,7 +229,7 @@ export default function AccountList() {
   }, [notices]);
 
   // 画面の下の知らせ(依頼229・依頼231)。「元に戻す」が無いものは6秒で消え、行の印も一緒に消える。
-  // 登録の知らせは「元に戻す」付きで、次の操作か ✕ まで出す
+  // 登録・更新の知らせは「元に戻す」付きで、次の操作か ✕ まで出す
   const noticeText = Object.values(notices).join("\n");
   const toastText = undoFailed
     ? UNDO_FAILED_MESSAGE
@@ -237,22 +238,22 @@ export default function AccountList() {
   function closeToast() {
     setNotices({});
     setFallbackMessage(null);
-    setUndoIds(null);
+    setUndo(null);
     setUndoFailed(false);
   }
 
-  // 「元に戻す」: 登録した項目を消す(履歴も一緒に。登録した直後なので、履歴は登録の1件だけ)
+  // 「元に戻す」: 更新は直す前の中身に戻し、登録は項目を消す(履歴も一緒に。登録した直後なので、履歴は登録の1件だけ)
   async function handleUndo() {
-    if (!undoIds || undoBusy) return;
+    if (!undo || undoBusy) return;
     setUndoBusy(true);
     try {
-      await deleteAccounts(undoIds, firestoreDeleteAccountDeps);
+      await runSavedUndo(undo);
       setNotices({});
-      setUndoIds(null);
+      setUndo(null);
       setUndoFailed(false);
-      setFallbackMessage(UNDO_DONE_MESSAGE);
+      setFallbackMessage(undoDoneMessage(undo));
     } catch (error) {
-      console.error("登録の取り消しに失敗", errorKind(error)); // 種類だけ。項目名・uid は出さない
+      console.error("元に戻すのに失敗", errorKind(error)); // 種類だけ。項目名・uid は出さない
       setUndoFailed(true);
     } finally {
       setUndoBusy(false);
@@ -419,7 +420,7 @@ export default function AccountList() {
           lift={selectMode ? SELECT_BAR_LIFT : 0}
           done={!undoFailed}
           onClose={closeToast}
-          onUndo={undoIds ? handleUndo : undefined}
+          onUndo={undo ? handleUndo : undefined}
           undoBusy={undoBusy}
         />
       )}
@@ -528,7 +529,7 @@ export default function AccountList() {
               setSelected((cur) => selectionAfterTabChange(cur, tab, t.key as typeof tab));
               if (t.key !== tab) setLimitNote(false);
               setNotices((cur) => clearNoticesOnTabChange(cur));
-              setUndoIds(null);
+              setUndo(null);
               setUndoFailed(false);
             }}
             style={{

@@ -13,9 +13,15 @@ import { db } from "./firebase";
 import { groupNameForNewItem, toExistingItem } from "./stampMerge.ts";
 import type { StampSaveDeps } from "./stampSave.ts";
 import { guardNewRecords } from "./recordLimitClient";
+import type { UndoCapture } from "./undoRestore.ts";
+
+// 足すときに書く項目(「元に戻す」で、直す前の値に戻す項目。依頼232)
+export function stampAddKeys(expiry: Timestamp | null): string[] {
+  return ["currentBalance", "itemQuantity", ...(expiry ? ["expiryDate"] : []), "lastUpdatedAt", "updatedAt"];
+}
 
 // expiry は、利用者が入力したときだけ渡す(切手は基本、期限がない)。足すときは、渡されたときだけ上書きする
-export function firestoreStampDeps(uid: string, expiry: Timestamp | null): StampSaveDeps {
+export function firestoreStampDeps(uid: string, expiry: Timestamp | null, capture?: UndoCapture): StampSaveDeps {
   return {
     async listMine() {
       // 一覧の画面と同じ、ownerId だけのクエリ(インデックス不要)
@@ -37,6 +43,7 @@ export function firestoreStampDeps(uid: string, expiry: Timestamp | null): Stamp
           async get(id) {
             const snap = await t.get(doc(db, "accounts", id));
             if (!snap.exists() || snap.data().ownerId !== uid) return null;
+            capture?.onRead(id, snap.data());
             return toExistingItem(snap.id, snap.data());
           },
           addTo(id, newCount, newBalance) {

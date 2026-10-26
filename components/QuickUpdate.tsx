@@ -7,6 +7,9 @@
 import { useEffect, useState } from "react";
 import BottomToast from "@/components/BottomToast";
 import { STAMP_TOAST_MS } from "@/lib/stampToast";
+import { captureBefore, runSavedUndo } from "@/lib/undoRestoreFirestore";
+import { undoDoneMessage, type SavedUndo } from "@/lib/undoRestore";
+import { UNDO_FAILED_MESSAGE } from "@/lib/savedNotice";
 import Link from "next/link";
 import { Lightbulb } from "lucide-react";
 import {
@@ -57,6 +60,10 @@ export default function QuickUpdate() {
   const [editingRows, setEditingRows] = useState<EditingRow[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [savedMessage, setSavedMessage] = useState("");
+  // 「元に戻す」(依頼232)。直す前の値に戻す
+  const [undo, setUndo] = useState<SavedUndo | null>(null);
+  const [undoBusy, setUndoBusy] = useState(false);
+  const [undoFailed, setUndoFailed] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [pendingScan, setPendingScan] = useState<PendingScan | null>(null);
 
@@ -137,16 +144,21 @@ export default function QuickUpdate() {
   async function handleSaveAll() {
     setIsSaving(true);
     try {
-      await Promise.all(
-        editingRows.map((row) =>
-          updateDoc(doc(db, "accounts", row.account.id), {
+      const restores = await Promise.all(
+        editingRows.map(async (row) => {
+          const fields = {
             currentBalance: row.balance === "" ? null : Number(row.balance),
             expiryDate: row.expiryDate ? Timestamp.fromDate(new Date(row.expiryDate)) : null,
             lastUpdatedAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
-          })
-        )
+          };
+          const before = await captureBefore(row.account.id, Object.keys(fields));
+          await updateDoc(doc(db, "accounts", row.account.id), fields);
+          return { id: row.account.id, before, updateIds: [] };
+        })
       );
+      setUndo({ createIds: [], restores });
+      setUndoFailed(false);
       setSavedMessage(`「${selectedGroupKey}」を更新しました`);
       setSelectedGroupKey(null);
       setEditingRows([]);
@@ -156,6 +168,28 @@ export default function QuickUpdate() {
     } finally {
       setIsSaving(false);
     }
+  }
+
+  async function handleUndo() {
+    if (!undo || undoBusy) return;
+    setUndoBusy(true);
+    try {
+      await runSavedUndo(undo);
+      setUndo(null);
+      setUndoFailed(false);
+      setSavedMessage(undoDoneMessage(undo));
+    } catch (error) {
+      console.error(error);
+      setUndoFailed(true);
+    } finally {
+      setUndoBusy(false);
+    }
+  }
+
+  function closeSaved() {
+    setSavedMessage("");
+    setUndo(null);
+    setUndoFailed(false);
   }
 
   if (isLoading) {
@@ -188,7 +222,14 @@ export default function QuickUpdate() {
         </p>
 
         {savedMessage && (
-          <BottomToast message={savedMessage} durationMs={STAMP_TOAST_MS} onClose={() => setSavedMessage("")} />
+          <BottomToast
+            message={undoFailed ? UNDO_FAILED_MESSAGE : savedMessage}
+            done={!undoFailed}
+            durationMs={STAMP_TOAST_MS}
+            onClose={closeSaved}
+            onUndo={undo ? handleUndo : undefined}
+            undoBusy={undoBusy}
+          />
         )}
 
         <ul className="divide-y border rounded-md">

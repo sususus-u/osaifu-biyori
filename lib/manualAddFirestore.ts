@@ -3,8 +3,10 @@ import { collection, doc, runTransaction, serverTimestamp } from "firebase/fires
 import { db } from "./firebase";
 import type { ManualAddDeps } from "./manualAdd.ts";
 import { toExistingItem } from "./stampMerge.ts";
+import type { UndoCapture } from "./undoRestore.ts";
 
-export function firestoreManualAddDeps(uid: string): ManualAddDeps {
+// capture があれば、読んだ値と足した履歴の ID を控える(「元に戻す」用。依頼232)
+export function firestoreManualAddDeps(uid: string, capture?: UndoCapture): ManualAddDeps {
   return {
     now: () => serverTimestamp(),
     runTransaction(fn) {
@@ -13,13 +15,16 @@ export function firestoreManualAddDeps(uid: string): ManualAddDeps {
           async get(id) {
             const snap = await t.get(doc(db, "accounts", id));
             if (!snap.exists() || snap.data().ownerId !== uid) return null;
+            capture?.onRead(id, snap.data());
             return toExistingItem(snap.id, snap.data());
           },
           update(id, fields) {
             t.update(doc(db, "accounts", id), fields);
           },
           addHistory(id, record) {
-            t.set(doc(collection(db, "accounts", id, "updates")), record);
+            const ref = doc(collection(db, "accounts", id, "updates"));
+            capture?.onHistory(id, ref.id);
+            t.set(ref, record);
           },
         })
       );

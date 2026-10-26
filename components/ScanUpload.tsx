@@ -11,6 +11,8 @@ import Link from "next/link";
 import { Lightbulb } from "lucide-react";
 import BottomToast from "@/components/BottomToast";
 import { stashStampSavedMessage } from "@/lib/stampToast";
+import { captureBefore } from "@/lib/undoRestoreFirestore";
+import type { RestoreChange } from "@/lib/undoRestore";
 import { authFetch } from "@/lib/authFetch";
 import BusyIndicator from "@/components/BusyIndicator";
 import { busyViewForScan, waitForPaint } from "@/lib/busyView";
@@ -321,7 +323,10 @@ export default function ScanUpload() {
 
   // 確認画面での保存が終わった後、新規登録が必要な項目(pendingQueueItems)があれば続けてそちらへ、
   // なければホームへ遷移する
-  function goToPendingQueueOrHome(successMessage: string) {
+  function goToPendingQueueOrHome(successMessage: string, restores: RestoreChange[] = []) {
+    // 一覧の画面の下に出す知らせ(「元に戻す」付き。依頼232)。続けて登録するときは、登録の分と合わせて最後に出す
+    const undo = restores.length > 0 ? { createIds: [], restores } : undefined;
+    stashStampSavedMessage(window.sessionStorage, { message: successMessage, items: [], ...(undo ? { undo } : {}) });
     if (pendingQueueItems.length > 0) {
       sessionStorage.setItem(
         "scan-prefill-queue",
@@ -333,7 +338,6 @@ export default function ScanUpload() {
 
     setMatchItems(null);
     setStatusMessage(successMessage);
-    stashStampSavedMessage(window.sessionStorage, { message: successMessage, items: [] });
     setTimeout(() => router.push("/"), 800);
   }
 
@@ -342,19 +346,23 @@ export default function ScanUpload() {
     setIsSaving(true);
     setErrorMessage("");
     try {
-      await Promise.all(
-        matchItems.map((item) =>
-          updateDoc(doc(db, "accounts", item.docId), {
+      const restores = await Promise.all(
+        matchItems.map(async (item) => {
+          const fields = {
             currentBalance: item.editBalance === "" ? null : Number(item.editBalance),
             balanceUnit: item.editBalanceUnit || null,
             expiryDate: item.editExpiryDate ? Timestamp.fromDate(new Date(item.editExpiryDate)) : null,
             lastUpdatedAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
-          })
-        )
+          };
+          // 「元に戻す」で直す前の値に戻せるよう、書く直前の値を読んでおく(依頼232。この更新は履歴を足さない)
+          const before = await captureBefore(item.docId, Object.keys(fields));
+          await updateDoc(doc(db, "accounts", item.docId), fields);
+          return { id: item.docId, before, updateIds: [] };
+        })
       );
 
-      goToPendingQueueOrHome("更新しました");
+      goToPendingQueueOrHome("更新しました", restores);
     } catch (error) {
       console.error(error);
       setErrorMessage("保存に失敗しました。もう一度お試しください。");

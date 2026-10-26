@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
 import { STAMP_TOAST_MS, mergeSavedPayload, peekStampSavedMessage, stashStampSavedMessage, appendStampSavedMessage } from "./stampToast.ts";
 import { createdNotice, deletedNotice, updatedNotice } from "./savedNotice.ts";
+import { decodeBefore, isSavedUndo, makeUndoCapture, pickBefore, undoDoneMessage } from "./undoRestore.ts";
 
 const read = (p: string) => readFileSync(new URL(p, import.meta.url), "utf8");
 
@@ -66,7 +67,7 @@ test("短い知らせは、どの画面も BottomToast を使う。上に出す�
   assert.match(list, /lift=\{selectMode \? SELECT_BAR_LIFT : 0\}/);
   // 「元に戻す」が無いものは6秒。登録は「元に戻す」付き
   assert.match(list, /durationMs=\{STAMP_TOAST_MS\}/);
-  assert.match(list, /onUndo=\{undoIds \? handleUndo : undefined\}/);
+  assert.match(list, /onUndo=\{undo \? handleUndo : undefined\}/);
   assert.match(list, /highlighted=\{acc\.id in notices\}/);
   // 行の印は、塗らずに左の端の線(期限が過ぎた行のクリーム色と見分ける)
   const row = read("../components/AccountRow.tsx");
@@ -74,34 +75,78 @@ test("短い知らせは、どの画面も BottomToast を使う。上に出す�
   assert.doesNotMatch(row, /#f8ebe6/);
 });
 
-test("編集の画面: 更新・登録・削除のあと、一覧に戻ったときの知らせ(依頼231)", () => {
-  assert.deepEqual(updatedNotice("a1", " 楽天ポイント "), {
+test("編集の画面: 更新・登録・削除のあと、一覧に戻ったときの知らせ(依頼231)。更新と登録は「元に戻す」付き(依頼232)", () => {
+  const restore = { id: "a1", before: { currentBalance: 100 }, updateIds: ["u1"] };
+  assert.deepEqual(updatedNotice("a1", " 楽天ポイント ", restore), {
     message: "「楽天ポイント」を更新しました",
     items: [{ id: "a1", kind: "add", text: "「楽天ポイント」を更新しました" }],
+    undo: { createIds: [], restores: [restore] },
   });
   assert.deepEqual(createdNotice("a2", "PayPay"), {
     message: "「PayPay」を登録しました",
     items: [{ id: "a2", kind: "create", text: "「PayPay」を登録しました" }],
-    undoIds: ["a2"],
+    undo: { createIds: ["a2"], restores: [] },
   });
   assert.deepEqual(deletedNotice("nanaco"), { message: "「nanaco」を削除しました", items: [] });
   const form = read("../components/AccountForm.tsx");
-  assert.match(form, /rememberSaved\(updatedNotice\(accountId, name\)\);\s+router\.push\("\/"\);/);
-  assert.match(form, /rememberSaved\(createdNotice\(docRef\.id, name\)\);\s+goToNextQueueItemOrHome\(\);/);
-  assert.match(form, /stashStampSavedMessage\(window\.sessionStorage, deletedNotice\(name\)\);\s+router\.push\("\/"\);/);
+  const has = (src: string, s: string) => assert.ok(src.includes(s), s);
+  has(form, "const before = await captureBefore(accountId, Object.keys(payload));");
+  has(form, "rememberSaved(updatedNotice(accountId, name, { id: accountId, before, updateIds: [updateRef.id] }));");
+  has(form, "rememberSaved(createdNotice(docRef.id, name));");
+  has(form, "stashStampSavedMessage(window.sessionStorage, deletedNotice(name));");
   // スクショを続けて登録する途中は、足して入れる
-  assert.match(form, /if \(sessionStorage\.getItem\("scan-prefill-queue"\)\) appendStampSavedMessage/);
+  has(form, 'if (sessionStorage.getItem("scan-prefill-queue")) appendStampSavedMessage');
+  // スクショの「更新しました」とクイック更新も「元に戻す」付き
+  has(read("../components/ScanUpload.tsx"), 'goToPendingQueueOrHome("更新しました", restores);');
+  has(read("../components/QuickUpdate.tsx"), "onUndo={undo ? handleUndo : undefined}");
 });
 
-test("続けて登録: まとめて出す。「元に戻す」は全部が登録のときだけ。保存した形を読み直せる", () => {
+test("続けて登録: まとめて出す。「元に戻す」は全部が元に戻せるときだけ。保存した形を読み直せる", () => {
   const s = new MemStorage();
   stashStampSavedMessage(s, createdNotice("a", "A"));
-  appendStampSavedMessage(s, createdNotice("b", "B"));
+  appendStampSavedMessage(s, updatedNotice("b", "B", { id: "b", before: { x: 1 }, updateIds: [] }));
   const both = peekStampSavedMessage(s)!;
-  assert.equal(both.message, "「A」を登録しました\n「B」を登録しました");
-  assert.deepEqual(both.undoIds, ["a", "b"]);
+  assert.equal(both.message, ["「A」を登録しました", "「B」を更新しました"].join("\n"));
+  assert.deepEqual(both.undo, { createIds: ["a"], restores: [{ id: "b", before: { x: 1 }, updateIds: [] }] });
   assert.equal(both.items.length, 2);
-  appendStampSavedMessage(s, updatedNotice("c", "C"));
-  assert.equal(peekStampSavedMessage(s)!.undoIds, undefined);
+  // 今回の分の追加(元に戻せない)が混じると、「元に戻す」は付かない
+  appendStampSavedMessage(s, { message: "足しました", items: [] });
+  assert.equal(peekStampSavedMessage(s)!.undo, undefined);
   assert.equal(mergeSavedPayload(null, deletedNotice("D")).message, "「D」を削除しました");
+});
+
+test("直す前の値: 日時と、無かった項目も、JSON を通して書き戻せる(依頼232)", () => {
+  const fakeTs = { seconds: 100, nanoseconds: 5, toMillis: () => 100000 };
+  const data = { currentBalance: 500, expiryDate: fakeTs, notificationTiming: { firstStageDays: 90, secondStageDays: 21 } };
+  const before = JSON.parse(JSON.stringify(pickBefore(data, ["currentBalance", "expiryDate", "notificationTiming", "groupName"])));
+  assert.deepEqual(before.expiryDate, { __ts: [100, 5] });
+  assert.deepEqual(before.groupName, { __delete: true });
+  const out = decodeBefore(before, (s, ns) => ({ ts: [s, ns] }), () => "DEL");
+  assert.deepEqual(out, { currentBalance: 500, expiryDate: { ts: [100, 5] }, notificationTiming: { firstStageDays: 90, secondStageDays: 21 }, groupName: "DEL" });
+  assert.equal(undoDoneMessage({ createIds: ["a"], restores: [] }), "登録を取り消しました");
+  assert.equal(undoDoneMessage({ createIds: [], restores: [{ id: "b", before: {}, updateIds: [] }] }), "元に戻しました");
+  assert.equal(isSavedUndo({ createIds: [], restores: [] }), false);
+  assert.equal(isSavedUndo({ createIds: [""], restores: [] }), false);
+});
+
+test("切手の保存・今回の分の追加・現物の保存も「元に戻す」付き。トランザクションで読んだ値と足した履歴を控える(依頼232)", () => {
+  const c = makeUndoCapture();
+  c.onRead("a", { currentBalance: 100, itemQuantity: 1 });
+  c.onHistory("a", "h0");
+  c.onRead("a", { currentBalance: 200, itemQuantity: 2 }); // やり直し: 最後に読んだ値
+  c.onHistory("a", "h1");
+  assert.deepEqual(c.restoreFor("a", ["currentBalance", "itemQuantity", "faceValue"]), {
+    id: "a",
+    before: { currentBalance: 200, itemQuantity: 2, faceValue: { __delete: true } },
+    updateIds: ["h1"],
+  });
+  const has = (src: string, s: string) => assert.ok(src.includes(s), s);
+  const physical = read("../components/ScanPhysicalUpload.tsx");
+  has(physical, "saveStamps(firestoreStampDeps(uid, expiry, capture), saveRows)");
+  has(physical, "{ message: result.message, items: result.items, undo }");
+  has(physical, "undo = { createIds: [created.id], restores: [] };");
+  has(read("../components/AccountForm.tsx"), "undo: { createIds: [], restores: [restore] },");
+  has(read("../lib/manualAddFirestore.ts"), "capture?.onHistory(id, ref.id);");
+  // 履歴も消える削除の確認は「元に戻せません」と書く
+  has(read("../components/AccountForm.tsx"), 'description="元に戻せません。履歴も一緒に消えます。"');
 });

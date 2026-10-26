@@ -62,6 +62,9 @@ import { saveStamps } from "@/lib/stampSave";
 import { guardNewRecords } from "@/lib/recordLimitClient";
 import { RecordLimitError } from "@/lib/hubRecordCheck";
 import { stashStampSavedMessage } from "@/lib/stampToast";
+import { captureBefore } from "@/lib/undoRestoreFirestore";
+import { makeUndoCapture, type SavedUndo } from "@/lib/undoRestore";
+import { stampAddKeys } from "@/lib/stampSaveFirestore";
 import { firestoreStampDeps } from "@/lib/stampSaveFirestore";
 
 // Firestore の期限(Timestamp)を YYYY-MM-DD にする。なければ null
@@ -287,13 +290,15 @@ export default function ScanPhysicalUpload() {
       const newBalance = totalAmount === "" ? null : Number(totalAmount);
       const expiryValue = expiryDate ? Timestamp.fromDate(new Date(expiryDate)) : null;
 
+      // 「元に戻す」の中身(依頼232)。足す・置き換えるは直す前の値に戻し、作ったときは消す
+      let undo: SavedUndo;
       if (matchedAccountId) {
         const balanceValue =
           mode === "add" ? (existingBalance ?? 0) + (newBalance ?? 0) : newBalance;
         const quantityValue =
           mode === "add" ? (existingQuantity ?? 0) + (newQuantity ?? 0) : newQuantity;
 
-        await updateDoc(doc(db, "accounts", matchedAccountId), {
+        const fields = {
           currentBalance: balanceValue,
           balanceUnit: "円",
           expiryDate: expiryValue,
@@ -301,7 +306,10 @@ export default function ScanPhysicalUpload() {
           itemQuantity: quantityValue,
           lastUpdatedAt: now,
           updatedAt: now,
-        });
+        };
+        const before = await captureBefore(matchedAccountId, Object.keys(fields));
+        await updateDoc(doc(db, "accounts", matchedAccountId), fields);
+        undo = { createIds: [], restores: [{ id: matchedAccountId, before, updateIds: [] }] };
       } else {
         const blocked = await guardNewRecords(uid, [
           { groupName: canonicalStampName(name.trim()), category: "gift_certificate" },
@@ -310,7 +318,7 @@ export default function ScanPhysicalUpload() {
           setErrorMessage(blocked);
           return;
         }
-        await addDoc(collection(db, "accounts"), {
+        const created = await addDoc(collection(db, "accounts"), {
           ownerId: uid,
           name: canonicalStampName(name.trim()),
           groupName: canonicalStampName(name.trim()),
@@ -328,10 +336,11 @@ export default function ScanPhysicalUpload() {
           createdAt: now,
           updatedAt: now,
         });
+        undo = { createIds: [created.id], restores: [] };
       }
 
       setSavedMessage(`「${name}」を保存しました`);
-      stashStampSavedMessage(window.sessionStorage, { message: `「${name}」を保存しました`, items: [] });
+      stashStampSavedMessage(window.sessionStorage, { message: `「${name}」を保存しました`, items: [], undo });
       setTimeout(() => router.push("/"), 800);
     } catch (error) {
       console.error(error);
@@ -358,10 +367,17 @@ export default function ScanPhysicalUpload() {
     setErrorMessage("");
     try {
       const expiry = expiryDate ? Timestamp.fromDate(new Date(expiryDate)) : null;
-      const result = await saveStamps(firestoreStampDeps(uid, expiry), saveRows);
+      const capture = makeUndoCapture();
+      const result = await saveStamps(firestoreStampDeps(uid, expiry, capture), saveRows);
       setSavedMessage(result.message);
+      // 「元に戻す」(依頼232): 足した項目は足す前の値に戻し、作った項目は消す
+      const keys = stampAddKeys(expiry);
+      const undo: SavedUndo = {
+        createIds: result.items.filter((i) => i.kind === "create").map((i) => i.id),
+        restores: result.items.filter((i) => i.kind === "add").map((i) => capture.restoreFor(i.id, keys)),
+      };
       // 一覧に移ると、この画面の表示は消えるので、一覧の画面の下の知らせで出す(該当の行には印を付ける)
-      stashStampSavedMessage(window.sessionStorage, { message: result.message, items: result.items });
+      stashStampSavedMessage(window.sessionStorage, { message: result.message, items: result.items, undo });
       setTimeout(() => router.push("/"), 300);
     } catch (error) {
       if (error instanceof RecordLimitError) {

@@ -1,3 +1,5 @@
+import { isSavedUndo, mergeUndo, type SavedUndo } from "./undoRestore.ts";
+
 // 切手の保存後の案内を、切手の画面から一覧の画面へ渡し、一覧で出す先(該当の行、または上部のトースト)を決める。
 // 画面が切り替わると切手の画面の表示は消えるため、sessionStorage に1回分だけ入れ、一覧が開いたときに読んですぐ消す。
 // storage は引数で受けるので、テストでは偽物を使う。
@@ -21,8 +23,8 @@ export interface SavedItem {
 export interface StampSavedPayload {
   message: string; // まとめた文(複数行は改行)
   items: SavedItem[]; // 古い形式(文字列だけ)から読んだときは空
-  // 「元に戻す」で取り消せる登録の項目の ID(依頼231)。登録だけのときに入る。無ければ「元に戻す」は出さない
-  undoIds?: string[];
+  // 「元に戻す」の中身(依頼231・依頼232。登録と更新)。無ければ「元に戻す」は出さない
+  undo?: SavedUndo;
 }
 
 // 入れる。storage が使えない(例外)ときは、黙って何もしない(保存そのものは済んでいる)
@@ -36,14 +38,15 @@ export function stashStampSavedMessage(storage: MessageStorage | null, payload: 
 }
 
 // 足して入れる(依頼231)。スクショを続けて登録する途中は、前の分に足し、最後に一覧に戻ったときに、まとめて出す。
-// 「元に戻す」は、全部が登録のときだけ残す(更新や追加が混じると、取り消せない分があるため)
+// 「元に戻す」は、全部が元に戻せる(登録・更新)ときだけ残す(今回の分の追加などが混じると、取り消せない分があるため)
 export function mergeSavedPayload(prev: StampSavedPayload | null, next: StampSavedPayload): StampSavedPayload {
   if (!prev) return next;
   const merged: StampSavedPayload = {
     message: [prev.message, next.message].filter((m) => m.trim() !== "").join("\n"),
     items: [...prev.items, ...next.items],
   };
-  if (prev.undoIds && next.undoIds) merged.undoIds = [...prev.undoIds, ...next.undoIds];
+  const undo = mergeUndo(prev.undo, next.undo);
+  if (undo) merged.undo = undo;
   return merged;
 }
 
@@ -71,11 +74,10 @@ export function peekStampSavedMessage(storage: MessageStorage | null): StampSave
     if (raw === null || raw.trim() === "") return null;
     if (raw.trimStart().startsWith("{")) {
       try {
-        const v = JSON.parse(raw) as { message?: unknown; items?: unknown; undoIds?: unknown };
+        const v = JSON.parse(raw) as { message?: unknown; items?: unknown; undo?: unknown };
         if (typeof v.message === "string" && v.message.trim() !== "") {
           const items = Array.isArray(v.items) ? v.items.filter(isSavedItem) : [];
-          const undoIds = Array.isArray(v.undoIds) ? v.undoIds.filter((x): x is string => typeof x === "string" && x !== "") : [];
-          return undoIds.length > 0 ? { message: v.message, items, undoIds } : { message: v.message, items };
+          return isSavedUndo(v.undo) ? { message: v.message, items, undo: v.undo } : { message: v.message, items };
         }
         return null;
       } catch {
