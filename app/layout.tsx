@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthProvider";
 import AppShell from "@/components/AppShell";
@@ -13,6 +13,12 @@ export const metadata: Metadata = {
     ],
     apple: "/apple-touch-icon.png",
   },
+};
+
+// viewport-fit=cover が無いと env(safe-area-inset-*) は常に0になり、下のメニューが、
+// スマホの画面の下の端の余白(ホームの線など)を見られない(依頼234。まもりびよりと同じ)
+export const viewport: Viewport = {
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

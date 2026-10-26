@@ -19,6 +19,16 @@ export function createdNotice(id: string, name: string): StampSavedPayload {
   return { message: text, items: [{ id, kind: "create", text }], undo: { createIds: [id], restores: [] } };
 }
 
+// 残高が続く種類の「失効した」(依頼234): 残高を0にし、記録を足す。元に戻すと、直す前の値に戻し、記録を消す
+export function expiredNotice(id: string, name: string, restore: RestoreChange, outcomeId: string): StampSavedPayload {
+  const text = label(name) + "の失効を記録しました";
+  return {
+    message: text,
+    items: [{ id, kind: "add", text }],
+    undo: { createIds: [], restores: [restore], outcomeIds: [outcomeId] },
+  };
+}
+
 export function deletedNotice(name: string): StampSavedPayload {
   return { message: `${label(name)}を削除しました`, items: [] };
 }

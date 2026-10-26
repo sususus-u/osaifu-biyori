@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
 import { STAMP_TOAST_MS, mergeSavedPayload, peekStampSavedMessage, stashStampSavedMessage, appendStampSavedMessage } from "./stampToast.ts";
-import { createdNotice, deletedNotice, updatedNotice } from "./savedNotice.ts";
+import { createdNotice, deletedNotice, expiredNotice, updatedNotice } from "./savedNotice.ts";
 import { decodeBefore, isSavedUndo, makeUndoCapture, pickBefore, undoDoneMessage } from "./undoRestore.ts";
 
 const read = (p: string) => readFileSync(new URL(p, import.meta.url), "utf8");
@@ -149,4 +149,37 @@ test("切手の保存・今回の分の追加・現物の保存も「元に戻�
   has(read("../lib/manualAddFirestore.ts"), "capture?.onHistory(id, ref.id);");
   // 履歴も消える削除の確認は「元に戻せません」と書く
   has(read("../components/AccountForm.tsx"), 'description="元に戻せません。履歴も一緒に消えます。"');
+});
+
+test("「失効した」(依頼234): 残高が続く種類は「元に戻す」付き(記録も消す)。使い切りの種類は「元に戻せません」と書く", () => {
+  const restore = { id: "a1", before: { currentBalance: 300 }, updateIds: [] };
+  const n = expiredNotice("a1", "dポイント", restore, "o1");
+  assert.equal(n.message, "「dポイント」の失効を記録しました");
+  assert.deepEqual(n.undo, { createIds: [], restores: [restore], outcomeIds: ["o1"] });
+  assert.equal(isSavedUndo(n.undo), true);
+  assert.equal(isSavedUndo({ ...n.undo, outcomeIds: [""] }), false);
+  assert.equal(undoDoneMessage(n.undo!), "元に戻しました");
+  const s = new MemStorage();
+  stashStampSavedMessage(s, n);
+  assert.deepEqual(peekStampSavedMessage(s)!.undo, n.undo);
+  const has = (src: string, s: string) => assert.ok(src.includes(s), s);
+  const form = read("../components/AccountForm.tsx");
+  has(form, "expiredNotice(accountId, name, { id: accountId, before, updateIds: [] }, outcomeRef.id),");
+  has(form, '"記録を残し、このサービスは一覧から消えます。元に戻せません。"');
+  has(read("./undoRestoreFirestore.ts"), 'await deleteDoc(doc(db, "outcome_events", outcomeId));');
+});
+
+test("下のメニューは3つのサービス共通の作り(依頼234): 高さ78px、下の端の余白を見る、画面全体はスクロールしない", () => {
+  const css = read("../app/globals.css").replace(/\r\n/g, "\n");
+  const rule = (head: string) => {
+    const start = css.indexOf(`\n${head} {`);
+    assert.ok(start >= 0, head);
+    return css.slice(start, css.indexOf("}", start) + 1);
+  };
+  assert.match(rule(".tabbar"), /height: 78px;/);
+  assert.match(rule(".tabbar"), /padding-bottom: max\(14px, env\(safe-area-inset-bottom\)\);/);
+  assert.match(css, /\nbody \{\n  overflow: hidden;\n  overscroll-behavior: none;\n\}/);
+  assert.match(rule(".app-shell"), /height: 100dvh;/);
+  assert.match(rule(".scroll"), /overscroll-behavior-y: contain;/);
+  assert.match(read("../app/layout.tsx"), /viewportFit: "cover",/);
 });

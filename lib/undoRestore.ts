@@ -1,6 +1,7 @@
 // 「元に戻す」の中身(依頼231・依頼232)。登録・更新のあと、知らせの「元に戻す」で、押す前の状態にそのまま戻す。
 //   - createIds: 登録した項目。元に戻すと、項目と履歴を消す。
 //   - restores: 更新した項目。直す前の値(before)を書き戻し、その更新で足した履歴(updates)を消す。
+//   - outcomeIds: 「失効した」で足した記録(outcome_events)。元に戻すと消す(依頼234。残高が続く種類だけ)。
 // 一覧の画面へは sessionStorage(JSON)で渡すため、日時(Timestamp)と「無かった項目」を、JSON で表せる形に置き換えて持つ。
 // Firestore への書き込みは undoRestoreFirestore.ts。ここは、テストできる純粋な関数だけ。
 
@@ -13,6 +14,7 @@ export interface RestoreChange {
 export interface SavedUndo {
   createIds: string[];
   restores: RestoreChange[];
+  outcomeIds?: string[];
 }
 
 // 直す前に、その項目が無かった(書き戻すときは、項目ごと消す)
@@ -67,7 +69,12 @@ export function pickBefore(data: Record<string, unknown> | undefined, keys: stri
 // 続けて登録する途中で、知らせを足すとき。どちらかが元に戻せなければ、まとめても戻せない
 export function mergeUndo(a: SavedUndo | undefined, b: SavedUndo | undefined): SavedUndo | undefined {
   if (!a || !b) return undefined;
-  return { createIds: [...a.createIds, ...b.createIds], restores: [...a.restores, ...b.restores] };
+  const outcomeIds = [...(a.outcomeIds ?? []), ...(b.outcomeIds ?? [])];
+  return {
+    createIds: [...a.createIds, ...b.createIds],
+    restores: [...a.restores, ...b.restores],
+    ...(outcomeIds.length > 0 ? { outcomeIds } : {}),
+  };
 }
 
 export function isSavedUndo(v: unknown): v is SavedUndo {
@@ -87,6 +94,9 @@ export function isSavedUndo(v: unknown): v is SavedUndo {
       x.updateIds.every((u) => typeof u === "string" && u !== "")
     );
   };
+  if (o.outcomeIds !== undefined) {
+    if (!Array.isArray(o.outcomeIds) || !o.outcomeIds.every((x) => typeof x === "string" && x !== "")) return false;
+  }
   return o.restores.every(okRestore) && o.createIds.length + o.restores.length > 0;
 }
 

@@ -33,7 +33,7 @@ import { firestoreDeleteAccountDeps } from "@/lib/deleteAccountFirestore";
 import { replaceChanges, REPLACE_NO_CHANGE, REPLACE_WARNING } from "@/lib/replaceConfirm";
 import { busyPreparing, waitForPaint } from "@/lib/busyView";
 import { appendStampSavedMessage, stashStampSavedMessage, type StampSavedPayload } from "@/lib/stampToast";
-import { createdNotice, deletedNotice, updatedNotice } from "@/lib/savedNotice";
+import { createdNotice, deletedNotice, expiredNotice, updatedNotice } from "@/lib/savedNotice";
 import { captureBefore } from "@/lib/undoRestoreFirestore";
 import { makeUndoCapture } from "@/lib/undoRestore";
 import { STAMP_NAME_BG, stampNameView } from "@/lib/stampNameView";
@@ -848,7 +848,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
         yenExchangeRate: yenExchangeRate === "" ? null : Number(yenExchangeRate),
       });
 
-      await addDoc(collection(db, "outcome_events"), {
+      const outcomeRef = await addDoc(collection(db, "outcome_events"), {
         ownerId: uid,
         accountId,
         accountName: name,
@@ -861,14 +861,22 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
       });
 
       if (accountType === "finite") {
+        // 使い切りの種類は、項目ごと消えるので、元に戻せない(確認の画面に書いてある。依頼234)
         await deleteAccounts([accountId], firestoreDeleteAccountDeps);
       } else {
-        await updateDoc(doc(db, "accounts", accountId), {
+        const fields = {
           currentBalance: 0,
           expiryDate: null,
           lastUpdatedAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
-        });
+        };
+        // 残高が続く種類は、一覧に戻ったときに「元に戻す」付きの知らせを出す(依頼234)
+        const before = await captureBefore(accountId, Object.keys(fields));
+        await updateDoc(doc(db, "accounts", accountId), fields);
+        stashStampSavedMessage(
+          window.sessionStorage,
+          expiredNotice(accountId, name, { id: accountId, before, updateIds: [] }, outcomeRef.id),
+        );
       }
       router.push("/");
     } catch (error) {
@@ -1551,7 +1559,11 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
               ? "「" + (name || "このサービス") + "」の失効を記録しますか?"
               : "「" + (name || "このサービス") + "」を" + (pendingOutcome === "used_up" ? "使いきった" : "失効した") + "ものとして記録しますか?"
           }
-          description={accountType === "continuous" ? "残高は0にリセットされます。" : "記録を残します。"}
+          description={
+            accountType === "continuous"
+              ? "残高は0にリセットされます。"
+              : "記録を残し、このサービスは一覧から消えます。元に戻せません。"
+          }
           confirmLabel="記録する"
           busyLabel="記録中..."
           variant={pendingOutcome === "expired" ? "danger" : "normal"}
