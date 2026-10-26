@@ -53,6 +53,7 @@ import {
 } from "@/lib/stampMerge";
 import BusyIndicator from "@/components/BusyIndicator";
 import ConfirmSheet from "@/components/ConfirmSheet";
+import BottomToast from "@/components/BottomToast";
 import { replaceChanges, REPLACE_NO_CHANGE, REPLACE_WARNING } from "@/lib/replaceConfirm";
 import { scanStampSummary } from "@/lib/stampAuto";
 import { STAMP_NAME_BG } from "@/lib/stampNameView";
@@ -330,6 +331,7 @@ export default function ScanPhysicalUpload() {
       }
 
       setSavedMessage(`「${name}」を保存しました`);
+      stashStampSavedMessage(window.sessionStorage, { message: `「${name}」を保存しました`, items: [] });
       setTimeout(() => router.push("/"), 800);
     } catch (error) {
       console.error(error);
@@ -358,7 +360,7 @@ export default function ScanPhysicalUpload() {
       const expiry = expiryDate ? Timestamp.fromDate(new Date(expiryDate)) : null;
       const result = await saveStamps(firestoreStampDeps(uid, expiry), saveRows);
       setSavedMessage(result.message);
-      // 一覧に移ると、この画面の表示は消えるので、一覧の該当の行の下(なければ上部のトースト)で出す
+      // 一覧に移ると、この画面の表示は消えるので、一覧の画面の下の知らせで出す(該当の行には印を付ける)
       stashStampSavedMessage(window.sessionStorage, { message: result.message, items: result.items });
       setTimeout(() => router.push("/"), 300);
     } catch (error) {
@@ -443,7 +445,7 @@ export default function ScanPhysicalUpload() {
         />
       )}
       {errorMessage && <p style={{ fontSize: 13, color: "#b3261e" }}>{errorMessage}</p>}
-      {savedMessage && <p style={{ fontSize: 13, color: "#2a7a3b", whiteSpace: "pre-line" }}>{savedMessage}</p>}
+      {savedMessage && <BottomToast message={savedMessage} onClose={() => setSavedMessage("")} />}
 
       {!isProcessing && (name || totalAmount) && (
         <div className="card" style={{ marginTop: 8 }}>

@@ -16,8 +16,7 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthProvider";
 import { CATEGORY_DEFAULTS, type AccountCategory, type AccountDoc } from "@/types/firestore";
 import AccountRow, { type AccountWithId } from "@/components/AccountRow";
-import StampRowNotice from "@/components/StampRowNotice";
-import StampSavedToast from "@/components/StampSavedToast";
+import BottomToast, { SELECT_BAR_LIFT } from "@/components/BottomToast";
 import { GroupCheck } from "@/components/SelectCheck";
 import ConfirmSheet from "@/components/ConfirmSheet";
 import {
@@ -46,7 +45,6 @@ import {
   STAMP_WAIT_MS,
   clearNoticesOnTabChange,
   clearStampSavedMessage,
-  closeNotice,
   peekStampSavedMessage,
   decideBind,
   planWaitTimeout,
@@ -107,7 +105,8 @@ export default function AccountList() {
   const [accounts, setAccounts] = useState<AccountWithId[]>([]);
   // 一覧の最初の読み込みが済んだか(保存後の案内は、行が出てから結びつける)
   const [loaded, setLoaded] = useState(false);
-  // 切手の保存後の案内。pending は読んだだけ、notices は行の下に出す分、fallbackMessage は行が見つからない分(上部のトースト)
+  // 切手の保存後の案内。pending は読んだだけ、notices は行が見つかった分(行に印を付け、文は画面の下の知らせ)、
+  // fallbackMessage は行が見つからない分と、削除の知らせ(画面の下の知らせ、数秒で消える)
   const [pending, setPending] = useState<StampSavedPayload | null>(null);
   const [notices, setNotices] = useState<Record<string, string>>({});
   const [fallbackMessage, setFallbackMessage] = useState<string | null>(null);
@@ -221,16 +220,10 @@ export default function AccountList() {
     }
   }, [notices]);
 
-  function noticeFor(id: string) {
-    const text = notices[id];
-    if (!text) return undefined;
-    return (
-      <StampRowNotice
-        text={text}
-        onClose={() => setNotices((cur) => closeNotice(cur, id))}
-      />
-    );
-  }
+  // 画面の下の知らせ(依頼229)。行が見つかった分は、閉じるまで出す(今までの行の下の案内と同じ)。
+  // 見つからない分・削除の知らせだけのときは、数秒で消える
+  const noticeText = Object.values(notices).join("\n");
+  const toastText = [noticeText, fallbackMessage].filter(Boolean).join("\n");
 
   const isLimitedOrHasExpiry = (a: AccountWithId) => Boolean(a.expiryDate) || a.name.includes("期間");
 
@@ -325,7 +318,7 @@ export default function AccountList() {
       setSelectMode(done.selectMode);
       setSelected(done.selected);
       setLimitNote(false);
-      setFallbackMessage(done.toast); // 上部のトースト(行の下の案内は、消えた行には使えない)
+      setFallbackMessage(done.toast); // 画面の下の知らせ(数秒で消える)
     } catch (error) {
       console.error("複数削除に失敗", errorKind(error)); // 種類だけ。項目名・uid は出さない
       setDeleteError(failureMessage(error));
@@ -385,15 +378,16 @@ export default function AccountList() {
 
   return (
     <div>
-      {/* 読み上げ用。枠の外に常設し、案内が出たときに中身が入る(画面には出ない) */}
-      <div
-        aria-live="polite"
-        style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap" }}
-      >
-        {Object.values(notices).join(" ")}
-      </div>
-      {fallbackMessage && (
-        <StampSavedToast message={fallbackMessage} durationMs={STAMP_TOAST_MS} onClose={() => setFallbackMessage(null)} />
+      {toastText && (
+        <BottomToast
+          message={toastText}
+          durationMs={noticeText ? undefined : STAMP_TOAST_MS}
+          lift={selectMode ? SELECT_BAR_LIFT : 0}
+          onClose={() => {
+            setNotices({});
+            setFallbackMessage(null);
+          }}
+        />
       )}
       <div className="card" style={{ marginBottom: 12 }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", textAlign: "center" }}>
@@ -582,7 +576,7 @@ export default function AccountList() {
                       <AccountRow
                         key={acc.id}
                         account={acc}
-                        notice={noticeFor(acc.id)}
+                        highlighted={acc.id in notices}
                         {...rowSelect(acc.id)}
                         subText={categoryLabel(acc)}
                       />
@@ -640,7 +634,7 @@ export default function AccountList() {
                           <AccountRow
                             key={acc.id}
                             account={acc}
-                            notice={noticeFor(acc.id)}
+                            highlighted={acc.id in notices}
                             {...rowSelect(acc.id)}
                             subText={categoryLabel(acc)}
                             highlightOverdue
@@ -663,7 +657,7 @@ export default function AccountList() {
                   <AccountRow
                     key={acc.id}
                     account={acc}
-                    notice={noticeFor(acc.id)}
+                    highlighted={acc.id in notices}
                     {...rowSelect(acc.id)}
                     subText={expiry ? `${expiry.getFullYear()}年${expiry.getMonth() + 1}月期限` : ""}
                     highlightOverdue
@@ -706,7 +700,7 @@ export default function AccountList() {
               <AccountRow
                 key={acc.id}
                 account={acc}
-                notice={noticeFor(acc.id)}
+                highlighted={acc.id in notices}
                 {...rowSelect(acc.id)}
                 subText={categoryLabel(acc)}
               />
@@ -777,7 +771,7 @@ export default function AccountList() {
                       <AccountRow
                         key={acc.id}
                         account={acc}
-                        notice={noticeFor(acc.id)}
+                        highlighted={acc.id in notices}
                         {...rowSelect(acc.id)}
                         subText={expiry
                             ? `${expiry.getFullYear()}年${expiry.getMonth() + 1}月期限`

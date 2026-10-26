@@ -5,6 +5,8 @@
 // 対象は継続型(電子マネー・ポイント・マイル等)の口座のみ。完結型は使いきり/失効の実績に関わるため対象外。
 
 import { useEffect, useState } from "react";
+import BottomToast from "@/components/BottomToast";
+import { STAMP_TOAST_MS } from "@/lib/stampToast";
 import Link from "next/link";
 import { Lightbulb } from "lucide-react";
 import {
@@ -55,6 +57,7 @@ export default function QuickUpdate() {
   const [editingRows, setEditingRows] = useState<EditingRow[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [savedMessage, setSavedMessage] = useState("");
+  const [saveError, setSaveError] = useState("");
   const [pendingScan, setPendingScan] = useState<PendingScan | null>(null);
 
   // スクショでサービス名が読み取れなかった場合、ScanUpload側から引き継がれた数値がないか確認する
@@ -100,6 +103,7 @@ export default function QuickUpdate() {
     const items = groups.get(key)!;
     setSelectedGroupKey(key);
     setSavedMessage("");
+    setSaveError("");
     setEditingRows(
       items.map((acc, index) => {
         const balance =
@@ -148,7 +152,7 @@ export default function QuickUpdate() {
       setEditingRows([]);
     } catch (error) {
       console.error(error);
-      setSavedMessage("保存に失敗しました");
+      setSaveError("保存に失敗しました");
     } finally {
       setIsSaving(false);
     }
@@ -183,7 +187,9 @@ export default function QuickUpdate() {
           スマホの画面分割機能を使うと、サービスのアプリと見比べながら入力できて便利です
         </p>
 
-        {savedMessage && <p className="text-sm text-green-700">{savedMessage}</p>}
+        {savedMessage && (
+          <BottomToast message={savedMessage} durationMs={STAMP_TOAST_MS} onClose={() => setSavedMessage("")} />
+        )}
 
         <ul className="divide-y border rounded-md">
           {groupKeys.length === 0 && (
@@ -250,6 +256,7 @@ export default function QuickUpdate() {
         </div>
       ))}
 
+      {saveError && <p className="text-sm text-red-700">{saveError}</p>}
       <button
         onClick={handleSaveAll}
         disabled={isSaving}

@@ -4,7 +4,6 @@
 // 行ごとの違いは props で受ける(右側の金額の出し方、期限切れ表示の有無)。
 // data-account-id は、この行に案内などを後から結びつけるための印(見た目には影響しない)。
 
-import type { ReactNode } from "react";
 import Link from "next/link";
 import { Timestamp } from "firebase/firestore";
 import type { AccountDoc } from "@/types/firestore";
@@ -77,8 +76,8 @@ interface AccountRowProps {
   subText: string;
   // true のとき、期限が過ぎた継続型の行を薄いオレンジで塗る(「期限未設定」と「期限なし」の行は false)
   highlightOverdue?: boolean;
-  // 行の直下に出す案内の枠。<a> の外(下)に置くので、タップしても編集画面へは飛ばない
-  notice?: ReactNode;
+  // 保存した直後の行の印(薄い色)。保存の知らせは、画面の下の知らせ(BottomToast)で出す(依頼229)
+  highlighted?: boolean;
   // 選択モード: 行全体が「チェックの切り替え」になり、編集画面へは移らない(通常のときは <Link> のまま)
   selectMode?: boolean;
   selected?: boolean;
@@ -89,7 +88,7 @@ export default function AccountRow({
   account,
   subText,
   highlightOverdue = false,
-  notice,
+  highlighted = false,
   selectMode = false,
   selected = false,
   onToggleSelect,
@@ -129,8 +128,7 @@ export default function AccountRow({
           </div>
           <p style={{ margin: 0 }}>{balanceDisplay(account)}</p>
         </div>
-        {notice}
-      </>
+          </>
     );
   }
   return (
@@ -147,6 +145,7 @@ export default function AccountRow({
         textDecoration: "none",
         color: "inherit",
         ...(highlightOverdue ? { background: isOverdueUnupdated(account) ? "#fdf3e7" : "transparent" } : {}),
+        ...(highlighted ? { background: "#f8ebe6" } : {}),
       }}
     >
       <div>
@@ -155,7 +154,6 @@ export default function AccountRow({
       </div>
       <p style={{ margin: 0 }}>{balanceDisplay(account)}</p>
     </Link>
-    {notice}
     </>
   );
 }

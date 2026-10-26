@@ -10,6 +10,8 @@
 //   (この時点ではまだ保存しない。保存するのは、利用者が「保存」を押した時だけ)
 
 import { useEffect, useState } from "react";
+import BottomToast from "@/components/BottomToast";
+import { STAMP_TOAST_MS } from "@/lib/stampToast";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthProvider";
@@ -21,6 +23,8 @@ export default function AccountSettings() {
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  // 保存した知らせは、画面の下に数秒出す(依頼229)。失敗の文は、欄の下(message)のまま
+  const [doneMessage, setDoneMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!uid) return;
@@ -58,7 +62,7 @@ export default function AccountSettings() {
     setMessage(null);
     try {
       await setDoc(doc(db, "users", uid), { displayName: trimmed }, { merge: true });
-      setMessage("保存しました");
+      setDoneMessage("保存しました");
     } catch {
       setMessage("保存に失敗しました。時間をおいて再度お試しください。");
     } finally {
@@ -109,6 +113,9 @@ export default function AccountSettings() {
         </button>
       </div>
       {message && <p style={{ fontSize: 12, color: "#777", marginTop: 6 }}>{message}</p>}
+      {doneMessage && (
+        <BottomToast message={doneMessage} durationMs={STAMP_TOAST_MS} onClose={() => setDoneMessage(null)} />
+      )}
     </div>
   );
 }

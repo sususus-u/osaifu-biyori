@@ -2,7 +2,7 @@
 // 画面が切り替わると切手の画面の表示は消えるため、sessionStorage に1回分だけ入れ、一覧が開いたときに読んですぐ消す。
 // storage は引数で受けるので、テストでは偽物を使う。
 export const STAMP_SAVED_MESSAGE_KEY = "tamari:stampSavedMessage";
-export const STAMP_TOAST_MS = 4000; // 上部のトースト(代わりの案内)
+export const STAMP_TOAST_MS = 4000; // 画面の下の知らせ(BottomToast)の、数秒で消える分の時間
 export const STAMP_WAIT_MS = 3000; // 一覧の読み込みを待つ上限。超えたら上部のトーストへ切り替える
 
 export interface MessageStorage {

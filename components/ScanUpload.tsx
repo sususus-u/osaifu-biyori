@@ -9,6 +9,8 @@ import { useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Lightbulb } from "lucide-react";
+import BottomToast from "@/components/BottomToast";
+import { stashStampSavedMessage } from "@/lib/stampToast";
 import { authFetch } from "@/lib/authFetch";
 import BusyIndicator from "@/components/BusyIndicator";
 import { busyViewForScan, waitForPaint } from "@/lib/busyView";
@@ -331,6 +333,7 @@ export default function ScanUpload() {
 
     setMatchItems(null);
     setStatusMessage(successMessage);
+    stashStampSavedMessage(window.sessionStorage, { message: successMessage, items: [] });
     setTimeout(() => router.push("/"), 800);
   }
 
@@ -533,7 +536,7 @@ export default function ScanUpload() {
       )}
 
       {busy && <BusyIndicator title={busy.title} note={busy.note} />}
-      {!isProcessing && statusMessage && <p style={{ fontSize: 13, color: "#999" }}>{statusMessage}</p>}
+      {!isProcessing && statusMessage && <BottomToast message={statusMessage} onClose={() => setStatusMessage("")} />}
       {errorMessage && (
         <div>
           <p style={{ fontSize: 13, color: "#b3261e" }}>{errorMessage}</p>

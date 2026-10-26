@@ -12,6 +12,8 @@
 // 消したものも含めたすべては「過去のお知らせ」(/notifications/all)で見られる。
 
 import ConfirmSheet from "@/components/ConfirmSheet";
+import BottomToast from "@/components/BottomToast";
+import { STAMP_TOAST_MS } from "@/lib/stampToast";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
@@ -29,6 +31,8 @@ function PushToggle() {
   const [enabled, setEnabled] = useState<boolean | null>(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  // 切り替えた知らせは、画面の下に数秒出す(依頼229)。失敗の文は、スイッチの下(message)のまま
+  const [doneMessage, setDoneMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!uid) return;
@@ -67,7 +71,7 @@ function PushToggle() {
         return;
       }
       setEnabled(next);
-      setMessage(next ? "通知をONにしました" : "通知をOFFにしました");
+      setDoneMessage(next ? "通知をONにしました" : "通知をOFFにしました");
     } catch {
       setMessage("切り替えに失敗しました。時間をおいて再度お試しください。");
     } finally {
@@ -95,6 +99,9 @@ function PushToggle() {
         </div>
       </div>
       {message && <p className="push-toggle-message">{message}</p>}
+      {doneMessage && (
+        <BottomToast message={doneMessage} durationMs={STAMP_TOAST_MS} onClose={() => setDoneMessage(null)} />
+      )}
     </div>
   );
 }
