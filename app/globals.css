@@ -148,6 +148,34 @@ button {
   font-size: 13px;
 }
 
+/* 一覧の見せ方の決まり(依頼236。3つのサービス共通)。
+   ゼロ件のときは、点線の枠の中に「まだ○○が登録されていません。」。一覧の最後に、小さな灰色の文字で、真ん中に「全○件」 */
+.list-empty {
+  text-align: center;
+  padding: 36px 14px;
+  background: #fff;
+  border: 1px dashed #d9cfcf;
+  border-radius: var(--radius-card);
+  color: #666;
+}
+.list-empty p {
+  font-size: 13px;
+  margin: 0 0 14px;
+  line-height: 1.7;
+}
+.list-empty-btn {
+  display: inline-block;
+  width: auto;
+  padding: 11px 20px;
+  text-decoration: none;
+}
+.list-count {
+  margin: 14px 0 0;
+  text-align: center;
+  font-size: 12px;
+  color: #999;
+}
+
 .push-toggle {
   margin-bottom: 20px;
 }

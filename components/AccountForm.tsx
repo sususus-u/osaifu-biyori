@@ -888,7 +888,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
   }
 
   if (isLoading || isFetchingExisting) {
-    return <p style={{ fontSize: 14, color: "#999" }}>読み込み中です...</p>;
+    return <p style={{ fontSize: 14, color: "#999" }}>読み込み中…</p>;
   }
 
   return (

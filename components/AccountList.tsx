@@ -56,6 +56,13 @@ import {
 } from "@/lib/stampToast";
 import { displayAccountName } from "@/lib/stampMerge";
 import { getYenValue } from "@/lib/accountUtils";
+import { LOADING_TEXT, listCountText } from "@/lib/listCount";
+
+// 一覧の最後の「全○件」(依頼236。ゼロ件のときは出さない)
+function ListCount({ total }: { total: number }) {
+  const text = listCountText(total);
+  return text ? <p className="list-count">{text}</p> : null;
+}
 
 function monthKey(date: Date) {
   return `${date.getFullYear()}年${date.getMonth() + 1}月`;
@@ -408,7 +415,7 @@ export default function AccountList() {
   }
 
   if (isLoading) {
-    return <p style={{ fontSize: 14, color: "#999" }}>読み込み中です...</p>;
+    return <p style={{ fontSize: 14, color: "#999" }}>{LOADING_TEXT}</p>;
   }
 
   return (
@@ -576,7 +583,12 @@ export default function AccountList() {
           {withExpirySortMode === "expiry" ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {monthKeys.length === 0 && withExpiryUndated.length === 0 && (
-                <p style={{ fontSize: 14, color: "#999" }}>登録されたサービスがありません</p>
+                <div className="list-empty">
+                  <p>まだ期間限定のサービスが登録されていません。</p>
+                  <Link href="/accounts/new" className="btn-primary list-empty-btn">
+                    サービスを登録する
+                  </Link>
+                </div>
               )}
               {withExpiryUndated.length > 0 && (
                 <div className="card" style={{ padding: 0, overflow: "hidden" }}>
@@ -684,10 +696,15 @@ export default function AccountList() {
               })}
             </div>
           ) : (
+            withExpiry.length === 0 ? (
+              <div className="list-empty">
+                  <p>まだ期間限定のサービスが登録されていません。</p>
+                  <Link href="/accounts/new" className="btn-primary list-empty-btn">
+                    サービスを登録する
+                  </Link>
+                </div>
+            ) : (
             <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-              {withExpiry.length === 0 && (
-                <p style={{ fontSize: 14, color: "#999", padding: 14 }}>登録されたサービスがありません</p>
-              )}
               {sortAccounts(withExpiry, withExpirySortMode).map((acc) => {
                 const expiry = acc.expiryDate ? (acc.expiryDate as Timestamp).toDate() : null;
                 return (
@@ -702,7 +719,9 @@ export default function AccountList() {
                 );
               })}
             </div>
+            )
           )}
+          <ListCount total={withExpiry.length} />
         </div>
       )}
 
@@ -729,10 +748,15 @@ export default function AccountList() {
               </button>
             ))}
           </div>
+          {noExpiry.length === 0 ? (
+            <div className="list-empty">
+                  <p>まだ期限なしのサービスが登録されていません。</p>
+                  <Link href="/accounts/new" className="btn-primary list-empty-btn">
+                    サービスを登録する
+                  </Link>
+                </div>
+          ) : (
           <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-            {noExpiry.length === 0 && (
-              <p style={{ fontSize: 14, color: "#999", padding: 14 }}>登録されたサービスがありません</p>
-            )}
             {noExpiry.map((acc) => (
               <AccountRow
                 key={acc.id}
@@ -743,6 +767,8 @@ export default function AccountList() {
               />
             ))}
           </div>
+          )}
+          <ListCount total={noExpiry.length} />
         </div>
       )}
 
@@ -771,7 +797,12 @@ export default function AccountList() {
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {serviceGroupKeys.length === 0 && (
-              <p style={{ fontSize: 14, color: "#999" }}>登録されたサービスがありません</p>
+              <div className="list-empty">
+                  <p>まだサービスが登録されていません。</p>
+                  <Link href="/accounts/new" className="btn-primary list-empty-btn">
+                    サービスを登録する
+                  </Link>
+                </div>
             )}
             {serviceGroupKeys.map((key) => {
               const items = serviceGroups.get(key)!;
@@ -823,6 +854,7 @@ export default function AccountList() {
               );
             })}
           </div>
+          <ListCount total={accounts.length} />
         </div>
       )}
 
@@ -903,7 +935,7 @@ export default function AccountList() {
         />
       )}
 
-      <div style={{ textAlign: "center", marginTop: 20 }}>
+      <div style={{ textAlign: "center", marginTop: 12 }}>
         <Link href="/accounts/quick-update" className="btn-ghost" style={{ textDecoration: "none" }}>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
             <Zap size={13} /> クイック更新
