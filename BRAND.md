@@ -642,3 +642,33 @@
 - テスト: lib/hubEntry.test.ts に5件(有効 → 出ない、未ログイン → 往復、取り消し4種 → ログアウトして往復、通信の失敗・そのほか → 出ない、入口の形)、lib/listCount.test.ts に1件(バーとボタンの線、コントラスト、入力の欄と区切りの線はそのまま)。全部で297件。型チェック・lint・ビルド通過。
 - 戻す先: 0a53a90(依頼271)。
 - 未確認: 実機でのハブからの入口(ログイン済み・ハブでログアウト後・未ログイン)。
+
+## 文字の大きさと濃さの下限(2026-10-27、依頼272の追記)
+
+- 決まり: 利用者が読む文字は、12px 以上、置かれている地に対してコントラスト比 4.5:1 以上(WCAG の式。透明度のある色は地に混ぜてから計る)。使えないときのボタン、画像・ロゴの中の文字、アイコンは対象外。色の付いた文字で、すでに 4.5:1 以上のものは変えていない。
+- 色を2つ足した(app/globals.css の :root。値は lib/textContrast.ts と同じ)。
+  - --text-muted: #5f5f5f。前の薄い灰色(#999 白に 2.85:1、#888 3.54:1、#777 4.48:1、#bbb 1.92:1)をこれに。白 6.39:1、見出しの帯 #faf8f6 6.03:1、タブの地 #f2ece7 5.45:1、選んだ行 #efd5cc 4.58:1(いちばん低い地)、期限切れの行 #fdf3e7 5.82:1、--brand-surface 5.70:1。
+  - --text-warn: #9a5516。読み取りに自信がないときの注意の文字と、橙の枠のボタン(.btn-outline-warm)。前の #b56a1e は白に 4.16:1 → 5.70:1(#fdf3e7 に 5.20:1)。
+- 直した所(およそ 71 か所)
+  - app/globals.css(12か所): 読み込み中・ゼロ件(.empty-state)、「全○件」(.list-count)、通知の設定の文(.push-toggle-message、#777)、設定の添え書き(.settings-row .sub)、お知らせのタブ(.notif-tabs button)、お知らせの日時(.notif-time。11px → 12px)、「過去のお知らせ」(.past-announcements-link、#888)、戻るのリンク(.back-link、#888)、下のメニューの名前(.tabbar-item。11px → 12px)、.btn-ghost、.btn-outline-warm(#b56a1e → --text-warn)。入力欄の見本の文字(placeholder)を --text-muted に(Tailwind の初期値は文字色の半分の濃さで、白に約 3:1)。
+  - components/AccountList.tsx(11か所): 上の合計の「期間限定」「期限なし」「運用残高」とその下の添え書き(11px #999 → 12px --text-muted)、並べ替えの選んでいないボタン3か所(#888 → --text-muted)、月の見出しの「+」「−」(#bbb → --text-muted)、読み込み中。
+  - components/AccountRow.tsx(5か所): 「円」「円相当」(11px → 12px)、行の添え書き(#999 → --text-muted。選んだ行の地 #efd5cc で 2.04:1 → 4.58:1)。
+  - components/AccountForm.tsx(13か所): 読み込み中、「または、直接入力する」、グループ名の「×」、注の文、「円」「1枚あたり」などの単位(#999)、自信のない残高・期限の注意(#b56a1e → --text-warn)。
+  - components/ScanPhysicalUpload.tsx(9か所)、components/ScanUpload.tsx(6か所。Tailwind の text-amber-600 #e17100 3.20:1 → text-amber-800 #973c00 7.09:1 を含む)、components/QuickUpdate.tsx(2か所。text-gray-400 #99a1af 2.60:1 → --text-muted)、components/LoginGuide.tsx(4か所。案内の文 #777、規約・ポリシーのリンク #999)、components/AccountSettings.tsx(2か所)、app/reports/page.tsx(5か所。「この月の記録はありません」#bbb を含む)、app/menu/page.tsx(2か所。見出しの #999)。
+- そのまま残した所(文字ではない、または使えないとき)
+
+  | 所 | 中身 | 大きさ | 比 | 残した理由 |
+  |---|---|---|---|---|
+  | app/globals.css:120 .appbar-home | 上のバーのアイコン(戻る・ベル・ホーム)の色 #999 | 20px のアイコン | 白に 2.85:1 | 文字ではない(アイコンだけ。名前は aria-label)。アイコンの 3:1 は別に決める |
+  | app/globals.css:141 .bell-checking | 通知の確認中のベル(opacity 0.35) | アイコン | ― | 文字ではない。確認中を表すための薄さ |
+  | app/menu/page.tsx:29,67,84 | 「>」と外のリンクの印(#ccc) | 16px のアイコン | 白に 1.61:1 | 文字ではない(飾りの印。行の文字は濃い) |
+  | app/globals.css:382 .announcement-dismiss-btn:disabled | 選んでいないときの「非表示にする」(#bbb) | 12px | 白に 1.92:1 | 使えないときのボタン |
+  | app/globals.css:479、665 .btn-primary:disabled / .confirm-btn:disabled | 使えないときのボタン(opacity 0.5) | 15px | ― | 使えないときのボタン |
+  | components/AccountSettings.tsx:109、components/LogoutButton.tsx:60、components/BottomToast.tsx:133 | 保存中・処理中のボタン(opacity 0.5 / 0.6、disabled) | 13px | ― | 使えないときのボタン |
+
+  飾りの文字で、直すと見た目が崩れるため残した所は、無い。
+- 変えていないもの(すでに 4.5:1 以上): #666(白 5.74:1、タブの地 4.90:1、--brand-surface 5.13:1)、#555、サービスの色 #6e2a32、赤 #b3261e・#c0392b、Tailwind の text-gray-500(白 4.84:1)・text-red-600(白 4.77:1)、小豆色の地の白い文字。
+- テスト: lib/textContrast.test.ts を足した(11件。--text-muted / --text-warn がどの地にも 4.5:1 以上、globals.css の値と同じ、globals.css と app・components の .tsx に 12px より小さい文字が無い、薄い灰色の文字色は :disabled と .appbar-home だけ、placeholder の色、薄い Tailwind の灰色・橙が無い)。lib/listCount.test.ts の「全○件」の色の確かめを --text-muted に。全部で 308 件。型チェック・lint・ビルド通過。
+- 戻す先: b25fc10(依頼272)。
+- 未確認: 実機での見え方(下のメニューの名前が 12px になって、1行に収まるか、など)。
+- 決めていないこと: アイコンだけのボタン(上のバーの #999、2.85:1)を 3:1 以上にするか。

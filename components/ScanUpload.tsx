@@ -438,10 +438,10 @@ export default function ScanUpload() {
                   }`}
                 />
                 {item.balanceLowConfidence && (
-                  <p className="text-xs text-amber-600 mt-1">読み取りに自信が持てませんでした。画像と見比べて、残高を確認してください。</p>
+                  <p className="text-xs text-amber-800 mt-1">読み取りに自信が持てませんでした。画像と見比べて、残高を確認してください。</p>
                 )}
                 {item.balanceNegative && (
-                  <p className="text-xs text-amber-600 mt-1">
+                  <p className="text-xs text-amber-800 mt-1">
                     読み取った金額の計算結果がマイナスになりました。数値を確認してください
                   </p>
                 )}
@@ -468,7 +468,7 @@ export default function ScanUpload() {
                 }`}
               />
               {item.expiryLowConfidence && (
-                <p className="text-xs text-amber-600 mt-1">読み取りに自信が持てませんでした。画像と見比べて、期限を確認してください。</p>
+                <p className="text-xs text-amber-800 mt-1">読み取りに自信が持てませんでした。画像と見比べて、期限を確認してください。</p>
               )}
             </div>
           </div>
@@ -487,7 +487,7 @@ export default function ScanUpload() {
 
         <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "16px 0" }}>
           <div style={{ flex: 1, height: 1, background: "#eee" }} />
-          <span style={{ fontSize: 12, color: "#999" }}>または</span>
+          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>または</span>
           <div style={{ flex: 1, height: 1, background: "#eee" }} />
         </div>
 
@@ -515,13 +515,13 @@ export default function ScanUpload() {
 
   return (
     <div>
-      <p style={{ fontSize: 13, color: "#999" }}>
+      <p style={{ fontSize: 13, color: "var(--text-muted)" }}>
         残高・期限が写ったスクリーンショットを選んでください。同じ名前のポイント・残高がすでにあれば内容を確認してから更新し、初めてのものなら内容確認画面に進みます。
       </p>
       <Link href="/accounts/scan-physical" style={{ fontSize: 13, color: "var(--brand)", textDecoration: "underline" }}>
         切手・紙の商品券などの現物はこちら →
       </Link>
-      <p style={{ fontSize: 13, color: "#999", display: "flex", alignItems: "flex-start", gap: 4, marginTop: 8 }}>
+      <p style={{ fontSize: 13, color: "var(--text-muted)", display: "flex", alignItems: "flex-start", gap: 4, marginTop: 8 }}>
         <Lightbulb size={14} style={{ flexShrink: 0, marginTop: 1 }} />
         バーコード決済画面はスクショできないことがあります。ポイント残高だけの画面に移動してから撮影すると成功しやすいです
       </p>

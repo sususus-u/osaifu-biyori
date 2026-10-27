@@ -415,7 +415,7 @@ export default function AccountList() {
   }
 
   if (isLoading) {
-    return <p style={{ fontSize: 14, color: "#999" }}>{LOADING_TEXT}</p>;
+    return <p style={{ fontSize: 14, color: "var(--text-muted)" }}>{LOADING_TEXT}</p>;
   }
 
   return (
@@ -434,29 +434,29 @@ export default function AccountList() {
       <div className="card" style={{ marginBottom: 12 }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", textAlign: "center" }}>
           <div>
-            <p style={{ fontSize: 11, color: "#999", margin: "0 0 4px" }}>期間限定</p>
+            <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 4px" }}>期間限定</p>
             <p style={{ fontFamily: "var(--font-heading)", fontSize: 22, fontWeight: 700, margin: 0 }}>
               ¥{withExpirySummary.yenTotal.toLocaleString()}
             </p>
-            <p style={{ fontSize: 11, color: "#999", margin: "2px 0 0" }}>
+            <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "2px 0 0" }}>
               {withExpirySummary.count}件
             </p>
           </div>
           <div style={{ borderLeft: "1px solid #eee" }}>
-            <p style={{ fontSize: 11, color: "#999", margin: "0 0 4px" }}>期限なし</p>
+            <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 4px" }}>期限なし</p>
             <p style={{ fontFamily: "var(--font-heading)", fontSize: 22, fontWeight: 700, margin: 0 }}>
               ¥{noExpirySummary.yenTotal.toLocaleString()}
             </p>
-            <p style={{ fontSize: 11, color: "#999", margin: "2px 0 0" }}>
+            <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "2px 0 0" }}>
               {noExpirySummary.count}件
             </p>
           </div>
           <div style={{ borderLeft: "1px solid #eee" }}>
-            <p style={{ fontSize: 11, color: "#999", margin: "0 0 4px" }}>運用残高</p>
+            <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 4px" }}>運用残高</p>
             <p style={{ fontFamily: "var(--font-heading)", fontSize: 22, fontWeight: 700, margin: 0 }}>
               ¥{investedSummary.yenTotal.toLocaleString()}
             </p>
-            <p style={{ fontSize: 11, color: "#999", margin: "2px 0 0" }}>
+            <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "2px 0 0" }}>
               {investedSummary.count}件
             </p>
           </div>
@@ -572,7 +572,7 @@ export default function AccountList() {
                   borderRadius: "var(--radius-pill)",
                   border: withExpirySortMode === s.key ? "none" : "1px solid var(--list-frame-border)",
                   background: withExpirySortMode === s.key ? "var(--brand)" : "transparent",
-                  color: withExpirySortMode === s.key ? "#fff" : "#888",
+                  color: withExpirySortMode === s.key ? "#fff" : "var(--text-muted)",
                 }}
               >
                 {s.label}
@@ -656,7 +656,7 @@ export default function AccountList() {
                           }}
                         >
                           <span>{key}</span>
-                          <span style={{ color: "#bbb" }}>{expanded ? "−" : "+"}</span>
+                          <span style={{ color: "var(--text-muted)" }}>{expanded ? "−" : "+"}</span>
                         </button>
                       </div>
                     ) : (
@@ -674,7 +674,7 @@ export default function AccountList() {
                         }}
                       >
                         <span>{key}</span>
-                        <span style={{ color: "#bbb" }}>{expanded ? "−" : "+"}</span>
+                        <span style={{ color: "var(--text-muted)" }}>{expanded ? "−" : "+"}</span>
                       </button>
                     )}
                     {expanded && (
@@ -741,7 +741,7 @@ export default function AccountList() {
                   borderRadius: "var(--radius-pill)",
                   border: sortMode === s.key ? "none" : "1px solid var(--list-frame-border)",
                   background: sortMode === s.key ? "var(--brand)" : "transparent",
-                  color: sortMode === s.key ? "#fff" : "#888",
+                  color: sortMode === s.key ? "#fff" : "var(--text-muted)",
                 }}
               >
                 {s.label}
@@ -788,7 +788,7 @@ export default function AccountList() {
                   borderRadius: "var(--radius-pill)",
                   border: groupSortMode === s.key ? "none" : "1px solid var(--list-frame-border)",
                   background: groupSortMode === s.key ? "var(--brand)" : "transparent",
-                  color: groupSortMode === s.key ? "#fff" : "#888",
+                  color: groupSortMode === s.key ? "#fff" : "var(--text-muted)",
                 }}
               >
                 {s.label}

@@ -9,7 +9,7 @@ const HUB_PRIVACY_URL = "https://okizukibiyori.com/privacy#おさいふびより
 export default function MenuPage() {
   return (
     <div>
-      <p style={{ fontSize: 12, color: "#999", marginBottom: 8, paddingLeft: 2 }}>
+      <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8, paddingLeft: 2 }}>
         見る・調べる
       </p>
       <div className="card" style={{ padding: 0, overflow: "hidden", marginBottom: 24 }}>
@@ -30,7 +30,7 @@ export default function MenuPage() {
         </Link>
       </div>
 
-      <p style={{ fontSize: 12, color: "#999", marginBottom: 8, paddingLeft: 2 }}>
+      <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8, paddingLeft: 2 }}>
         設定
       </p>
       <div className="card" style={{ padding: 0, overflow: "hidden" }}>

@@ -72,7 +72,7 @@ export default function AccountSettings() {
 
   return (
     <div>
-      <p style={{ fontSize: 12, color: "#999", lineHeight: 1.6, marginBottom: 10 }}>
+      <p style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.6, marginBottom: 10 }}>
         表示名は、共有機能などであなたを示すために使う名前です（現在は未使用）。
         ログイン状態は「おきづきびより ホーム」と共通です。
       </p>
@@ -112,7 +112,7 @@ export default function AccountSettings() {
           {saving ? "保存中…" : "保存"}
         </button>
       </div>
-      {message && <p style={{ fontSize: 12, color: "#777", marginTop: 6 }}>{message}</p>}
+      {message && <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>{message}</p>}
       {doneMessage && (
         <BottomToast message={doneMessage} durationMs={STAMP_TOAST_MS} onClose={() => setDoneMessage(null)} />
       )}

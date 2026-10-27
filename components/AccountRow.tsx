@@ -21,7 +21,7 @@ function formatBalance(balance?: number | null, unit?: string | null) {
     return (
       <>
         {balance.toLocaleString()}
-        <span style={{ fontSize: 11 }}>円</span>
+        <span style={{ fontSize: 12 }}>円</span>
       </>
     );
   }
@@ -49,14 +49,14 @@ function balanceDisplay(acc: AccountWithId) {
         return (
           <>
             {yenValue.toLocaleString()}
-            <span style={{ fontSize: 11 }}>円相当</span>
+            <span style={{ fontSize: 12 }}>円相当</span>
           </>
         );
       }
       return (
         <>
           {formatBalance(acc.currentBalance, acc.balanceUnit)}（{yenValue.toLocaleString()}
-          <span style={{ fontSize: 11 }}>円相当</span>）
+          <span style={{ fontSize: 12 }}>円相当</span>）
         </>
       );
     }
@@ -125,7 +125,7 @@ export default function AccountRow({
           <CheckMark state={selected ? "all" : "none"} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{ margin: 0, fontWeight: 500 }}>{displayAccountName(account.name)}</p>
-            <p style={{ margin: 0, fontSize: 12, color: "#999" }}>{subText}</p>
+            <p style={{ margin: 0, fontSize: 12, color: "var(--text-muted)" }}>{subText}</p>
           </div>
           <p style={{ margin: 0 }}>{balanceDisplay(account)}</p>
         </div>
@@ -151,7 +151,7 @@ export default function AccountRow({
     >
       <div>
         <p style={{ margin: 0, fontWeight: 500 }}>{displayAccountName(account.name)}</p>
-        <p style={{ margin: 0, fontSize: 12, color: "#999" }}>{subText}</p>
+        <p style={{ margin: 0, fontSize: 12, color: "var(--text-muted)" }}>{subText}</p>
       </div>
       <p style={{ margin: 0 }}>{balanceDisplay(account)}</p>
     </Link>

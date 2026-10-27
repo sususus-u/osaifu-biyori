@@ -220,7 +220,7 @@ export default function QuickUpdate() {
         )}
 
         <p className="text-sm text-gray-500">更新するポイント・残高を選んでください</p>
-        <p className="text-xs text-gray-400 flex items-center gap-1">
+        <p className="text-xs text-[var(--text-muted)] flex items-center gap-1">
           <Lightbulb size={12} className="shrink-0" />
           スマホの画面分割機能を使うと、サービスのアプリと見比べながら入力できて便利です
         </p>
@@ -262,7 +262,7 @@ export default function QuickUpdate() {
                     >
                       <span>{key}</span>
                       {items.length > 1 && (
-                        <span className="text-xs text-gray-400">{items.length}件まとめて</span>
+                        <span className="text-xs text-[var(--text-muted)]">{items.length}件まとめて</span>
                       )}
                     </button>
                   </li>

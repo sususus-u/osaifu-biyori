@@ -39,12 +39,12 @@ export default function LoginGuide() {
         </h1>
 
         {handoffFailed && (
-          <p role="alert" style={{ fontSize: 13, color: "#777", lineHeight: 1.7 }}>
+          <p role="alert" style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.7 }}>
             ログインを引き継げませんでした。おさいふびよりを閉じて、もう一度開いてください
           </p>
         )}
         {blocked && (
-          <p role="alert" style={{ fontSize: 13, color: "#777", lineHeight: 1.7 }}>
+          <p role="alert" style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.7 }}>
             ログインできませんでした。おさいふびよりを閉じて、もう一度開いてください
           </p>
         )}
@@ -54,10 +54,10 @@ export default function LoginGuide() {
         </button>
 
         <nav style={{ display: "flex", gap: 16, fontSize: 12 }}>
-          <a href={HUB_TERMS_URL} style={{ color: "#999" }}>
+          <a href={HUB_TERMS_URL} style={{ color: "var(--text-muted)" }}>
             利用規約
           </a>
-          <a href={HUB_PRIVACY_URL} style={{ color: "#999" }}>
+          <a href={HUB_PRIVACY_URL} style={{ color: "var(--text-muted)" }}>
             プライバシーポリシー
           </a>
         </nav>

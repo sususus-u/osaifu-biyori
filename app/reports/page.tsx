@@ -82,7 +82,7 @@ function BalanceTable({
           }}
         >
           <p style={{ margin: "0 0 2px", fontWeight: 500 }}>{displayAccountName(row.account.name)}</p>
-          <p style={{ margin: 0, fontSize: 13, color: row.hasData ? "#555" : "#bbb" }}>
+          <p style={{ margin: 0, fontSize: 13, color: row.hasData ? "#555" : "var(--text-muted)" }}>
             {row.hasData
               ? `${formatBalance(row.startBalance, row.account.balanceUnit)} → ${formatBalance(row.endBalance, row.account.balanceUnit)}`
               : "この月の記録はありません"}
@@ -184,7 +184,7 @@ export default function ReportsPage() {
   const noExpiryRows = continuousRows.filter((r) => !r.account.expiryDate);
 
   if (isLoading) {
-    return <p style={{ fontSize: 14, color: "#999" }}>{LOADING_TEXT}</p>;
+    return <p style={{ fontSize: 14, color: "var(--text-muted)" }}>{LOADING_TEXT}</p>;
   }
 
   return (
@@ -209,7 +209,7 @@ export default function ReportsPage() {
         </button>
       </div>
 
-      {isFetching && <p style={{ fontSize: 13, color: "#999" }}>{LOADING_TEXT}</p>}
+      {isFetching && <p style={{ fontSize: 13, color: "var(--text-muted)" }}>{LOADING_TEXT}</p>}
 
       {!isFetching && (
         <>
@@ -248,7 +248,7 @@ export default function ReportsPage() {
               {expiredYenCount > 0 && `（¥${expiredYenTotal.toLocaleString()}）`}
             </p>
             {expiredNonYenCount > 0 && (
-              <p style={{ fontSize: 12, color: "#999", margin: "2px 0 0" }}>
+              <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "2px 0 0" }}>
                 非円建て:{expiredNonYenCount}件
               </p>
             )}
@@ -274,7 +274,7 @@ export default function ReportsPage() {
           </div>
 
           {/* 継続型:残高の推移 */}
-          <p style={{ fontSize: 13, color: "#999", margin: "20px 0 8px" }}>残高の推移（継続型）</p>
+          <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "20px 0 8px" }}>残高の推移（継続型）</p>
 
           <BalanceTable
             title="期間限定残高"

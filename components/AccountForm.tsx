@@ -901,7 +901,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
   }
 
   if (isLoading || isFetchingExisting) {
-    return <p style={{ fontSize: 14, color: "#999" }}>読み込み中…</p>;
+    return <p style={{ fontSize: 14, color: "var(--text-muted)" }}>読み込み中…</p>;
   }
 
   return (
@@ -932,7 +932,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
             />
             <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "20px 0" }}>
               <div style={{ flex: 1, height: 1, background: "#eee" }} />
-              <span style={{ fontSize: 12, color: "#999" }}>または、直接入力する</span>
+              <span style={{ fontSize: 12, color: "var(--text-muted)" }}>または、直接入力する</span>
               <div style={{ flex: 1, height: 1, background: "#eee" }} />
             </div>
           </>
@@ -997,7 +997,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
                   transform: "translateY(-50%)",
                   border: "none",
                   background: "none",
-                  color: "#999",
+                  color: "var(--text-muted)",
                   fontSize: 16,
                   cursor: "pointer",
                   padding: 4,
@@ -1013,7 +1013,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
               <option key={serviceName} value={serviceName} />
             ))}
           </datalist>
-          <p style={{ fontSize: 13, color: "#999", marginTop: 6 }}>
+          <p style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 6 }}>
             サービス名だけを入れてください（例:PayPay）。「残高」「ポイント」などの区別は、下の「名前」欄の方に入れます。同じグループ名を付けておくと、一覧の「発行元別」タブでまとめて表示されます
           </p>
         </div>
@@ -1067,7 +1067,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
                   style={{ paddingRight: 32 }}
                 />
                 <span
-                  style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", fontSize: 13, color: "#999" }}
+                  style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", fontSize: 13, color: "var(--text-muted)" }}
                 >
                   円
                 </span>
@@ -1117,7 +1117,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
                   transform: "translateY(-50%)",
                   border: "none",
                   background: "none",
-                  color: "#999",
+                  color: "var(--text-muted)",
                   fontSize: 16,
                   cursor: "pointer",
                   padding: 4,
@@ -1225,7 +1225,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
                 style={balanceLowConfidence ? { borderColor: "#b56a1e", background: "#fdf3e7" } : undefined}
               />
               {balanceLowConfidence && (
-                <p style={{ fontSize: 12, color: "#b56a1e", marginTop: 4 }}>
+                <p style={{ fontSize: 12, color: "var(--text-warn)", marginTop: 4 }}>
                   読み取りに自信が持てませんでした。画像と見比べて、残高を確認してください。
                 </p>
               )}
@@ -1292,7 +1292,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
               />
               円
             </div>
-            <p style={{ fontSize: 13, color: "#999", marginTop: 6 }}>
+            <p style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 6 }}>
               例:200ポイント=1000円の場合、200と1000を入力してください。設定すると、円換算した金額の目安が一覧に表示されます。未入力の場合は1pt=1円として表示されます
             </p>
           </div>
@@ -1317,7 +1317,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
                     top: "50%",
                     transform: "translateY(-50%)",
                     fontSize: 13,
-                    color: "#999",
+                    color: "var(--text-muted)",
                   }}
                 >
                   円
@@ -1341,7 +1341,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
                     top: "50%",
                     transform: "translateY(-50%)",
                     fontSize: 13,
-                    color: "#999",
+                    color: "var(--text-muted)",
                   }}
                 >
                   枚
@@ -1392,14 +1392,14 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
               style={expiryLowConfidence ? { borderColor: "#b56a1e", background: "#fdf3e7" } : undefined}
             />
             {expiryLowConfidence && (
-              <p style={{ fontSize: 12, color: "#b56a1e", marginTop: 4 }}>
+              <p style={{ fontSize: 12, color: "var(--text-warn)", marginTop: 4 }}>
                 読み取りに自信が持てませんでした。画像と見比べて、期限を確認してください。
               </p>
             )}
-            <p style={{ fontSize: 13, color: "#999", marginTop: 6 }}>
+            <p style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 6 }}>
               空欄の場合は「期限なし」タブに表示されます
             </p>
-            <p style={{ fontSize: 13, color: "#999", marginTop: 6 }}>
+            <p style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 6 }}>
               名前に「期間限定」が含まれる場合は、期限が分からなくても「期間限定」タブに表示されます。期限が分かり次第、入力してください。
             </p>
           </div>

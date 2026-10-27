@@ -398,10 +398,10 @@ export default function ScanPhysicalUpload() {
       <p style={{ fontSize: 13, color: "#666", marginBottom: 4 }}>
         切手や紙の商品券など、現物を並べて撮影してください。枚数・額面をAIが数えて合計金額を算出します。
       </p>
-      <p style={{ fontSize: 12, color: "#999", marginBottom: 16 }}>
+      <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 16 }}>
         読み取り精度が写真の状態に左右されやすいため、保存前に必ず内容を確認してください。
       </p>
-      <p style={{ fontSize: 12, color: "#999", marginBottom: 16 }}>
+      <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 16 }}>
         明るい場所で、正面からピントを合わせて撮ると読み取り精度が上がります。
       </p>
 
@@ -480,11 +480,11 @@ export default function ScanPhysicalUpload() {
           )}
           {suspect && <p style={{ fontSize: 12, color: "#b3261e", marginBottom: 8 }}>{MSG_BREAKDOWN_SUSPECT}</p>}
           {itemCount !== null && (
-            <p style={{ fontSize: 12, color: "#999", marginBottom: 8 }}>読み取った枚数:{itemCount}枚</p>
+            <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>読み取った枚数:{itemCount}枚</p>
           )}
           {lines.length > 0 && (
             <div style={{ fontSize: 13, marginBottom: 12 }}>
-              <p style={{ fontSize: 12, color: "#999", marginBottom: 4 }}>読み取った内訳（確認用）</p>
+              <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>読み取った内訳（確認用）</p>
               {lines.map((l, i) => (
                 <p key={i}>
                   {l.faceValue.toLocaleString()}円 × {l.count.toLocaleString()}枚 = {l.subtotal.toLocaleString()}円
@@ -517,7 +517,7 @@ export default function ScanPhysicalUpload() {
                 }}
                 placeholder="例:切手、図書カード"
               />
-              <p style={{ fontSize: 12, color: "#999", margin: "4px 0 0" }}>{topNameHint(rows.length)}</p>
+              <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "4px 0 0" }}>{topNameHint(rows.length)}</p>
               {nameUnrecognized && (
                 <p style={{ fontSize: 12, color: "#b3261e" }}>
                   文字を読み取れませんでした。手入力してください
@@ -550,7 +550,7 @@ export default function ScanPhysicalUpload() {
                   style={{ flex: 1, minWidth: 0 }}
                 />
                 <span style={{ color: "#666", whiteSpace: "nowrap" }}>円</span>
-                <span style={{ color: "#999" }}>×</span>
+                <span style={{ color: "var(--text-muted)" }}>×</span>
                 <input
                   type="number"
                   value={row.count}
@@ -590,7 +590,7 @@ export default function ScanPhysicalUpload() {
             >
               行を追加
             </button>
-            <p style={{ fontSize: 12, color: "#999", marginTop: 6 }}>
+            <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>
               額面ごとに行を分けて入力できます。合計は行から自動で計算します
             </p>
             {stampMode && (
@@ -598,7 +598,7 @@ export default function ScanPhysicalUpload() {
                 額面ごとに別のポイント・残高として登録します。同じ名前・額面のものがあれば、枚数と合計金額を足します
               </p>
             )}
-            <p style={{ fontSize: 12, color: "#999", marginTop: 4 }}>
+            <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>
               切手など重なって見えるものは、枚数を多く数えてしまうことがあります。実際の枚数に修正してください。
             </p>
             {itemCount === 1 && (
@@ -626,7 +626,7 @@ export default function ScanPhysicalUpload() {
                 setTotalAmount(e.target.value);
               }}
             />
-            <p style={{ fontSize: 12, color: "#999", marginTop: 6 }}>
+            <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>
               行の合計:{rowsTotals(rows).count.toLocaleString()}枚 / {rowsTotals(rows).amount.toLocaleString()}円
               {totalEdited && (
                 <button

@@ -32,7 +32,7 @@ test("おさいふびよりの一覧: タブごとの件数(閉じている月�
   }
   const css = read("../app/globals.css");
   assert.match(css, /\.list-empty \{[^}]*border: 1px dashed/);
-  assert.match(css, /\.list-count \{[^}]*text-align: center;[^}]*font-size: 12px;[^}]*color: #999;/);
+  assert.match(css, /\.list-count \{[^}]*text-align: center;[^}]*font-size: 12px;[^}]*color: var\(--text-muted\);/);
 });
 
 test("主な一覧以外の一覧(依頼268): クイック更新の一覧は白い枠・「全○件」・ゼロ件の点線の枠と登録のボタン", () => {
@@ -58,7 +58,7 @@ test("主な一覧以外の一覧(依頼268): クイック更新の一覧は白�
 test("主な一覧以外の一覧(依頼268): 実績の画面の待ちの文も「読み込み中…」", () => {
   const rep = read("../app/reports/page.tsx");
   assert.ok(!rep.includes("集計しています"));
-  assert.ok(rep.includes("{isFetching && <p style={{ fontSize: 13, color: \"#999\" }}>{LOADING_TEXT}</p>}"));
+  assert.ok(rep.includes("{isFetching && <p style={{ fontSize: 13, color: \"var(--text-muted)\" }}>{LOADING_TEXT}</p>}"));
 });
 
 test("お知らせの一覧(依頼270): 1件ずつの枠のまま、最後に「全○件」。ゼロ件は3つとも「お知らせは、まだありません。」", () => {
