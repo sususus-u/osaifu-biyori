@@ -1,6 +1,6 @@
 // 下のメニューの「+ 登録」の丸(依頼274。3つのサービス共通)の試験。
 // 丸は直径58px(白い縁3px を含む)、地はブランドの色、上の端はメニューの上の線より 8px 上(下の余白には関係させない)。
-// 開いている間も見た目を変えない。メニューの上に出す帯は、丸の上の端より 4px 以上 上に置く。
+// 開いている間も見た目を変えない。メニューの上に出す帯は、丸の上の端より 8px 上に置く。
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -90,15 +90,15 @@ test("ほかの項目と同じ幅(tabbar-item の flex: 1)で、行き先は /ac
   assert.match(rule(".tabbar-add:focus-visible .tabbar-add-circle"), /outline:\s*2px solid/);
 });
 
-test("メニューの上に出す帯は、丸の上の端より 4px 以上 上(画面の下から 78 + 8 + 4 = 90px 以上)。中身の下の余白 100px は 78 + 8 より大きい", () => {
+test("メニューの上に出す帯は、丸の上の端より 8px 上(画面の下から 78 + 8 + 8 = 94px)。中身の下の余白 100px は 78 + 8 より大きい", () => {
   const protrusion = Number(css.match(/--register-protrusion:\s*(\d+)px;/)?.[1]);
   assert.equal(constant("TABBAR_HEIGHT"), "78");
   assert.equal(Number(constant("REGISTER_PROTRUSION")), protrusion);
-  assert.equal(Number(constant("REGISTER_CLEARANCE")), 4);
+  assert.equal(Number(constant("REGISTER_CLEARANCE")), 8);
   assert.equal(constant("FLOAT_BOTTOM"), "TABBAR_HEIGHT + REGISTER_PROTRUSION + REGISTER_CLEARANCE");
   const floatBottom = 78 + protrusion + 4;
   assert.ok(floatBottom >= 78 + 8 + 4);
-  // 「元に戻す」などの知らせ(BottomToast): 選択のバーが無いとき 90px、あるときはバー(65px)とすき間 8px の上
+  // 「元に戻す」などの知らせ(BottomToast): 選択のバーが無いとき 94px、あるときはバー(65px)とすき間 8px の上
   assert.match(toast, /bottom: FLOAT_BOTTOM \+ lift,/);
   assert.equal(constant("SELECT_BAR_LIFT"), "65 + TOAST_GAP");
   // 「○件を選択中」のバー(AccountList)
