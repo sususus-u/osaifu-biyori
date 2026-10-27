@@ -473,7 +473,7 @@ export default function AccountList() {
             margin: "0 -20px 12px",
             padding: "10px 20px",
             background: "#fff",
-            borderBottom: "1px solid #d9cfcf",
+            borderBottom: "1px solid var(--list-frame-border)",
             boxShadow: "0 2px 6px rgba(0,0,0,0.06)",
           }}
         >
@@ -570,7 +570,7 @@ export default function AccountList() {
                   fontSize: 12,
                   padding: "4px 10px",
                   borderRadius: "var(--radius-pill)",
-                  border: withExpirySortMode === s.key ? "none" : "1px solid #ddd",
+                  border: withExpirySortMode === s.key ? "none" : "1px solid var(--list-frame-border)",
                   background: withExpirySortMode === s.key ? "var(--brand)" : "transparent",
                   color: withExpirySortMode === s.key ? "#fff" : "#888",
                 }}
@@ -739,7 +739,7 @@ export default function AccountList() {
                   fontSize: 12,
                   padding: "4px 10px",
                   borderRadius: "var(--radius-pill)",
-                  border: sortMode === s.key ? "none" : "1px solid #ddd",
+                  border: sortMode === s.key ? "none" : "1px solid var(--list-frame-border)",
                   background: sortMode === s.key ? "var(--brand)" : "transparent",
                   color: sortMode === s.key ? "#fff" : "#888",
                 }}
@@ -786,7 +786,7 @@ export default function AccountList() {
                   fontSize: 12,
                   padding: "4px 10px",
                   borderRadius: "var(--radius-pill)",
-                  border: groupSortMode === s.key ? "none" : "1px solid #ddd",
+                  border: groupSortMode === s.key ? "none" : "1px solid var(--list-frame-border)",
                   background: groupSortMode === s.key ? "var(--brand)" : "transparent",
                   color: groupSortMode === s.key ? "#fff" : "#888",
                 }}
@@ -878,7 +878,7 @@ export default function AccountList() {
               justifyContent: "space-between",
               gap: 8,
               background: "#fff",
-              borderTop: "1px solid #d9cfcf",
+              borderTop: "1px solid var(--list-frame-border)",
               boxShadow: "0 -2px 6px rgba(0,0,0,0.06)",
             }}
           >

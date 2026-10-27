@@ -58,3 +58,42 @@ export function planHomeEntry(href: string): HomeEntryPlan {
 export function buildHomeEntryLoginUrl(href: string, state: string): string {
   return buildHubLoginUrl(stripEntry(href), state);
 }
+
+// --- ログイン済みなら、ホームを通らない(依頼272) ---
+// ?entry=home で開かれたとき、このアプリの Firebase のログイン状態を先に見る。
+// ログイン済みで、ログインがまだ有効(ハブでのログアウトで取り消されていない)なら、ハブへ出ない。
+// ハブとこのアプリでアカウントが違っていても、このアプリは自分のアカウントのまま。
+
+/** ログインの有効さを確かめた結果(user.getIdToken(true) の成否)。null = ログインしていない */
+export type HomeEntrySessionCheck = null | { ok: true } | { ok: false; code: string };
+
+export type HomeEntrySessionDecision =
+  /** ログイン済みで有効(または確かめられなかった)。entry を外して、そのまま一覧を出す */
+  | "skip"
+  /** ログインしていない。state を作って、ハブのログイン画面へ往復する */
+  | "roundTrip"
+  /** ログインが取り消されていた。この端末でログアウトしてから、ハブのログイン画面へ往復する */
+  | "signOutThenRoundTrip";
+
+/** ログインが取り消された・切れた・アカウントが無いことを表すエラー(ハブでのログアウトなど) */
+export const REVOKED_SESSION_ERROR_CODES: readonly string[] = [
+  "auth/user-token-expired",
+  "auth/user-disabled",
+  "auth/user-not-found",
+  "auth/invalid-user-token",
+];
+
+/**
+ * 入口で、ハブへ往復するかを決める。
+ * - ログインしていない → 往復
+ * - 確かめが通った → 往復しない
+ * - 取り消し・期限切れ・無効・アカウントなし → この端末でログアウトしてから往復
+ * - 通信の失敗(auth/network-request-failed)や、そのほかのエラー・時間切れ → ログイン済みとして進む
+ *   (ハブへ出ても、戻ってきたときに同じことになりうる。本当に取り消されていれば、あとでログイン状態の監視が気づく)
+ */
+export function decideHomeEntrySession(check: HomeEntrySessionCheck): HomeEntrySessionDecision {
+  if (check === null) return "roundTrip";
+  if (check.ok) return "skip";
+  if (REVOKED_SESSION_ERROR_CODES.includes(check.code)) return "signOutThenRoundTrip";
+  return "skip";
+}

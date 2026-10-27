@@ -141,3 +141,35 @@ test("一覧ではない白い枠(依頼271): 一覧の枠と同じ線。区切�
   // このサービスには暗い表示が無い
   assert.ok(!css.includes("prefers-color-scheme"));
 });
+
+test("選択のバーの端の線と、白い地のボタンの線(依頼272): 一覧の枠と同じ線(3:1 以上)。入力の欄と区切りの線は変えない", () => {
+  const list = read("../components/AccountList.tsx");
+  assert.ok(!list.includes("#d9cfcf"));
+  assert.ok(list.includes('borderBottom: "1px solid var(--list-frame-border)",'));
+  assert.ok(list.includes('borderTop: "1px solid var(--list-frame-border)",'));
+  // 並べ替えのボタン(選んでいないもの)
+  assert.equal(list.match(/\? "none" : "1px solid var\(--list-frame-border\)"/g)?.length, 3);
+  assert.ok(!list.includes('"1px solid #ddd"'));
+  const css = read("../app/globals.css");
+  assert.match(css, /\.confirm-btn-cancel \{[^}]*border: 1px solid var\(--list-frame-border\);/);
+  assert.match(css, /\.announcement-dismiss-btn \{[^}]*border: 1px solid var\(--list-frame-border\);/);
+  const form = read("../components/AccountForm.tsx");
+  assert.equal(form.match(/border: "1px solid var\(--list-frame-border\)",\s*borderRadius: "var\(--radius-pill\)",\s*background: "#fef8f5"/g)?.length, 2);
+  assert.ok(read("../components/NotificationSetup.tsx").includes("border border-[var(--list-frame-border)]"));
+  // 入力の欄と区切りの線は、そのまま
+  assert.match(css, /\.field input,\s*\.field select \{[^}]*border: 1px solid #ddd;/);
+  assert.ok(read("../components/AccountSettings.tsx").includes('border: "1px solid #ddd",'));
+  assert.ok(read("../components/AccountRow.tsx").includes('borderTop: "0.5px solid #f0f0f0",'));
+  // コントラスト: 画面の地・バー・ボタンの中(#fff)、見出しの帯(#faf8f6)、読み取りのボタンの中(#fef8f5)
+  const m = css.match(/--list-frame-border: (#[0-9a-f]{6});/);
+  assert.ok(m);
+  const lum = (h: string) => {
+    const c = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  };
+  const ratio = (a: string, b: string) => {
+    const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
+    return (x + 0.05) / (y + 0.05);
+  };
+  for (const bg of ["#ffffff", "#faf8f6", "#fef8f5"]) assert.ok(ratio(m[1], bg) >= 3, bg);
+});
