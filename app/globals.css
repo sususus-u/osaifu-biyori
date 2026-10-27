@@ -124,7 +124,8 @@ textarea::placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #999;
+  /* 上のバーのアイコン(ホーム・ベル・戻る)。地との比 3:1 以上(依頼273。前は #999 で 2.85:1) */
+  color: var(--text-muted);
   text-decoration: none;
 }
 

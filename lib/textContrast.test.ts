@@ -76,13 +76,19 @@ test("globals.css に 12px より小さい文字が無い", () => {
   }
 });
 
-test("globals.css の薄い灰色の文字は、使えないボタン(:disabled)とアイコンだけのリンク(.appbar-home)だけ", () => {
+test("globals.css の薄い灰色の文字は、使えないボタン(:disabled)だけ(上のバーのアイコンも濃くした。依頼273)", () => {
   for (const m of css.matchAll(/([^{}]+)\{([^}]*)\}/g)) {
     const selector = m[1].replace(/\/\*[\s\S]*?\*\//g, "").trim();
     const color = m[2].match(/(?:^|[;\s])color:\s*([^;]+);/);
     if (!color || !LIGHT_GRAYS.test(color[1])) continue;
-    assert.ok(selector.includes(":disabled") || selector === ".appbar-home", `${selector} { color: ${color[1]} }`);
+    assert.ok(selector.includes(":disabled"), `${selector} { color: ${color[1]} }`);
   }
+});
+
+test("上のバーのアイコン(.appbar-home)は --text-muted で、白の地に 3:1 以上(依頼273)", () => {
+  const rule = css.slice(css.indexOf(".appbar-home {"), css.indexOf("}", css.indexOf(".appbar-home {")));
+  assert.ok(rule.includes("color: var(--text-muted);"));
+  assert.ok(contrastRatio("#5f5f5f", "#ffffff") >= 3);
 });
 
 test("入力欄の見本の文字(placeholder)は --text-muted で、薄くしない", () => {
