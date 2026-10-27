@@ -33,7 +33,7 @@ export function isPlanEnforced(env: string | undefined = process.env.ENFORCE_PLA
 }
 
 export function monthlyLimitMessage(limit: number): string {
-  return `今月のAI読み取りの回数(${limit}回)に達しました。毎月1日にリセットされます`;
+  return `今月のAI読み取りの回数（${limit}回）に達しました。毎月1日にリセットされます`;
 }
 
 const JST_OFFSET_MS = 9 * 60 * 60 * 1000;

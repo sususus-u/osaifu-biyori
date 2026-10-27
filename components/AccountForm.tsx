@@ -52,7 +52,7 @@ import {
 
 const CATEGORY_OPTIONS: { value: AccountCategory; label: string }[] = [
   { value: "electronic_money", label: "電子マネー" },
-  { value: "points", label: "ポイント(pt)" },
+  { value: "points", label: "ポイント（pt）" },
   { value: "gift_certificate", label: "商品券・切手" },
   { value: "miles", label: "マイル" },
   { value: "coupon", label: "クーポン" },
@@ -527,12 +527,12 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
         return false;
       }
       if (r.kind === "empty") {
-        setErrorMessage("額面(円)を数字で入力してください。名称を自分で付けるときは、下のボタンで切り替えます。");
+        setErrorMessage("額面（円）を数字で入力してください。名称を自分で付けるときは、下のボタンで切り替えます。");
         return false;
       }
     }
     if (!name.trim()) {
-      setErrorMessage(stampMode === "manual" ? "名称を入力してください(例:記念切手)。" : "名前を入力してください。");
+      setErrorMessage(stampMode === "manual" ? "名称を入力してください（例:記念切手）。" : "名前を入力してください。");
       return false;
     }
     if (isOther && !customCategoryLabel.trim()) {
@@ -726,7 +726,8 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
       }
     } catch (error) {
       console.error(error);
-      setErrorMessage("保存に失敗しました。もう一度お試しください。");
+      // 直すときは「更新に失敗しました。」、新しく作るときは「登録に失敗しました。」(依頼259。「保存」は設定だけ)
+      setErrorMessage(isEditMode ? "更新に失敗しました。もう一度お試しください。" : "登録に失敗しました。もう一度お試しください。");
     } finally {
       setIsSubmitting(false);
     }
@@ -751,7 +752,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
       goToNextQueueItemOrHome();
     } catch (error) {
       console.error(error);
-      setErrorMessage("保存に失敗しました。もう一度お試しください。");
+      setErrorMessage("更新に失敗しました。もう一度お試しください。");
     } finally {
       setIsSubmitting(false);
     }
@@ -819,7 +820,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
       goToNextQueueItemOrHome();
     } catch (error) {
       console.error(error);
-      setErrorMessage("保存に失敗しました。もう一度お試しください。");
+      setErrorMessage("更新に失敗しました。もう一度お試しください。");
     } finally {
       setIsSubmitting(false);
     }
@@ -967,7 +968,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
         )}
 
         <div className="field">
-          <label>グループ名(任意)</label>
+          <label>グループ名（任意）</label>
           <div style={{ position: "relative" }}>
             <input
               type="text"
@@ -1006,12 +1007,12 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
             ))}
           </datalist>
           <p style={{ fontSize: 13, color: "#999", marginTop: 6 }}>
-            サービス名だけを入れてください(例:PayPay)。「残高」「ポイント」などの区別は、下の「名前」欄の方に入れます。同じグループ名を付けておくと、一覧の「発行元別」タブでまとめて表示されます
+            サービス名だけを入れてください（例:PayPay）。「残高」「ポイント」などの区別は、下の「名前」欄の方に入れます。同じグループ名を付けておくと、一覧の「発行元別」タブでまとめて表示されます
           </p>
         </div>
 
         <div className="field">
-          <label>{showStampNumeric ? "額面(切手 ○円)" : "名前"}</label>
+          <label>{showStampNumeric ? "額面（切手 ○円）" : "名前"}</label>
           {stampMode && (
             <div role="radiogroup" aria-label="名前の入力方法" style={{ display: "flex", gap: 8, marginBottom: 8 }}>
               {(
@@ -1055,7 +1056,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
                   onChange={(e) => applyStampFace(e.target.value)}
                   onBlur={handleNameBlur}
                   placeholder="例:84"
-                  aria-label="額面(円)"
+                  aria-label="額面（円）"
                   style={{ paddingRight: 32 }}
                 />
                 <span
@@ -1071,7 +1072,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
                     aria-live="polite"
                     style={{ margin: "8px 0 0", padding: "10px 12px", borderRadius: 8, background: v.background, fontSize: 15 }}
                   >
-                    <span style={{ fontSize: 12, color: v.hintColor }}>名前(自動):</span>{" "}
+                    <span style={{ fontSize: 12, color: v.hintColor }}>名前（自動）:</span>{" "}
                     <strong style={{ color: v.textColor, fontWeight: 600 }}>{v.text}</strong>
                     {v.hint && <span style={{ fontSize: 12, color: v.hintColor }}>{v.hint}</span>}
                   </p>
@@ -1152,7 +1153,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
 
         {isOther && (
           <div className="field">
-            <label>種類の名前(自由入力)</label>
+            <label>種類の名前（自由入力）</label>
             <input
               type="text"
               value={customCategoryLabel}
@@ -1192,7 +1193,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
                   checked={accountType === "finite"}
                   onChange={() => setAccountType("finite")}
                 />
-                完結型(使いきる/失効する)
+                完結型（使いきる/失効する）
               </label>
               <label style={{ display: "flex", alignItems: "center", gap: 4 }}>
                 <input
@@ -1200,7 +1201,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
                   checked={accountType === "continuous"}
                   onChange={() => setAccountType("continuous")}
                 />
-                継続型(残高が増減し続ける)
+                継続型（残高が増減し続ける）
               </label>
             </div>
           </div>
@@ -1233,10 +1234,10 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
                 disabled={!isOther}
               >
                 <option value="円">円</option>
-                <option value="pt">ポイント(pt)</option>
+                <option value="pt">ポイント（pt）</option>
                 <option value="マイル">マイル</option>
                 <option value="枚">枚</option>
-                <option value="その他">その他(自由入力)</option>
+                <option value="その他">その他（自由入力）</option>
               </select>
               {isOther && balanceUnitOption === "その他" && (
                 <input
@@ -1259,7 +1260,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
             className="field"
             style={{ marginLeft: 16, paddingLeft: 12, borderLeft: "2px solid #eee" }}
           >
-            <label>円換算レート(任意)</label>
+            <label>円換算レート（任意）</label>
             <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14 }}>
               <input
                 type="number"
@@ -1376,7 +1377,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
 
         {hasExpiry !== false && (
           <div className="field">
-            <label>有効期限(任意)</label>
+            <label>有効期限（任意）</label>
             <input
               type="date"
               value={expiryDate}
@@ -1398,7 +1399,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
         )}
 
         <div className="field">
-          <label>保管場所メモ(任意)</label>
+          <label>保管場所メモ（任意）</label>
           <input
             type="text"
             value={storageLocationMemo}
@@ -1571,7 +1572,8 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
           }
           confirmLabel="記録する"
           busyLabel="記録中…"
-          variant={pendingOutcome === "expired" ? "danger" : "normal"}
+          // 赤は、元に戻せない操作だけ(依頼259)。使い切りの種類は項目ごと消えるので赤、残高が続く種類の「失効した」は「元に戻す」で戻せるのでサービスの色
+          variant={accountType === "finite" ? "danger" : "normal"}
           busy={isRecordingOutcome}
           onConfirm={() => handleOutcome(pendingOutcome)}
           onClose={() => setPendingOutcome(null)}

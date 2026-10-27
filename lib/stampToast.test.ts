@@ -30,10 +30,10 @@ function fake(): MessageStorage & { data: Map<string, string> } {
 }
 
 const payload: StampSavedPayload = {
-  message: "切手 1円に5枚追加しました(合計23枚)\n切手 2円を新しく作りました(25枚)",
+  message: "切手 1円に5枚追加しました（合計23枚）\n切手 2円を新しく作りました（25枚）",
   items: [
-    { id: "a", kind: "add", text: "切手 1円に5枚追加しました(合計23枚)" },
-    { id: "b", kind: "create", text: "切手 2円を新しく作りました(25枚)" },
+    { id: "a", kind: "add", text: "切手 1円に5枚追加しました（合計23枚）" },
+    { id: "b", kind: "create", text: "切手 2円を新しく作りました（25枚）" },
   ],
 };
 
@@ -56,8 +56,8 @@ test("読んだら消える(2回目は何も出ない)", () => {
 
 test("古い形式(文字列だけ)も読める。項目は空で、全文が入る", () => {
   const s = fake();
-  s.setItem(STAMP_SAVED_MESSAGE_KEY, "切手 1円に5枚追加しました(合計23枚)");
-  assert.deepEqual(takeStampSavedMessage(s), { message: "切手 1円に5枚追加しました(合計23枚)", items: [] });
+  s.setItem(STAMP_SAVED_MESSAGE_KEY, "切手 1円に5枚追加しました（合計23枚）");
+  assert.deepEqual(takeStampSavedMessage(s), { message: "切手 1円に5枚追加しました（合計23枚）", items: [] });
 });
 
 test("壊れた JSON や形の違う項目で、落ちない", () => {

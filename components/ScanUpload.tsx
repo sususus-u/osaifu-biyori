@@ -365,7 +365,7 @@ export default function ScanUpload() {
       goToPendingQueueOrHome("更新しました", restores);
     } catch (error) {
       console.error(error);
-      setErrorMessage("保存に失敗しました。もう一度お試しください。");
+      setErrorMessage("更新に失敗しました。もう一度お試しください。");
     } finally {
       setIsSaving(false);
     }

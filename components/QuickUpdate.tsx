@@ -164,7 +164,7 @@ export default function QuickUpdate() {
       setEditingRows([]);
     } catch (error) {
       console.error(error);
-      setSaveError("保存に失敗しました。もう一度お試しください。");
+      setSaveError("更新に失敗しました。もう一度お試しください。");
     } finally {
       setIsSaving(false);
     }

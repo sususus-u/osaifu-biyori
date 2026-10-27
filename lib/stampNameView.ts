@@ -17,7 +17,7 @@ export function stampNameView(name: string, defaultName: string): StampNameView 
   const decided = name !== "";
   return {
     text: decided ? name : defaultName,
-    hint: decided ? "" : "(額面を入れると「切手 ○円」になります)",
+    hint: decided ? "" : "（額面を入れると「切手 ○円」になります）",
     textColor: decided ? STAMP_NAME_COLOR : STAMP_NAME_HINT_COLOR,
     hintColor: STAMP_NAME_HINT_COLOR,
     background: STAMP_NAME_BG,

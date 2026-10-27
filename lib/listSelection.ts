@@ -118,14 +118,14 @@ export function groupButtonView(current: Set<string>, ids: string[], name: strin
   if (state === "some") {
     return {
       state,
-      text: `まとめて選ぶ(${n}/${ids.length})`,
-      ariaLabel: `${name}: ${ids.length}件のうち${n}件が選択されています。押すと、残りも選びます${ids.length > SELECTION_LIMIT ? `(一度に選べるのは${SELECTION_LIMIT}件まで)` : ""}`,
+      text: `まとめて選ぶ（${n}/${ids.length}）`,
+      ariaLabel: `${name}: ${ids.length}件のうち${n}件が選択されています。押すと、残りも選びます${ids.length > SELECTION_LIMIT ? `（一度に選べるのは${SELECTION_LIMIT}件まで）` : ""}`,
     };
   }
   const over = ids.length > SELECTION_LIMIT;
   return {
     state,
-    text: over ? `まとめて選ぶ(${SELECTION_LIMIT}件まで)` : "まとめて選ぶ",
+    text: over ? `まとめて選ぶ（${SELECTION_LIMIT}件まで）` : "まとめて選ぶ",
     ariaLabel: `${name}: 選択されていません。押すと、${over ? `先頭の${SELECTION_LIMIT}件を` : `${ids.length}件を`}まとめて選びます`,
   };
 }

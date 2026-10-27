@@ -159,7 +159,7 @@ export default function BottomToast({
         <button
           type="button"
           onClick={onClose}
-          aria-label={`${message}(タップで閉じる)`}
+          aria-label={`${message}（タップで閉じる）`}
           style={{ ...look, display: "flex", width: "100%", padding: "12px 14px", textAlign: "left" }}
         >
           {text}

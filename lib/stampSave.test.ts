@@ -78,7 +78,7 @@ test("既存の枚数・金額が null のときは 0 として足す", () => {
 
 test("案内の文", () => {
   const plan = planStampSave([item({ id: "a" })], [row("切手 1円", 1, 5), row("切手 2円", 2, 3)]);
-  assert.equal(stampSaveMessage(plan), "切手 1円に5枚追加しました(合計23枚)\n切手 2円を新しく作りました(3枚)");
+  assert.equal(stampSaveMessage(plan), "切手 1円に5枚追加しました（合計23枚）\n切手 2円を新しく作りました（3枚）");
 });
 
 test("名前の判定と初期値", () => {
@@ -174,10 +174,10 @@ test("保存: 足す行と作る行を、まとめて1回で保存する", async
   const { plan, items, message } = await saveStamps(db.deps(), [row("切手 1円", 1, 5), row("切手 2円", 2, 25)]);
   assert.equal(plan.length, 2);
   // 案内の文と、足した/作った項目の ID(作った方は、実際に作られた項目の ID)
-  assert.equal(message, "切手 1円に5枚追加しました(合計23枚)\n切手 2円を新しく作りました(25枚)");
+  assert.equal(message, "切手 1円に5枚追加しました（合計23枚）\n切手 2円を新しく作りました（25枚）");
   assert.equal(items[0].id, "a");
   assert.equal(items[0].kind, "add");
-  assert.equal(items[0].text, "切手 1円に5枚追加しました(合計23枚)");
+  assert.equal(items[0].text, "切手 1円に5枚追加しました（合計23枚）");
   assert.equal(items[1].kind, "create");
   assert.equal(db.docs.get(items[1].id)?.name, "切手 2円");
   assert.equal(db.docs.get("a")?.itemQuantity, 23);
@@ -385,18 +385,18 @@ import { manualAddNotice } from "./stampMerge.ts";
 test("手動で足す(切手): 読み取りの保存と同じ形の文。名前のゆれは「切手 N円」にそろう", () => {
   assert.equal(
     manualAddNotice({ name: "切手1円", addQuantity: 5, newQuantity: 23, addBalance: 5, newBalance: 23, unit: "円" }),
-    "切手 1円に5枚追加しました(合計23枚)"
+    "切手 1円に5枚追加しました（合計23枚）"
   );
 });
 
 test("手動で足す(切手以外): 足した量と合計が分かる。枚数だけ、何もないときの文も", () => {
   assert.equal(
     manualAddNotice({ name: "楽天ポイント", addQuantity: 0, newQuantity: 0, addBalance: 500, newBalance: 1500, unit: "ポイント" }),
-    "「楽天ポイント」に500ポイントを追加しました(合計1,500ポイント)"
+    "「楽天ポイント」に500ポイントを追加しました（合計1,500ポイント）"
   );
   assert.equal(
     manualAddNotice({ name: "商品券", addQuantity: 2, newQuantity: 7, addBalance: 0, newBalance: 0, unit: "円" }),
-    "「商品券」に2枚追加しました(合計7枚)"
+    "「商品券」に2枚追加しました（合計7枚）"
   );
   assert.equal(
     manualAddNotice({ name: "商品券", addQuantity: 0, newQuantity: 0, addBalance: 0, newBalance: 0, unit: "円" }),
@@ -407,7 +407,7 @@ test("手動で足す(切手以外): 足した量と合計が分かる。枚数�
 test("手動で足した案内は、読み取りの保存と同じ入れ物(items に id と kind=add)で、読み出しできる", () => {
   const data = new Map<string, string>();
   const st = { getItem: (k: string) => data.get(k) ?? null, setItem: (k: string, v: string) => void data.set(k, v), removeItem: (k: string) => void data.delete(k) };
-  const text = "切手 1円に5枚追加しました(合計23枚)";
+  const text = "切手 1円に5枚追加しました（合計23枚）";
   stashStampSavedMessage(st, { message: text, items: [{ id: "abc", kind: "add", text }] });
   assert.deepEqual(takeStampSavedMessage(st), { message: text, items: [{ id: "abc", kind: "add", text }] });
 });
@@ -450,29 +450,29 @@ test("手動の足し先(切手以外): 名前で選ぶ。同じ種類を優先�
 
 test("注意: 読み取りの保存は、候補が2件以上のときだけ文に続く。1件なら今の文のまま", () => {
   const one = planSave2([ex("a", "切手 1円", 1, 1)], [{ name: "切手 1円", faceValue: 1, count: 5 }]);
-  assert.equal(itemText2(one[0]), "切手 1円に5枚追加しました(合計5枚)");
+  assert.equal(itemText2(one[0]), "切手 1円に5枚追加しました（合計5枚）");
   const two = planSave2([ex("a", "切手 1円", 1, 1), ex("b", "切手1円", 1, 2)], [{ name: "切手 1円", faceValue: 1, count: 5 }]);
-  assert.equal(itemText2(two[0]), "切手 1円に5枚追加しました(合計5枚)" + MULTIPLE_STAMP_NOTE);
+  assert.equal(itemText2(two[0]), "切手 1円に5枚追加しました（合計5枚）" + MULTIPLE_STAMP_NOTE);
 });
 
 test("注意: 手動の文。切手は「同じ額面」、切手以外は「同じ名前」。1件なら付かない", () => {
   const base = { addQuantity: 5, newQuantity: 23, addBalance: 5, newBalance: 23, unit: "円" };
-  assert.equal(manualAddNotice({ ...base, name: "切手1円" }), "切手 1円に5枚追加しました(合計23枚)");
-  assert.equal(manualAddNotice({ ...base, name: "切手1円", multiple: true }), "切手 1円に5枚追加しました(合計23枚)。同じ額面のポイント・残高が複数あります。");
+  assert.equal(manualAddNotice({ ...base, name: "切手1円" }), "切手 1円に5枚追加しました（合計23枚）");
+  assert.equal(manualAddNotice({ ...base, name: "切手1円", multiple: true }), "切手 1円に5枚追加しました（合計23枚）。同じ額面のポイント・残高が複数あります。");
   assert.equal(
     manualAddNotice({ name: "楽天ポイント", addQuantity: 0, newQuantity: 0, addBalance: 500, newBalance: 1500, unit: "ポイント", multiple: true }),
-    "「楽天ポイント」に500ポイントを追加しました(合計1,500ポイント)。同じ名前のポイント・残高が複数あります。"
+    "「楽天ポイント」に500ポイントを追加しました（合計1,500ポイント）。同じ名前のポイント・残高が複数あります。"
   );
 });
 
 test("古い形式の案内(文字列だけ、items の text だけ)も、注意つきの文も、読める", () => {
   const data = new Map<string, string>();
   const st = { getItem: (k: string) => data.get(k) ?? null, setItem: (k: string, v: string) => void data.set(k, v), removeItem: (k: string) => void data.delete(k) };
-  const text = "切手 1円に5枚追加しました(合計23枚)" + MULTIPLE_STAMP_NOTE;
+  const text = "切手 1円に5枚追加しました（合計23枚）" + MULTIPLE_STAMP_NOTE;
   stashStampSavedMessage(st, { message: text, items: [{ id: "abc", kind: "add", text }] });
   assert.equal(takeStampSavedMessage(st)!.items[0].text, text);
-  data.set("tamari:stampSavedMessage", "切手 1円に5枚追加しました(合計23枚)");
-  assert.deepEqual(takeStampSavedMessage(st), { message: "切手 1円に5枚追加しました(合計23枚)", items: [] });
+  data.set("tamari:stampSavedMessage", "切手 1円に5枚追加しました（合計23枚）");
+  assert.deepEqual(takeStampSavedMessage(st), { message: "切手 1円に5枚追加しました（合計23枚）", items: [] });
 });
 
 // ---- 手動の登録: グループ名「切手」の額面の数字入力 ----
@@ -596,7 +596,7 @@ test("切手のとき、種類=商品券・切手、単位=円、期限=なし�
   assert.deepEqual(next, { category: "gift_certificate", unit: "円", hasExpiry: false });
   assert.equal(
     stampAutoSummary({ isStampEntry: true, cur: next, touched: NO_TOUCH }),
-    "自動で設定しました: 種類=商品券・切手、単位=円、期限=なし、通知=なし(変更できます)"
+    "自動で設定しました: 種類=商品券・切手、単位=円、期限=なし、通知=なし（変更できます）"
   );
 });
 
@@ -643,15 +643,15 @@ test("新規作成のグループ名: 「切手 N円」は「切手」(ゆれも
 test("読み取りの一言: 期限なし/期限ありの文。期限を手で直したら、期限と通知は挙げない", () => {
   assert.equal(
     scanStampSummary({ expiryDate: "", expiryTouched: false }),
-    "自動で設定しました: 種類=商品券・切手、単位=円、期限=なし、通知=なし(変更できます)"
+    "自動で設定しました: 種類=商品券・切手、単位=円、期限=なし、通知=なし（変更できます）"
   );
   assert.equal(
     scanStampSummary({ expiryDate: "2027-03-31", expiryTouched: false }),
-    "自動で設定しました: 種類=商品券・切手、単位=円、期限=2027-03-31、通知=90日前・21日前(変更できます)"
+    "自動で設定しました: 種類=商品券・切手、単位=円、期限=2027-03-31、通知=90日前・21日前（変更できます）"
   );
   assert.equal(
     scanStampSummary({ expiryDate: "2027-03-31", expiryTouched: true }),
-    "自動で設定しました: 種類=商品券・切手、単位=円(変更できます)"
+    "自動で設定しました: 種類=商品券・切手、単位=円（変更できます）"
   );
 });
 

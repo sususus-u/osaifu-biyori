@@ -183,8 +183,8 @@ export default function ReportsPage() {
               <div style={{ marginTop: 8 }}>
                 {usedUpEvents.map((e) => (
                   <p key={e.id} style={{ fontSize: 13, margin: "4px 0" }}>
-                    {e.accountName}(
-                    {(e.eventDate as Timestamp).toDate().toLocaleDateString("ja-JP")})
+                    {e.accountName}（
+                    {(e.eventDate as Timestamp).toDate().toLocaleDateString("ja-JP")}）
                   </p>
                 ))}
               </div>
@@ -196,7 +196,7 @@ export default function ReportsPage() {
             <p style={{ fontSize: 13, color: "#555", margin: "0 0 4px" }}>今月失効</p>
             <p style={{ fontSize: 24, fontFamily: "var(--font-heading)", fontWeight: 700, margin: 0 }}>
               {expiredEvents.length}件
-              {expiredYenCount > 0 && `(¥${expiredYenTotal.toLocaleString()})`}
+              {expiredYenCount > 0 && `（¥${expiredYenTotal.toLocaleString()}）`}
             </p>
             {expiredNonYenCount > 0 && (
               <p style={{ fontSize: 12, color: "#999", margin: "2px 0 0" }}>
@@ -216,8 +216,8 @@ export default function ReportsPage() {
               <div style={{ marginTop: 8 }}>
                 {expiredEvents.map((e) => (
                   <p key={e.id} style={{ fontSize: 13, margin: "4px 0" }}>
-                    {e.accountName}(
-                    {(e.eventDate as Timestamp).toDate().toLocaleDateString("ja-JP")})
+                    {e.accountName}（
+                    {(e.eventDate as Timestamp).toDate().toLocaleDateString("ja-JP")}）
                   </p>
                 ))}
               </div>
@@ -225,7 +225,7 @@ export default function ReportsPage() {
           </div>
 
           {/* 継続型:残高の推移 */}
-          <p style={{ fontSize: 13, color: "#999", margin: "20px 0 8px" }}>残高の推移(継続型)</p>
+          <p style={{ fontSize: 13, color: "#999", margin: "20px 0 8px" }}>残高の推移（継続型）</p>
 
           <p style={{ fontSize: 12, color: "#999", margin: "0 0 6px" }}>期間限定残高</p>
           <div className="card" style={{ padding: 0, overflow: "hidden", marginBottom: 12 }}>

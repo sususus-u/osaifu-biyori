@@ -346,7 +346,7 @@ export default function ScanPhysicalUpload() {
       setTimeout(() => router.push("/"), 800);
     } catch (error) {
       console.error(error);
-      setErrorMessage("保存に失敗しました。もう一度お試しください。");
+      setErrorMessage(matchedAccountId ? "更新に失敗しました。もう一度お試しください。" : "登録に失敗しました。もう一度お試しください。");
     } finally {
       setIsSaving(false);
     }
@@ -484,7 +484,7 @@ export default function ScanPhysicalUpload() {
           )}
           {lines.length > 0 && (
             <div style={{ fontSize: 13, marginBottom: 12 }}>
-              <p style={{ fontSize: 12, color: "#999", marginBottom: 4 }}>読み取った内訳(確認用)</p>
+              <p style={{ fontSize: 12, color: "#999", marginBottom: 4 }}>読み取った内訳（確認用）</p>
               {lines.map((l, i) => (
                 <p key={i}>
                   {l.faceValue.toLocaleString()}円 × {l.count.toLocaleString()}枚 = {l.subtotal.toLocaleString()}円
@@ -535,7 +535,7 @@ export default function ScanPhysicalUpload() {
                   type="text"
                   value={rowName(row)}
                   onChange={(e) => changeRows(updateRow(rows, i, { name: e.target.value }))}
-                  placeholder="名前(例:切手 1円)"
+                  placeholder="名前（例:切手 1円）"
                   maxLength={40}
                   style={{ width: "100%", marginBottom: 4 }}
                 />
@@ -545,8 +545,8 @@ export default function ScanPhysicalUpload() {
                   type="number"
                   value={row.faceValue}
                   onChange={(e) => changeRows(updateRow(rows, i, { faceValue: e.target.value }))}
-                  placeholder="額面(1枚あたり)"
-                  aria-label="額面(1枚あたり、円)"
+                  placeholder="額面（1枚あたり）"
+                  aria-label="額面（1枚あたり、円）"
                   style={{ flex: 1, minWidth: 0 }}
                 />
                 <span style={{ color: "#666", whiteSpace: "nowrap" }}>円</span>
@@ -556,7 +556,7 @@ export default function ScanPhysicalUpload() {
                   value={row.count}
                   onChange={(e) => changeRows(updateRow(rows, i, { count: e.target.value }))}
                   placeholder="枚数"
-                  aria-label="枚数(枚)"
+                  aria-label="枚数（枚）"
                   style={{ flex: 1, minWidth: 0 }}
                 />
                 <span style={{ color: "#666", whiteSpace: "nowrap" }}>枚</span>
@@ -610,14 +610,14 @@ export default function ScanPhysicalUpload() {
 
           {stampMode ? (
             <div className="field">
-              <label>合計金額(円)</label>
+              <label>合計金額（円）</label>
               <p style={{ fontSize: 14 }}>
-                {rowsTotals(rows).amount.toLocaleString()}円(額面×枚数を、行ごとに足した額)
+                {rowsTotals(rows).amount.toLocaleString()}円（額面×枚数を、行ごとに足した額）
               </p>
             </div>
           ) : (
           <div className="field">
-            <label>合計金額(円)</label>
+            <label>合計金額（円）</label>
             <input
               type="number"
               value={totalAmount}
@@ -642,7 +642,7 @@ export default function ScanPhysicalUpload() {
           )}
 
           <div className="field">
-            <label>有効期限(任意)</label>
+            <label>有効期限（任意）</label>
             <input
               type="date"
               value={expiryDate}
@@ -679,7 +679,7 @@ export default function ScanPhysicalUpload() {
               disabled={isSaving || isProcessing || isPreparing}
               className="btn-primary form-btn"
             >
-              {isSaving ? "登録中…" : stampMode ? "この内容で登録する(同じものがあれば足す)" : "この内容で登録する"}
+              {isSaving ? "登録中…" : stampMode ? "この内容で登録する（同じものがあれば足す）" : "この内容で登録する"}
             </button>
           )}
         </div>

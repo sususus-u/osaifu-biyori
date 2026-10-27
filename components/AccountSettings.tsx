@@ -73,7 +73,7 @@ export default function AccountSettings() {
   return (
     <div>
       <p style={{ fontSize: 12, color: "#999", lineHeight: 1.6, marginBottom: 10 }}>
-        表示名は、共有機能などであなたを示すために使う名前です(現在は未使用)。
+        表示名は、共有機能などであなたを示すために使う名前です（現在は未使用）。
         ログイン状態は「おきづきびより ホーム」と共通です。
       </p>
       <div style={{ display: "flex", gap: 8 }}>

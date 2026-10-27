@@ -174,3 +174,59 @@ test("件数のかっこは全角の「（」「）」(依頼257)", () => {
     assert.ok(!/\([^()\n]{0,40}(件|枚)\)/.test(src), f + ": 半角のかっこの件数");
   }
 });
+
+test("「使いきった」は使い切りの種類(完結型)だけ。「失効した」はどちらにも(依頼259。依頼234 の決まりどおり)", () => {
+  const form = read("../components/AccountForm.tsx");
+  const usedUp = form.indexOf('onClick={() => setPendingOutcome("used_up")}');
+  const finiteGuard = form.lastIndexOf('{accountType === "finite" && (', usedUp);
+  const stack = form.indexOf('<div className="form-btn-stack">');
+  assert.ok(stack < finiteGuard && finiteGuard < usedUp, "「使いきった」は完結型だけ");
+  const expired = form.indexOf('onClick={() => setPendingOutcome("expired")}');
+  assert.ok(form.slice(usedUp, expired).includes("使いきった\n              </button>\n            )}"), "「失効した」は条件の外");
+});
+
+test("確認の赤は、元に戻せない操作だけ。残高が続く種類の「失効した」はサービスの色(依頼259)", () => {
+  const form = read("../components/AccountForm.tsx");
+  assert.ok(form.includes('variant={accountType === "finite" ? "danger" : "normal"}'), "使いきった・失効した");
+  assert.ok(!form.includes('variant={pendingOutcome === "expired" ? "danger" : "normal"}'));
+  // 削除と「置き換える」は、元に戻せないので赤のまま
+  assert.equal(form.split('variant="danger"').length - 1, 2);
+  assert.ok(read("../components/ScanPhysicalUpload.tsx").includes('confirmLabel="置き換える"\n          busyLabel="置き換え中…"\n          variant="danger"'));
+});
+
+test("日本語の文の中のかっこは全角の「（」「）」(件数以外も。依頼259)", () => {
+  const form = read("../components/AccountForm.tsx");
+  for (const s of ["グループ名（任意）", "有効期限（任意）", "保管場所メモ（任意）", "円換算レート（任意）", "種類の名前（自由入力）", "完結型（使いきる/失効する）", "継続型（残高が増減し続ける）", '"ポイント（pt）"', "名前（自動）:"]) {
+    assert.ok(form.includes(s), s);
+  }
+  const physical = read("../components/ScanPhysicalUpload.tsx");
+  assert.ok(physical.includes('"この内容で登録する（同じものがあれば足す）"'));
+  assert.ok(physical.includes("読み取った内訳（確認用）"));
+  assert.ok(read("../app/reports/page.tsx").includes("残高の推移（継続型）"));
+  // 画面の文(ラベル、ボタン、説明)に、日本語を半角のかっこで囲んだ所がない。
+  // ポイント・残高の名前(「PayPayポイント(期間限定)」など。保存した名前と照らし合わせる)と「d(ドコモ)」は、名前なので除く
+  for (const f of SCREENS) {
+    const src = read(f)
+      .replace(/\/\/.*$/gm, "")
+      .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/console\.\w+\([^\n]*/g, "")
+      .replace(/"[^"\n]*ポイント\([^"\n]*\)"/g, "")
+      .replace(/d\(ドコモ\)/g, "")
+      .replace(/\(通常\)|\(期間限定\)/g, "");
+    const m = src.match(/[ぁ-んァ-ヶ一-龠]\([^()\n]*\)|\([ぁ-んァ-ヶ一-龠][^()\n]*\)/);
+    assert.ok(!m, f + ": " + (m ? m[0] : ""));
+  }
+});
+
+test("失敗の文: 直すときは「更新に失敗しました。」、新しく作るときは「登録に失敗しました。」。「保存に失敗」は設定だけ(依頼259)", () => {
+  const form = read("../components/AccountForm.tsx");
+  assert.ok(form.includes('setErrorMessage(isEditMode ? "更新に失敗しました。もう一度お試しください。" : "登録に失敗しました。もう一度お試しください。");'));
+  // 「置き換える」「今回の分を追加する」は、既存を直す
+  assert.equal(form.split('setErrorMessage("更新に失敗しました。もう一度お試しください。");').length - 1, 2);
+  assert.ok(!form.includes("保存に失敗"));
+  assert.ok(read("../components/QuickUpdate.tsx").includes('"更新に失敗しました。もう一度お試しください。"'));
+  assert.ok(read("../components/ScanUpload.tsx").includes('"更新に失敗しました。もう一度お試しください。"'));
+  assert.ok(read("../components/ScanPhysicalUpload.tsx").includes('matchedAccountId ? "更新に失敗しました。もう一度お試しください。" : "登録に失敗しました。もう一度お試しください。"'));
+  assert.ok(read("../components/AccountSettings.tsx").includes("保存に失敗しました。"));
+});

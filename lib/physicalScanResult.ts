@@ -7,7 +7,7 @@ export const MAX_ITEMS_PER_SCAN = 100;
 
 export const MSG_NOTHING_READ =
   "写真から切手を読み取れませんでした。明るい場所で、真上から、もう一度撮ってください";
-export const MSG_TOO_MANY = `枚数が多いようです。分けて撮り直してください(1回あたり${MAX_ITEMS_PER_SCAN}枚までを目安にしています)`;
+export const MSG_TOO_MANY = `枚数が多いようです。分けて撮り直してください（1回あたり${MAX_ITEMS_PER_SCAN}枚までを目安にしています）`;
 
 export interface PhysicalScanResponse {
   name: string | null;

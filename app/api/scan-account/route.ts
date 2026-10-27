@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
-        { error: "サーバー側にAPIキーが設定されていません(.env.localのANTHROPIC_API_KEYを確認してください)" },
+        { error: "サーバー側にAPIキーが設定されていません（.env.localのANTHROPIC_API_KEYを確認してください）" },
         { status: 500 }
       );
     }

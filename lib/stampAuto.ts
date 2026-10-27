@@ -49,7 +49,7 @@ export function stampAutoSummary(o: {
   if (!o.touched.unit && o.cur.unit === STAMP_AUTO_UNIT) parts.push("単位=円");
   if (!o.touched.expiry && o.cur.hasExpiry === false) parts.push("期限=なし", "通知=なし");
   if (parts.length === 0) return null;
-  return `自動で設定しました: ${parts.join("、")}(変更できます)`;
+  return `自動で設定しました: ${parts.join("、")}（変更できます）`;
 }
 
 // 読み取りの保存の前の画面で見せる一言。期限は、AI が読めた日付(なければ「なし」)。通知は、期限なしなら対象外、
@@ -60,5 +60,5 @@ export function scanStampSummary(o: { expiryDate: string; expiryTouched: boolean
     if (o.expiryDate === "") parts.push("期限=なし", "通知=なし");
     else parts.push(`期限=${o.expiryDate}`, "通知=90日前・21日前");
   }
-  return `自動で設定しました: ${parts.join("、")}(変更できます)`;
+  return `自動で設定しました: ${parts.join("、")}（変更できます）`;
 }

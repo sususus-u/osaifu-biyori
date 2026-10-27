@@ -97,7 +97,7 @@ export function buildDeleteConfirm(names: string[]) {
 }
 
 export const DELETE_FAILED_MESSAGE = "削除に失敗しました。もう一度お試しください。";
-export const DELETE_TOO_LARGE_MESSAGE = "履歴が多く、一度に削除できません。選ぶ件数を減らしてください(何も削除していません)";
+export const DELETE_TOO_LARGE_MESSAGE = "履歴が多く、一度に削除できません。選ぶ件数を減らしてください（何も削除していません）";
 
 // 成功したあとの画面の状態: 確認を閉じ、選択モードを抜け(選択は空)、上部のトーストを出す
 export function afterBulkDelete(count: number) {

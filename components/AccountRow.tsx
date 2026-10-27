@@ -55,8 +55,8 @@ function balanceDisplay(acc: AccountWithId) {
       }
       return (
         <>
-          {formatBalance(acc.currentBalance, acc.balanceUnit)}({yenValue.toLocaleString()}
-          <span style={{ fontSize: 11 }}>円相当</span>)
+          {formatBalance(acc.currentBalance, acc.balanceUnit)}（{yenValue.toLocaleString()}
+          <span style={{ fontSize: 11 }}>円相当</span>）
         </>
       );
     }

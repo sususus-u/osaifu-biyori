@@ -128,7 +128,7 @@ export type StampFaceParse =
 export function parseStampFace(raw: string): StampFaceParse {
   const t = raw.replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0)).replace(/[\s　]+/g, "");
   if (t === "") return { kind: "empty" };
-  if (!/^\d+$/.test(t)) return { kind: "invalid", message: "額面は、1以上の整数(数字だけ)で入力してください。" };
+  if (!/^\d+$/.test(t)) return { kind: "invalid", message: "額面は、1以上の整数（数字だけ）で入力してください。" };
   const n = Number(t);
   if (n < 1) return { kind: "invalid", message: "額面は、1円以上で入力してください。" };
   if (n > MAX_STAMP_FACE_VALUE) return { kind: "invalid", message: `額面は、${MAX_STAMP_FACE_VALUE.toLocaleString("ja-JP")}円以下で入力してください。` };
@@ -297,8 +297,8 @@ export function pickAddTarget<T extends ExistingItem>(
 // 1項目ぶんの案内
 export function stampItemText(p: StampPlanItem): string {
   return p.kind === "add"
-    ? `${p.name}に${p.addCount}枚追加しました(合計${p.newCount}枚)${p.multiple ? MULTIPLE_STAMP_NOTE : ""}`
-    : `${p.name}を新しく作りました(${p.count}枚)`;
+    ? `${p.name}に${p.addCount}枚追加しました（合計${p.newCount}枚）${p.multiple ? MULTIPLE_STAMP_NOTE : ""}`
+    : `${p.name}を新しく作りました（${p.count}枚）`;
 }
 
 // 手で登録する画面で「今回の分を追加する」を押したときの案内の文。
@@ -317,10 +317,10 @@ export function manualAddNotice(o: {
   const yen = (n: number) => `${n.toLocaleString("ja-JP")}${o.unit}`;
   const note = o.multiple ? (isStampName(name) ? MULTIPLE_STAMP_NOTE : MULTIPLE_NAME_NOTE) : "";
   if (isStampName(name) && o.addQuantity > 0) {
-    return `${name}に${o.addQuantity}枚追加しました(合計${o.newQuantity}枚)${note}`;
+    return `${name}に${o.addQuantity}枚追加しました（合計${o.newQuantity}枚）${note}`;
   }
-  if (o.addBalance !== 0) return `「${name}」に${yen(o.addBalance)}を追加しました(合計${yen(o.newBalance)})${note}`;
-  if (o.addQuantity > 0) return `「${name}」に${o.addQuantity}枚追加しました(合計${o.newQuantity}枚)${note}`;
+  if (o.addBalance !== 0) return `「${name}」に${yen(o.addBalance)}を追加しました（合計${yen(o.newBalance)}）${note}`;
+  if (o.addQuantity > 0) return `「${name}」に${o.addQuantity}枚追加しました（合計${o.newQuantity}枚）${note}`;
   return `「${name}」に追加しました${note}`;
 }
 
