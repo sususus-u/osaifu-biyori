@@ -122,3 +122,22 @@ test("一覧の枠の線(依頼270): 白い地と見出しの帯に対して、�
   assert.match(css, /\.notif-card \{[^}]*border: 1px solid var\(--list-frame-border\);/);
   assert.match(css, /\.list-empty \{[^}]*border: 1px dashed var\(--list-frame-border\);/);
 });
+
+test("お知らせを全部非表示にしたとき(依頼271): 「表示中のお知らせは、ありません。」。登録済みがゼロのときは「お知らせは、まだありません。」のまま", () => {
+  const top = read("../app/notifications/page.tsx");
+  assert.ok(top.includes(': "表示中のお知らせは、ありません。"}'));
+  assert.ok(!top.includes('"表示中のお知らせは、ありません"'));
+  assert.ok(top.includes("? ANNOUNCEMENT_EMPTY_TEXT"));
+});
+
+test("一覧ではない白い枠(依頼271): 一覧の枠と同じ線。区切りの線と入力の欄は変えない", () => {
+  const css = read("../app/globals.css");
+  assert.match(css, /\.settings-card \{[^}]*border: 1px solid var\(--list-frame-border\);/);
+  assert.ok(!/\.settings-card \{[^}]*border: 0\.5px solid #eee/.test(css));
+  // 入力の欄はそのまま
+  assert.match(css, /\.field input,\s*\.field select \{[^}]*border: 1px solid #ddd;/);
+  const scan = read("../components/ScanUpload.tsx");
+  assert.ok(scan.includes('className="border rounded-md p-4 space-y-3" style={{ borderColor: "var(--list-frame-border)" }}'));
+  // このサービスには暗い表示が無い
+  assert.ok(!css.includes("prefers-color-scheme"));
+});

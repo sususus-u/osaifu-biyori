@@ -413,7 +413,7 @@ export default function ScanUpload() {
         </p>
 
         {matchItems.map((item, index) => (
-          <div key={item.docId} className="border rounded-md p-4 space-y-3">
+          <div key={item.docId} className="border rounded-md p-4 space-y-3" style={{ borderColor: "var(--list-frame-border)" }}>
             <p className="text-sm font-medium">{item.name}</p>
 
             <p className="text-xs text-gray-500">

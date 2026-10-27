@@ -171,7 +171,7 @@ function HubAnnouncements() {
           <p>
             {announcements.length === 0
               ? ANNOUNCEMENT_EMPTY_TEXT
-              : "表示中のお知らせは、ありません"}
+              : "表示中のお知らせは、ありません。"}
           </p>
         </div>
         {announcements.length > 0 && <PastAnnouncementsLink />}

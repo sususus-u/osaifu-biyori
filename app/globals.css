@@ -18,7 +18,8 @@
 
   /* 一覧の枠の線(依頼270)。白い枠の線が薄すぎたので、画面の地(#fff)と枠の中(#fff)に対して 3.60:1、
      見出しの帯(#faf8f6)に対して 3.40:1(3:1 以上)。このサービスには暗い表示(ダークモード)が無いので、明るい表示の値だけ。
-     区切りの線や入力の欄は変えない(一覧の枠と、ゼロ件の点線の枠だけに使う) */
+     区切りの線や入力の欄は変えない(一覧の枠と、ゼロ件の点線の枠に使う)。
+     依頼271: 一覧ではない白い枠(.card、.settings-card、スクショの読み取りの「同じ名前」の枠など)も、この線にそろえた */
   --list-frame-border: #8f8580;
 
   --radius-card: 16px;
@@ -229,7 +230,8 @@ button {
 
 .settings-card {
   background: #fff;
-  border: 0.5px solid #eee;
+  /* 一覧ではない白い枠も、一覧の枠と同じ線(依頼271。前は 0.5px の #eee で、白い地に対して 1.2:1 と見えにくかった) */
+  border: 1px solid var(--list-frame-border);
   border-radius: var(--radius-card);
   padding: 0 16px;
 }
