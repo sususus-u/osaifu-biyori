@@ -44,15 +44,41 @@ test("失敗のあとの案内は「もう一度お試しください。」。�
   }
 });
 
-test("1件1件は「項目」。タブは「発行元別」。画面の題", () => {
+test("1件1件は「ポイント・残高」(「項目」とは呼ばない。依頼253)。タブは「発行元別」。画面の題", () => {
   const shell = read("../components/AppShell.tsx");
   assert.ok(shell.includes('"/": "おさいふの中身"'));
-  assert.ok(shell.includes('"/accounts/new": "項目を登録"'));
-  assert.ok(shell.includes('return "項目を編集"'));
+  assert.ok(shell.includes('"/accounts/new": "ポイント・残高を登録"'));
+  assert.ok(shell.includes('return "ポイント・残高を編集"'));
   assert.ok(read("../components/AccountList.tsx").includes('label: "発行元別"'));
   const form = read("../components/AccountForm.tsx");
-  assert.ok(form.includes("この項目を削除する"));
+  assert.ok(form.includes("このポイント・残高を削除する"));
+  assert.ok(form.includes('isEditMode ? "更新する" : "登録する"'));
   assert.ok(!form.includes("このサービス"));
+  // 画面に出る文に「項目」を使わない(コメントは除く)
+  const uiOnly = (src: string) => src.replace(/\/\/.*$/gm, "").replace(/\{\/\*[\s\S]*?\*\/\}/g, "");
+  for (const f of SCREENS) assert.ok(!uiOnly(read(f)).includes("項目"), f + ": 「項目」");
+  assert.ok(!uiOnly(read("./hubRecordCheck.ts")).includes("項目"));
+  assert.ok(!uiOnly(read("./stampMerge.ts")).includes("項目"));
+});
+
+test("「+」は半角(全角の「＋」は使わない。依頼253)", () => {
+  for (const f of SCREENS) assert.ok(!read(f).includes("＋"), f);
+});
+
+test("1人ごとの1日の AI の回数の上限の文(依頼253)", () => {
+  assert.ok(
+    read("./usageLimit.ts").includes(
+      '"今日の AI の読み取りは、上限の回数に届きました。明日また使えます。手入力で登録できます。"',
+    ),
+  );
+});
+
+test("削除のボタンは、どこでも .btn-danger の形(依頼253)", () => {
+  const css = read("../app/globals.css");
+  assert.match(css, /\.btn-danger \{[^}]*background: #fff;[^}]*color: #b3261e;[^}]*border: 1px solid #b3261e;[^}]*border-radius: var\(--radius-pill\);/);
+  assert.ok(read("../components/AccountForm.tsx").includes('className="btn-danger"'));
+  assert.ok(read("../components/AccountList.tsx").includes('className="btn-danger btn-danger-compact"'));
+  assert.ok(read("../components/ScanPhysicalUpload.tsx").includes('className="btn-danger btn-danger-small"'));
 });
 
 test("現物の読み取り: 作ったら「登録しました」、足した・置き換えたら「更新しました」(「保存しました」は設定だけ)", () => {
@@ -61,10 +87,13 @@ test("現物の読み取り: 作ったら「登録しました」、足した・
   assert.ok(!src.includes("保存しました"));
 });
 
-test("お知らせを選んで消す操作は「削除」と書く", () => {
+test("お知らせは一覧から隠すだけなので「非表示にする」と書く(依頼253)", () => {
   const src = read("../app/notifications/page.tsx");
-  assert.ok(src.includes("選んだお知らせを削除する"));
-  assert.ok(src.includes('件を削除する"'));
+  assert.ok(src.includes("選んだお知らせを非表示にする"));
+  assert.ok(src.includes('"件のお知らせを非表示にしますか？"'));
+  assert.ok(src.includes('"件を非表示にする"'));
+  assert.ok(src.includes('"件のお知らせを非表示にしました"'));
+  assert.ok(!src.replace(/\/\/.*$/gm, "").includes("削除"));
   assert.ok(!src.includes("消しますか"));
 });
 

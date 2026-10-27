@@ -18,11 +18,11 @@ test("おさいふびよりの一覧: タブごとの件数(閉じている月�
   has("<ListCount total={withExpiry.length} />");
   has("<ListCount total={noExpiry.length} />");
   has("<ListCount total={accounts.length} />");
-  has("<p>まだ期間限定の項目が登録されていません。</p>");
-  has("<p>まだ期限なしの項目が登録されていません。</p>");
-  has("<p>まだ項目が登録されていません。</p>");
-  // ゼロ件の登録ボタンは「+」付き(依頼252)
-  assert.equal(list.split("+ 項目を登録する").length - 1, 4);
+  has("<p>まだ期間限定のポイント・残高が登録されていません。</p>");
+  has("<p>まだ期限なしのポイント・残高が登録されていません。</p>");
+  has("<p>まだポイント・残高が登録されていません。</p>");
+  // ゼロ件の登録ボタンは半角の「+」付き(依頼252・依頼253)
+  assert.equal(list.split("+ ポイント・残高を登録する").length - 1, 4);
   has('<Link href="/accounts/new" className="btn-primary list-empty-btn">');
   assert.ok(!list.includes("登録されたサービスがありません"));
   // 「全○件」の下に、控えめなリンク(クイック更新)

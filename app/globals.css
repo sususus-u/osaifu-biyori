@@ -452,6 +452,28 @@ button {
   font-size: 14px;
   font-weight: 500;
 }
+/* 削除のボタンは、どこでも .btn-danger の形(依頼253)。並びの中に置く小さいものは .btn-danger-compact を足す */
+.btn-danger.btn-danger-compact {
+  width: auto;
+  flex: none;
+  padding: 0 16px;
+  min-height: 44px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.btn-danger.btn-danger-small {
+  width: auto;
+  flex: none;
+  padding: 8px 10px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.btn-danger:disabled {
+  color: #555;
+  background: #eee;
+  border-color: #bbb;
+  cursor: default;
+}
 
 .btn-ghost {
   background: none;

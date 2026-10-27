@@ -165,7 +165,7 @@ test("「失効した」(依頼234): 残高が続く種類は「元に戻す」�
   const has = (src: string, s: string) => assert.ok(src.includes(s), s);
   const form = read("../components/AccountForm.tsx");
   has(form, "expiredNotice(accountId, name, { id: accountId, before, updateIds: [] }, outcomeRef.id),");
-  has(form, '"記録を残し、この項目は一覧から消えます。元に戻せません。"');
+  has(form, '"記録を残し、このポイント・残高は一覧から消えます。元に戻せません。"');
   has(read("./undoRestoreFirestore.ts"), 'await deleteDoc(doc(db, "outcome_events", outcomeId));');
 });
 

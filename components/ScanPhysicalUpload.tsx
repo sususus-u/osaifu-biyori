@@ -469,7 +469,7 @@ export default function ScanPhysicalUpload() {
         <div className="card" style={{ marginTop: 8 }}>
           {matchedAccountId && !stampMode && (
             <p style={{ fontSize: 12, color: "var(--brand)", marginBottom: 12 }}>
-              既存の項目と同じ名前です。現在の残高:¥{(existingBalance ?? 0).toLocaleString()}
+              登録済みのポイント・残高と同じ名前です。現在の残高:¥{(existingBalance ?? 0).toLocaleString()}
             </p>
           )}
           {overLimit && <p style={{ fontSize: 12, color: "#b3261e", marginBottom: 8 }}>{MSG_TOO_MANY}</p>}
@@ -535,7 +535,7 @@ export default function ScanPhysicalUpload() {
                   type="text"
                   value={rowName(row)}
                   onChange={(e) => changeRows(updateRow(rows, i, { name: e.target.value }))}
-                  placeholder="項目の名前(例:切手 1円)"
+                  placeholder="名前(例:切手 1円)"
                   maxLength={40}
                   style={{ width: "100%", marginBottom: 4 }}
                 />
@@ -565,16 +565,8 @@ export default function ScanPhysicalUpload() {
                     type="button"
                     onClick={() => changeRows(removeRow(rows, i))}
                     aria-label="この行を削除"
-                    style={{
-                      flexShrink: 0,
-                      padding: "8px 10px",
-                      fontSize: 13,
-                      color: "#b3261e",
-                      background: "#fff",
-                      border: "1px solid #b3261e",
-                      borderRadius: "var(--radius-pill)",
-                      whiteSpace: "nowrap",
-                    }}
+                    className="btn-danger btn-danger-small"
+                    style={{ flexShrink: 0 }}
                   >
                     削除
                   </button>
@@ -603,7 +595,7 @@ export default function ScanPhysicalUpload() {
             </p>
             {stampMode && (
               <p style={{ fontSize: 12, color: "var(--brand)", marginTop: 4 }}>
-                額面ごとに別の項目として保存します。同じ名前・額面の項目があれば、枚数と合計金額を足します
+                額面ごとに別のポイント・残高として登録します。同じ名前・額面のものがあれば、枚数と合計金額を足します
               </p>
             )}
             <p style={{ fontSize: 12, color: "#999", marginTop: 4 }}>
@@ -620,7 +612,7 @@ export default function ScanPhysicalUpload() {
             <div className="field">
               <label>合計金額(円)</label>
               <p style={{ fontSize: 14 }}>
-                {rowsTotals(rows).amount.toLocaleString()}円(額面×枚数を、項目ごとに足します)
+                {rowsTotals(rows).amount.toLocaleString()}円(額面×枚数を、行ごとに足した額)
               </p>
             </div>
           ) : (
@@ -690,7 +682,7 @@ export default function ScanPhysicalUpload() {
               className="btn-primary"
               style={{ width: "100%" }}
             >
-              {isSaving ? "保存中…" : stampMode ? "この内容で登録する(同じ項目があれば足す)" : "この内容で登録する"}
+              {isSaving ? "保存中…" : stampMode ? "この内容で登録する(同じものがあれば足す)" : "この内容で登録する"}
             </button>
           )}
         </div>

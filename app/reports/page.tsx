@@ -176,7 +176,7 @@ export default function ReportsPage() {
                 className="collapse-toggle"
                 style={{ padding: "6px 0 0" }}
               >
-                {showUsedUpList ? "－ 閉じる" : "＋ 内訳を見る"}
+                {showUsedUpList ? "－ 閉じる" : "+ 内訳を見る"}
               </button>
             )}
             {showUsedUpList && (
@@ -209,7 +209,7 @@ export default function ReportsPage() {
                 className="collapse-toggle"
                 style={{ padding: "6px 0 0" }}
               >
-                {showExpiredList ? "－ 閉じる" : "＋ 内訳を見る"}
+                {showExpiredList ? "－ 閉じる" : "+ 内訳を見る"}
               </button>
             )}
             {showExpiredList && (
@@ -230,7 +230,7 @@ export default function ReportsPage() {
           <p style={{ fontSize: 12, color: "#999", margin: "0 0 6px" }}>期間限定残高</p>
           <div className="card" style={{ padding: 0, overflow: "hidden", marginBottom: 12 }}>
             {withExpiryRows.length === 0 && (
-              <p style={{ fontSize: 13, color: "#999", padding: 14 }}>対象の項目がありません</p>
+              <p style={{ fontSize: 13, color: "#999", padding: 14 }}>対象のポイント・残高がありません</p>
             )}
             {withExpiryRows.map((row) => (
               <div
@@ -254,7 +254,7 @@ export default function ReportsPage() {
           <p style={{ fontSize: 12, color: "#999", margin: "0 0 6px" }}>期限なし残高</p>
           <div className="card" style={{ padding: 0, overflow: "hidden" }}>
             {noExpiryRows.length === 0 && (
-              <p style={{ fontSize: 13, color: "#999", padding: 14 }}>対象の項目がありません</p>
+              <p style={{ fontSize: 13, color: "#999", padding: 14 }}>対象のポイント・残高がありません</p>
             )}
             {noExpiryRows.map((row) => (
               <div

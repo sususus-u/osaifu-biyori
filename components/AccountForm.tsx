@@ -1441,7 +1441,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
                   marginTop: 8,
                 }}
               >
-                ◀ 前の項目に戻る
+                ◀ 前のポイント・残高に戻る
               </button>
             )}
             <button
@@ -1458,7 +1458,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
                 marginTop: 8,
               }}
             >
-              この項目は登録しない
+              このポイント・残高は登録しない
             </button>
           </div>
         )}
@@ -1466,7 +1466,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
         {!isEditMode && duplicateAccount ? (
           <>
             <p style={{ fontSize: 13, color: "#555", marginBottom: 12 }}>
-              同じ名前の項目が既にあります。現在の残高:¥{duplicateAccount.currentBalance ?? 0}
+              同じ名前のポイント・残高が既にあります。現在の残高:¥{duplicateAccount.currentBalance ?? 0}
               {duplicateAccount.itemQuantity !== null && duplicateAccount.itemQuantity !== undefined && (
                 <>(枚数:{duplicateAccount.itemQuantity}枚)</>
               )}
@@ -1534,14 +1534,14 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
             className="btn-danger"
             style={{ marginTop: 12 }}
           >
-            この項目を削除する
+            このポイント・残高を削除する
           </button>
         )}
       </form>
 
       {showDeleteModal && (
         <ConfirmSheet
-          title={"「" + (name || "この項目") + "」を削除しますか？"}
+          title={"「" + (name || "このポイント・残高") + "」を削除しますか？"}
           description="元に戻せません。履歴も一緒に消えます。"
           confirmLabel="削除する"
           busyLabel="削除中…"
@@ -1556,13 +1556,13 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
         <ConfirmSheet
           title={
             accountType === "continuous"
-              ? "「" + (name || "この項目") + "」の失効を記録しますか？"
-              : "「" + (name || "この項目") + "」を" + (pendingOutcome === "used_up" ? "使いきった" : "失効した") + "ものとして記録しますか？"
+              ? "「" + (name || "このポイント・残高") + "」の失効を記録しますか？"
+              : "「" + (name || "このポイント・残高") + "」を" + (pendingOutcome === "used_up" ? "使いきった" : "失効した") + "ものとして記録しますか？"
           }
           description={
             accountType === "continuous"
               ? "残高は0にリセットされます。"
-              : "記録を残し、この項目は一覧から消えます。元に戻せません。"
+              : "記録を残し、このポイント・残高は一覧から消えます。元に戻せません。"
           }
           confirmLabel="記録する"
           busyLabel="記録中…"

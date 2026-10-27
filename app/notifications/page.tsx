@@ -8,8 +8,8 @@
 // ないため、当面は固定文言のみを表示する。
 // 「運営からのお知らせ」は、ハブの GET /api/announcements を
 // /api/announcements 経由(サーバー中継)で問い合わせて表示する。
-// 利用者は選んだお知らせを自分の画面から消せる(端末にだけ記録し、サーバーは変えない)。
-// 消したものも含めたすべては「過去のお知らせ」(/notifications/all)で見られる。
+// 利用者は選んだお知らせを、この一覧で非表示にできる(端末にだけ記録し、サーバーは変えない。依頼253で「削除」から「非表示にする」に)。
+// 非表示にしたものも含めたすべては「過去のお知らせ」(/notifications/all)で見られる。
 
 import ConfirmSheet from "@/components/ConfirmSheet";
 import BottomToast from "@/components/BottomToast";
@@ -125,19 +125,22 @@ function PastAnnouncementsLink() {
 function HubAnnouncements() {
   const { uid } = useAuth();
   const announcements = useAnnouncements();
-  // 利用者が自分の画面から消したもの。この一覧からは外す(サーバー側は変えない)。
+  // 利用者が非表示にしたもの。この一覧からは外す(サーバー側は変えない)。
   const dismissedIds = useDismissedAnnouncementIds();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showConfirm, setShowConfirm] = useState(false);
+  // 非表示にしたあとの知らせ(画面の下に6秒。元に戻せないので「元に戻す」は付けない)
+  const [hiddenMessage, setHiddenMessage] = useState<string | null>(null);
 
   function toggleSelected(id: string) {
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]));
   }
 
-  function handleDismiss() {
+  function handleDismiss(count: number) {
     dismissAnnouncements(selectedIds);
     setSelectedIds([]);
     setShowConfirm(false);
+    setHiddenMessage(count + "件のお知らせを非表示にしました");
   }
 
   // このタブを開いた時点で最新のお知らせを見たとみなし、既読相当の日時を記録する
@@ -156,6 +159,10 @@ function HubAnnouncements() {
 
   const visible = announcements.filter((a) => !dismissedIds.includes(a.id));
 
+  const hiddenToast = hiddenMessage && (
+    <BottomToast message={hiddenMessage} durationMs={STAMP_TOAST_MS} onClose={() => setHiddenMessage(null)} />
+  );
+
   if (visible.length === 0) {
     return (
       <>
@@ -167,11 +174,12 @@ function HubAnnouncements() {
           </p>
         </div>
         {announcements.length > 0 && <PastAnnouncementsLink />}
+        {hiddenToast}
       </>
     );
   }
 
-  // 画面に出ていないもの(消した直後など)は数えない。
+  // 画面に出ていないもの(非表示にした直後など)は数えない。
   const selectedCount = selectedIds.filter((id) => visible.some((a) => a.id === id)).length;
 
   return (
@@ -183,7 +191,7 @@ function HubAnnouncements() {
           disabled={selectedCount === 0}
           onClick={() => setShowConfirm(true)}
         >
-          選んだお知らせを削除する{selectedCount > 0 ? `(${selectedCount}件)` : ""}
+          選んだお知らせを非表示にする{selectedCount > 0 ? `(${selectedCount}件)` : ""}
         </button>
       </div>
 
@@ -208,19 +216,20 @@ function HubAnnouncements() {
 
       {showConfirm && (
         <ConfirmSheet
-          title={"選んだ" + selectedCount + "件のお知らせを削除しますか？"}
+          title={"選んだ" + selectedCount + "件のお知らせを非表示にしますか？"}
           description={
             <>
-              選んだお知らせは、この一覧から消えます。<strong>削除したあとは、元に戻せません。</strong>
+              選んだお知らせは、この一覧に出なくなります。<strong>この一覧に戻すことはできません。</strong>
               「過去のお知らせ」からは、引き続き読むことができます。
             </>
           }
-          confirmLabel={selectedCount + "件を削除する"}
+          confirmLabel={selectedCount + "件を非表示にする"}
           variant="danger"
-          onConfirm={handleDismiss}
+          onConfirm={() => handleDismiss(selectedCount)}
           onClose={() => setShowConfirm(false)}
         />
       )}
+      {hiddenToast}
     </>
   );
 }

@@ -167,7 +167,7 @@ export default function ScanUpload() {
 
       const { groupName, accountName, investedAccountName } = normalizeServiceName(serviceName);
 
-      setStatusMessage("既存の項目を確認しています…");
+      setStatusMessage("登録済みのポイント・残高を確認しています…");
 
       // 内訳(期間・用途限定ポイント等)が見つかった場合は、通常分/限定分の2口座に分けて扱う。
       // 実際に値が読み取れなかった項目については、空の確認項目を出さないようtargetを作らない。
@@ -230,7 +230,7 @@ export default function ScanUpload() {
       if (targets.length === 0) {
         setIsProcessing(false);
         setStatusMessage("");
-        setErrorMessage("読み取れる項目が見つかりませんでした。手入力で登録してください。");
+        setErrorMessage("読み取れるポイント・残高が見つかりませんでした。手入力で登録してください。");
         return;
       }
 
@@ -409,7 +409,7 @@ export default function ScanUpload() {
       <div className="max-w-md mx-auto p-6 space-y-4">
         <h1 className="text-lg font-semibold">読み取り内容の確認</h1>
         <p className="text-sm text-gray-500">
-          既に同じ名前の項目があります。内容を確認・修正してから保存してください。
+          既に同じ名前のポイント・残高があります。内容を確認・修正してから更新してください。
         </p>
 
         {matchItems.map((item, index) => (
@@ -499,7 +499,7 @@ export default function ScanUpload() {
           className="btn-outline"
           style={{ width: "100%" }}
         >
-          別の項目として登録する
+          別のポイント・残高として登録する
         </button>
 
         <button
@@ -518,7 +518,7 @@ export default function ScanUpload() {
   return (
     <div>
       <p style={{ fontSize: 13, color: "#999" }}>
-        残高・期限が写ったスクリーンショットを選んでください。同じ名前の項目がすでにあれば内容を確認してから更新し、初めての項目なら内容確認画面に進みます。
+        残高・期限が写ったスクリーンショットを選んでください。同じ名前のポイント・残高がすでにあれば内容を確認してから更新し、初めてのものなら内容確認画面に進みます。
       </p>
       <Link href="/accounts/scan-physical" style={{ fontSize: 13, color: "var(--brand)", textDecoration: "underline" }}>
         切手・紙の商品券などの現物はこちら →

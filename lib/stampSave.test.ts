@@ -458,10 +458,10 @@ test("注意: 読み取りの保存は、候補が2件以上のときだけ文�
 test("注意: 手動の文。切手は「同じ額面」、切手以外は「同じ名前」。1件なら付かない", () => {
   const base = { addQuantity: 5, newQuantity: 23, addBalance: 5, newBalance: 23, unit: "円" };
   assert.equal(manualAddNotice({ ...base, name: "切手1円" }), "切手 1円に5枚追加しました(合計23枚)");
-  assert.equal(manualAddNotice({ ...base, name: "切手1円", multiple: true }), "切手 1円に5枚追加しました(合計23枚)。同じ額面の項目が複数あります。");
+  assert.equal(manualAddNotice({ ...base, name: "切手1円", multiple: true }), "切手 1円に5枚追加しました(合計23枚)。同じ額面のポイント・残高が複数あります。");
   assert.equal(
     manualAddNotice({ name: "楽天ポイント", addQuantity: 0, newQuantity: 0, addBalance: 500, newBalance: 1500, unit: "ポイント", multiple: true }),
-    "「楽天ポイント」に500ポイントを追加しました(合計1,500ポイント)。同じ名前の項目が複数あります。"
+    "「楽天ポイント」に500ポイントを追加しました(合計1,500ポイント)。同じ名前のポイント・残高が複数あります。"
   );
 });
 

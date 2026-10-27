@@ -584,9 +584,9 @@ export default function AccountList() {
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {monthKeys.length === 0 && withExpiryUndated.length === 0 && (
                 <div className="list-empty">
-                  <p>まだ期間限定の項目が登録されていません。</p>
+                  <p>まだ期間限定のポイント・残高が登録されていません。</p>
                   <Link href="/accounts/new" className="btn-primary list-empty-btn">
-                    + 項目を登録する
+                    + ポイント・残高を登録する
                   </Link>
                 </div>
               )}
@@ -656,7 +656,7 @@ export default function AccountList() {
                           }}
                         >
                           <span>{key}</span>
-                          <span style={{ color: "#bbb" }}>{expanded ? "－" : "＋"}</span>
+                          <span style={{ color: "#bbb" }}>{expanded ? "－" : "+"}</span>
                         </button>
                       </div>
                     ) : (
@@ -674,7 +674,7 @@ export default function AccountList() {
                         }}
                       >
                         <span>{key}</span>
-                        <span style={{ color: "#bbb" }}>{expanded ? "－" : "＋"}</span>
+                        <span style={{ color: "#bbb" }}>{expanded ? "－" : "+"}</span>
                       </button>
                     )}
                     {expanded && (
@@ -698,9 +698,9 @@ export default function AccountList() {
           ) : (
             withExpiry.length === 0 ? (
               <div className="list-empty">
-                  <p>まだ期間限定の項目が登録されていません。</p>
+                  <p>まだ期間限定のポイント・残高が登録されていません。</p>
                   <Link href="/accounts/new" className="btn-primary list-empty-btn">
-                    + 項目を登録する
+                    + ポイント・残高を登録する
                   </Link>
                 </div>
             ) : (
@@ -750,9 +750,9 @@ export default function AccountList() {
           </div>
           {noExpiry.length === 0 ? (
             <div className="list-empty">
-                  <p>まだ期限なしの項目が登録されていません。</p>
+                  <p>まだ期限なしのポイント・残高が登録されていません。</p>
                   <Link href="/accounts/new" className="btn-primary list-empty-btn">
-                    + 項目を登録する
+                    + ポイント・残高を登録する
                   </Link>
                 </div>
           ) : (
@@ -798,9 +798,9 @@ export default function AccountList() {
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {serviceGroupKeys.length === 0 && (
               <div className="list-empty">
-                  <p>まだ項目が登録されていません。</p>
+                  <p>まだポイント・残高が登録されていません。</p>
                   <Link href="/accounts/new" className="btn-primary list-empty-btn">
-                    + 項目を登録する
+                    + ポイント・残高を登録する
                   </Link>
                 </div>
             )}
@@ -890,16 +890,7 @@ export default function AccountList() {
                 setDeleteError(null);
                 setConfirmOpen(true);
               }}
-              style={{
-                minHeight: 44,
-                padding: "0 16px",
-                fontSize: 14,
-                fontWeight: 600,
-                color: deleteIds.length === 0 ? "#555" : "#fff",
-                background: deleteIds.length === 0 ? "#eee" : "#b3261e",
-                border: deleteIds.length === 0 ? "1.5px solid #bbb" : "1.5px solid #b3261e",
-                borderRadius: 999,
-              }}
+              className="btn-danger btn-danger-compact"
             >
               削除
             </button>

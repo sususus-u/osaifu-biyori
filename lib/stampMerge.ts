@@ -269,8 +269,8 @@ export function planStampSave(existing: ExistingItem[], rows: SaveRow[]): StampP
 }
 
 // 足す対象の候補が2件以上あるときの注意(案内の同じ枠の中に続ける)
-export const MULTIPLE_STAMP_NOTE = "。同じ額面の項目が複数あります。";
-export const MULTIPLE_NAME_NOTE = "。同じ名前の項目が複数あります。";
+export const MULTIPLE_STAMP_NOTE = "。同じ額面のポイント・残高が複数あります。";
+export const MULTIPLE_NAME_NOTE = "。同じ名前のポイント・残高が複数あります。";
 
 // 手動の「今回の分を追加する」の足し先を選ぶ。読み取りの保存と同じ規則(名前を正規化、古い順の先頭)。
 // 「切手 N円」の名前: 種類 gift_certificate・額面 N が合うものから選ぶ(読み取りの保存の matches と同じ)。

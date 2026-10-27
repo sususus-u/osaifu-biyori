@@ -99,7 +99,7 @@ test("ログは決まった印で始まる1行で、[AI_PAUSED] とは別", () =
 test("窓口は機能を渡し、合計の上限では「休んでいます」(503)を返し、失敗のときは点数も戻す", () => {
   const usage = readFileSync(new URL("./usageLimit.ts", import.meta.url), "utf8");
   assert.match(usage, /consumed\.blocked === "budget"[\s\S]*?aiPausedBody\(\), \{ status: 503 \}/);
-  assert.match(usage, /aiBudgetLog\(route, consumed\.used, consumed\.limit\)\);\s+await notifyAdmin\(ADMIN_AI_DAILY_BUDGET\);/);
+  assert.match(usage, /aiBudgetLog\(route, consumed\.used, consumed\.limit\)\);\s+await notifyOperator\("ai-daily-limit"\);/);
   assert.match(usage, /budgetRef\.update\(\{ points: FieldValue\.increment\(-points\)/);
   assert.match(usage, /expireAt: Timestamp\.fromMillis\(Date\.now\(\) \+ AI_BUDGET_RETENTION_DAYS \* DAY_MS\)/);
   assert.equal(AI_BUDGET_COLLECTION, "usage_global_tamari");

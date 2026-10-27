@@ -211,11 +211,11 @@ export default function QuickUpdate() {
             スクショの読み取り結果:{pendingScan.balance}
             {pendingScan.balanceUnit ?? ""}
             {pendingScan.expiryDate ? `、期限${pendingScan.expiryDate}` : ""}
-            。該当する項目を選んでください
+            。該当するポイント・残高を選んでください
           </p>
         )}
 
-        <p className="text-sm text-gray-500">更新する項目を選んでください</p>
+        <p className="text-sm text-gray-500">更新するポイント・残高を選んでください</p>
         <p className="text-xs text-gray-400 flex items-center gap-1">
           <Lightbulb size={12} className="shrink-0" />
           スマホの画面分割機能を使うと、サービスのアプリと見比べながら入力できて便利です
@@ -235,7 +235,7 @@ export default function QuickUpdate() {
         <ul className="divide-y border rounded-md">
           {groupKeys.length === 0 && (
             <li className="px-3 py-4 text-sm text-gray-500">
-              まだ継続型の項目が登録されていません。
+              まだ継続型のポイント・残高が登録されていません。
             </li>
           )}
           {groupKeys.map((key) => {

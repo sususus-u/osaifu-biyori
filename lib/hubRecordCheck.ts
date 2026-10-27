@@ -18,7 +18,7 @@ export class RecordLimitError extends Error {
   }
 }
 
-const FALLBACK_MESSAGE = "項目の数の上限に達しました。不要な項目を削除するか、プランの変更をご検討ください。";
+const FALLBACK_MESSAGE = "ポイント・残高の数の上限に達しました。不要なポイント・残高を削除するか、プランの変更をご検討ください。";
 
 export type HubCheckResult = { ok: true } | { ok: false; message: string };
 

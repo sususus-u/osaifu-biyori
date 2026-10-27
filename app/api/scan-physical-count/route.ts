@@ -5,8 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { guardAiRead } from "@/lib/usageLimit";
 import { isSpendLimitError, aiPausedBody, aiPausedLog } from "@/lib/aiPaused";
-import { notifyAdmin } from "@/lib/adminPushFirestore";
-import { ADMIN_AI_PAUSED } from "@/lib/adminPush";
+import { notifyOperator } from "@/lib/operatorNotify";
 import { buildScanLog, buildScanErrorLog } from "@/lib/scanLog";
 import { PHYSICAL_SCAN_PROMPT } from "@/lib/physicalScanPrompt";
 import { resolvePhysicalScanModel } from "@/lib/physicalScanModel";
@@ -98,7 +97,7 @@ export async function POST(req: NextRequest) {
     await refund?.();
     if (isSpendLimitError(error)) {
       console.error(aiPausedLog("scan-physical-count"));
-      await notifyAdmin(ADMIN_AI_PAUSED);
+      await notifyOperator("ai-budget-limit");
       return NextResponse.json(aiPausedBody(), { status: 503 });
     }
     return NextResponse.json({ error: "読み取りに失敗しました。もう一度お試しいただくか、手入力で登録してください。" }, { status: 500 });
