@@ -16,7 +16,7 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthProvider";
 import { CATEGORY_DEFAULTS, type AccountCategory, type AccountDoc } from "@/types/firestore";
 import AccountRow, { type AccountWithId } from "@/components/AccountRow";
-import BottomToast, { SELECT_BAR_LIFT } from "@/components/BottomToast";
+import BottomToast, { FLOAT_BOTTOM, SELECT_BAR_LIFT } from "@/components/BottomToast";
 import { GroupCheck } from "@/components/SelectCheck";
 import ConfirmSheet from "@/components/ConfirmSheet";
 import {
@@ -859,6 +859,7 @@ export default function AccountList() {
       )}
 
       {/* 選択モードの下部バー。画面の下(下部ナビ .tabbar の上)に固定する。.tabbar は高さ78pxの別の枠。
+          「+ 登録」の丸が上の線より 8px 出るので、その 4px 上(画面の下から 90px、FLOAT_BOTTOM)に置く(依頼274)。
           一覧の末尾に同じ高さの余白を足して、最後の行が隠れないようにする。削除は段階2で有効にする */}
       {selectMode && (
         <>
@@ -866,7 +867,7 @@ export default function AccountList() {
           <div
             style={{
               position: "fixed",
-              bottom: 78,
+              bottom: FLOAT_BOTTOM,
               left: "50%",
               transform: "translateX(-50%)",
               width: "min(100%, 480px)",

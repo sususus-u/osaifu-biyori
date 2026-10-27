@@ -458,27 +458,37 @@ textarea::placeholder {
   color: var(--brand);
 }
 
-/* 「+ 登録」の丸(依頼273の追記。3つのサービス共通): 下のメニューの中で、上下の真ん中に置く(上の線より上に出さない)。
-   直径40px(ホームバーのある iPhone でも、行の高さ 43px に収まる)、地はブランドの色(--brand)。白い文字との比は 10.29:1(4.5:1 以上。--brand-dark とは 12.75:1)。開いている間は、ブランドの濃い色(--brand-dark) */
-.tabbar-add,
-.tabbar-add.active {
+/* 「+ 登録」の丸(依頼274。3つのサービス共通): 直径58px(白い縁3px を含む)、地はブランドの色(--brand)。
+   丸の上の端は、どの端末でも、下のメニューの上の線より --register-protrusion(8px)だけ上に出す。
+   位置はメニューの上の線から決める(下の余白 env(safe-area-inset-bottom) には関係させない):
+   項目(.tabbar-add)は、メニューの上の線(0.5px)のすぐ下から始まる。丸は、そこから線の太さと 8px だけ上に置く。
+   白い文字との比は 10.29:1(4.5:1 以上)。登録の画面を開いている間も、丸の見た目は変えない(aria-current だけ付ける) */
+:root {
+  --register-protrusion: 8px;
+}
+.tabbar-add {
+  position: relative;
   color: #fff;
 }
 .tabbar-add-circle {
-  width: 40px;
-  height: 40px;
+  position: absolute;
+  top: calc(-1 * var(--register-protrusion) - 0.5px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  box-sizing: border-box;
+  width: 58px;
+  height: 58px;
+  border: 3px solid #fff;
   border-radius: 50%;
   background: var(--brand);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 1px;
   color: #fff;
-}
-.tabbar-add.active .tabbar-add-circle {
-  background: var(--brand-dark);
 }
 .tabbar-add-label {
   font-size: 12px;

@@ -8,15 +8,21 @@
 //   - 「元に戻す」付き(onUndo)は、次の操作(知らせの外を押す、Esc)をするまで出したまま。✕ でも閉じる。
 //     「元に戻す」は白い線と白い文字、✕ は白い文字にして、塗った地の上でも見えるようにする。
 // 隠れない工夫:
-//   - 下のメニュー(.tabbar、高さ 78px)の上に出す。一覧の「○件を選択中」のバーが出ているときは、lift でその上に出す。
+//   - 下のメニュー(.tabbar、高さ 78px)の上に出す。「+ 登録」の丸が上の線より 8px 出るので、その 4px 上(画面の下から 90px)に置く(依頼274)。一覧の「○件を選択中」のバーが出ているときは、lift でその上に出す。
 //   - 出ている間は、知らせの高さの分を --bottom-toast-space に入れ、.scroll の下の余白に足す
 //     (いちばん下の行まで、知らせより上にスクロールできる)。
 import { useEffect, useLayoutEffect, useRef } from "react";
 
 export const TABBAR_HEIGHT = 78;
 export const TOAST_GAP = 8;
-// 一覧の選択モードの下のバー(AccountList。高さ 44px のボタン + 上下 10px + 線 1px)の分
-export const SELECT_BAR_LIFT = 65;
+// 「+ 登録」の丸が、下のメニューの上の線より上に出る高さ(依頼274。app/globals.css の --register-protrusion と同じ)
+export const REGISTER_PROTRUSION = 8;
+// 丸の上の端と、メニューの上に出す帯(この知らせ、「○件を選択中」のバー)との、最低のすき間
+export const REGISTER_CLEARANCE = 4;
+// メニューの上に出す帯の、下の端の位置(画面の下から 78 + 8 + 4 = 90px。丸と重ならない)
+export const FLOAT_BOTTOM = TABBAR_HEIGHT + REGISTER_PROTRUSION + REGISTER_CLEARANCE;
+// 一覧の選択モードの下のバー(AccountList。高さ 44px のボタン + 上下 10px + 線 1px = 65px)と、その上のすき間 8px の分
+export const SELECT_BAR_LIFT = 65 + TOAST_GAP;
 
 export default function BottomToast({
   message,
@@ -107,7 +113,7 @@ export default function BottomToast({
         position: "fixed",
         left: "50%",
         transform: "translateX(-50%)",
-        bottom: TABBAR_HEIGHT + TOAST_GAP + lift,
+        bottom: FLOAT_BOTTOM + lift,
         width: "min(calc(100% - 24px), 456px)",
         zIndex: 40,
       }}

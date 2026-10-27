@@ -695,3 +695,21 @@
 - 未確認: 実機での見え方。
 
 - 追記(2026-10-27、依頼273): 丸を直径40px、「+」を16px に小さくした。ホームバーのある iPhone では、下の余白が 34px になり、メニューの行の高さが 43px しかないため、48px だと丸が上の線から少し出てしまう。40px なら、どの端末でもメニューの中に収まる。3つのサービスとも同じ。戻す先: e6379a8。
+
+## 「+ 登録」の丸を元の大きさに、8px だけ飛び出す(2026-10-27、依頼274)
+
+- 3つのサービス共通の新しい決まり(ハブの BRAND.md 5章「下のメニューの共通の作り」)に合わせた。
+  - 丸: 直径58px(白い縁3px を含む。box-sizing: border-box)、地は --brand、影 0 2px 6px rgba(0,0,0,0.25)。中に白い「+」(20px、線の太さ2.5)と白い「登録」(12px、太字、行の高さ1)、すき間1px。
+  - 位置: 丸の上の端は、どの端末でも、メニューの上の線より 8px 上(--register-protrusion: 8px)。項目(.tabbar-add)を position: relative にし、丸を position: absolute; top: calc(-1 * var(--register-protrusion) - 0.5px)(上の線 0.5px の分)、left: 50%、translateX(-50%) で置く。下の余白(env(safe-area-inset-bottom))には関係させない。ホームバーのある iPhone では、丸の下の端が下の余白に少し入る。
+  - 幅はほかの項目と同じ(flex: 1)。メニューの高さ78pxと、下の余白の決まりは変えていない。
+  - 登録の画面を開いている間も、丸の見た目は変えない(--brand-dark の決まりと active の印をやめた。aria-current="page" は残す)。
+- 場所: app/globals.css(:root の --register-protrusion、.tabbar-add、.tabbar-add-circle)、components/AppShell.tsx(「登録」の項目)、components/BottomToast.tsx(REGISTER_PROTRUSION・REGISTER_CLEARANCE・FLOAT_BOTTOM・SELECT_BAR_LIFT)、components/AccountList.tsx(「○件を選択中」のバー)。
+- 重なりの確認(メニューの上に出るもの。丸の上の端より 4px 以上 上、つまり画面の下から 90px 以上):
+  - 知らせ・「元に戻す」(BottomToast): 78 + 8 = 86px → FLOAT_BOTTOM(78 + 8 + 4 = 90px)に上げた。
+  - 「○件を選択中」のバー(一覧): 78px(メニューのすぐ上で、丸と重なっていた)→ 90px に上げた。バーが出ているときの知らせは、バー(65px)とすき間 8px の上(SELECT_BAR_LIFT = 65 + 8。画面の下から 163px)。
+  - 確認のシート(ConfirmSheet)と、写真の読み取り中の表示: 画面全体を覆う(z-index 100)ので、丸(z-index 10)より上。直していない。
+  - 一覧の上の「選択中」の操作(position: sticky; top: 0)は、画面の上なので関係しない。ほかに下に固定するバナーは無い。
+  - 中身のいちばん下の余白: 100px(> 78 + 8 = 86px)。そのまま。選択中は、一覧の末尾の余白 80px も足される(バーの上の端は .scroll の下から 77px)。
+- テスト: lib/tabbarAdd.test.ts を書き直した(8件。58px・白い縁・影、--register-protrusion と位置の指定、safe-area に関係させない・高さ78px、開いている間も見た目を変えない、「+」20px と「登録」、幅と行き先、帯の位置(90px 以上)と中身の余白、白い字との比)。lib/bottomToast.test.ts の知らせの位置の確認を FLOAT_BOTTOM に直した。全部で 317 件。型チェック・lint・ビルドも通った。
+- 戻す先: 664b83b。
+- 未確認: 実機(ホームバーのある iPhone、Android)での見え方。

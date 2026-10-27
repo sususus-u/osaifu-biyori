@@ -34,7 +34,7 @@ test("知らせは画面の下(下のメニューのすぐ上)。地をサービ
   assert.ok(contrast(brand, "#ffffff") >= 4.5, brand);
   assert.match(toast, new RegExp(`export const TABBAR_HEIGHT = ${tabbar};`));
   assert.match(toast, /position: "fixed",/);
-  assert.match(toast, /bottom: TABBAR_HEIGHT \+ TOAST_GAP \+ lift,/);
+  assert.match(toast, /bottom: FLOAT_BOTTOM \+ lift,/);
   for (const look of ['color: "#fff"', 'background: "var(--brand)"', 'border: "1px solid var(--brand)"', 'borderRadius: "var(--radius-card)"', 'boxShadow: "0 4px 14px rgba(0, 0, 0, 0.15)"', "fontSize: 14", "lineHeight: 1.6"]) {
     assert.ok(toast.includes(look), look);
   }
