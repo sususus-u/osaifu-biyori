@@ -188,7 +188,7 @@ export async function guardAiRead(
     return {
       ok: false,
       response: NextResponse.json(
-        { error: "ただいま読み取りを受け付けられません。時間をおいて再度お試しください。" },
+        { error: "ただいま読み取りを受け付けられません。時間をおいてもう一度お試しください。" },
         { status: 503 },
       ),
     };

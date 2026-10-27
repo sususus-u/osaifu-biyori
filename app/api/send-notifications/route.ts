@@ -76,7 +76,7 @@ export async function GET(req: NextRequest) {
       const result = await adminMessaging.sendEachForMulticast({
         tokens,
         notification: {
-          title: "気づき通知",
+          title: "おさいふびより:期限のお知らせ",
           body,
         },
         webpush: {

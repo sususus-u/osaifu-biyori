@@ -101,6 +101,6 @@ export async function POST(req: NextRequest) {
       await notifyAdmin(ADMIN_AI_PAUSED);
       return NextResponse.json(aiPausedBody(), { status: 503 });
     }
-    return NextResponse.json({ error: "読み取りに失敗しました" }, { status: 500 });
+    return NextResponse.json({ error: "読み取りに失敗しました。もう一度お試しいただくか、手入力で登録してください。" }, { status: 500 });
   }
 }

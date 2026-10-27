@@ -150,7 +150,7 @@ test("複数削除: 1件だけのときは deleteAccounts(履歴→親)を使い
 
 test("確認の文: 名前は5件まで。超えたら「ほかN件」。注意の文", () => {
   const three = buildDeleteConfirm(["A", "B", "C"]);
-  assert.equal(three.title, "3件を削除しますか?");
+  assert.equal(three.title, "3件を削除しますか？");
   assert.deepEqual(three.shown, ["A", "B", "C"]);
   assert.equal(three.restText, "");
   assert.equal(three.confirmLabel, "3件を削除する");

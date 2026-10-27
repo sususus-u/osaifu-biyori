@@ -61,7 +61,7 @@ export function listenForForegroundMessages() {
 
   const messaging = getMessaging(app);
   onMessage(messaging, (payload) => {
-    const title = payload.notification?.title || "気づき通知";
+    const title = payload.notification?.title || "おさいふびより:お知らせ";
     const body = payload.notification?.body || "";
     new Notification(title, { body });
   });

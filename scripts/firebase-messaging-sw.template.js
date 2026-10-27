@@ -11,7 +11,7 @@ firebase.initializeApp(__FIREBASE_CONFIG__);
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-  const title = payload.notification?.title || "気づき通知";
+  const title = payload.notification?.title || "おさいふびより:お知らせ";
   const body = payload.notification?.body || "";
   self.registration.showNotification(title, { body });
 });

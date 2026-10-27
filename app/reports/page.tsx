@@ -160,7 +160,7 @@ export default function ReportsPage() {
         </button>
       </div>
 
-      {isFetching && <p style={{ fontSize: 13, color: "#999" }}>集計しています...</p>}
+      {isFetching && <p style={{ fontSize: 13, color: "#999" }}>集計しています…</p>}
 
       {!isFetching && (
         <>
@@ -230,7 +230,7 @@ export default function ReportsPage() {
           <p style={{ fontSize: 12, color: "#999", margin: "0 0 6px" }}>期間限定残高</p>
           <div className="card" style={{ padding: 0, overflow: "hidden", marginBottom: 12 }}>
             {withExpiryRows.length === 0 && (
-              <p style={{ fontSize: 13, color: "#999", padding: 14 }}>対象のサービスがありません</p>
+              <p style={{ fontSize: 13, color: "#999", padding: 14 }}>対象の項目がありません</p>
             )}
             {withExpiryRows.map((row) => (
               <div
@@ -254,7 +254,7 @@ export default function ReportsPage() {
           <p style={{ fontSize: 12, color: "#999", margin: "0 0 6px" }}>期限なし残高</p>
           <div className="card" style={{ padding: 0, overflow: "hidden" }}>
             {noExpiryRows.length === 0 && (
-              <p style={{ fontSize: 13, color: "#999", padding: 14 }}>対象のサービスがありません</p>
+              <p style={{ fontSize: 13, color: "#999", padding: 14 }}>対象の項目がありません</p>
             )}
             {noExpiryRows.map((row) => (
               <div

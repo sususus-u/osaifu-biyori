@@ -164,7 +164,7 @@ export default function QuickUpdate() {
       setEditingRows([]);
     } catch (error) {
       console.error(error);
-      setSaveError("保存に失敗しました");
+      setSaveError("保存に失敗しました。もう一度お試しください。");
     } finally {
       setIsSaving(false);
     }
@@ -211,11 +211,11 @@ export default function QuickUpdate() {
             スクショの読み取り結果:{pendingScan.balance}
             {pendingScan.balanceUnit ?? ""}
             {pendingScan.expiryDate ? `、期限${pendingScan.expiryDate}` : ""}
-            。該当するサービスを選んでください
+            。該当する項目を選んでください
           </p>
         )}
 
-        <p className="text-sm text-gray-500">更新するサービスを選んでください</p>
+        <p className="text-sm text-gray-500">更新する項目を選んでください</p>
         <p className="text-xs text-gray-400 flex items-center gap-1">
           <Lightbulb size={12} className="shrink-0" />
           スマホの画面分割機能を使うと、サービスのアプリと見比べながら入力できて便利です
@@ -235,7 +235,7 @@ export default function QuickUpdate() {
         <ul className="divide-y border rounded-md">
           {groupKeys.length === 0 && (
             <li className="px-3 py-4 text-sm text-gray-500">
-              継続型のサービスがまだ登録されていません
+              まだ継続型の項目が登録されていません。
             </li>
           )}
           {groupKeys.map((key) => {
@@ -303,7 +303,7 @@ export default function QuickUpdate() {
         disabled={isSaving}
         className="w-full bg-gray-900 text-white rounded-md py-3 text-base font-medium disabled:opacity-50"
       >
-        {isSaving ? "更新中..." : "更新する"}
+        {isSaving ? "更新中…" : "更新する"}
       </button>
     </div>
   );

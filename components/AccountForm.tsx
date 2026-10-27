@@ -1001,7 +1001,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
             ))}
           </datalist>
           <p style={{ fontSize: 13, color: "#999", marginTop: 6 }}>
-            サービス名だけを入れてください(例:PayPay)。「残高」「ポイント」などの区別は、下の「名前」欄の方に入れます。同じグループ名を付けておくと、一覧の「サービス別」タブでまとめて表示されます
+            サービス名だけを入れてください(例:PayPay)。「残高」「ポイント」などの区別は、下の「名前」欄の方に入れます。同じグループ名を付けておくと、一覧の「発行元別」タブでまとめて表示されます
           </p>
         </div>
 
@@ -1466,7 +1466,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
         {!isEditMode && duplicateAccount ? (
           <>
             <p style={{ fontSize: 13, color: "#555", marginBottom: 12 }}>
-              同じ名前のサービスが既にあります。現在の残高:¥{duplicateAccount.currentBalance ?? 0}
+              同じ名前の項目が既にあります。現在の残高:¥{duplicateAccount.currentBalance ?? 0}
               {duplicateAccount.itemQuantity !== null && duplicateAccount.itemQuantity !== undefined && (
                 <>(枚数:{duplicateAccount.itemQuantity}枚)</>
               )}
@@ -1479,7 +1479,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
                   disabled={isSubmitting || isDeleting}
                   className="btn-primary"
                 >
-                  {isSubmitting ? "保存中..." : "置き換える"}
+                  {isSubmitting ? "保存中…" : "置き換える"}
                 </button>
               )}
               {duplicateAccount.type === "finite" && (
@@ -1489,17 +1489,17 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
                   disabled={isSubmitting || isDeleting}
                   className="btn-primary"
                 >
-                  {isSubmitting ? "保存中..." : "今回の分を追加する"}
+                  {isSubmitting ? "保存中…" : "今回の分を追加する"}
                 </button>
               )}
               <button type="submit" disabled={isSubmitting || isDeleting} className="btn-primary">
-                {isSubmitting ? "保存中..." : "新たに登録する"}
+                {isSubmitting ? "保存中…" : "新たに登録する"}
               </button>
             </div>
           </>
         ) : (
           <button type="submit" disabled={isSubmitting || isDeleting} className="btn-primary">
-            {isSubmitting ? "保存中..." : isEditMode ? "更新する" : "登録する"}
+            {isSubmitting ? "保存中…" : isEditMode ? "更新する" : "登録する"}
           </button>
         )}
 
@@ -1534,17 +1534,17 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
             className="btn-danger"
             style={{ marginTop: 12 }}
           >
-            このサービスを削除する
+            この項目を削除する
           </button>
         )}
       </form>
 
       {showDeleteModal && (
         <ConfirmSheet
-          title={"「" + (name || "このサービス") + "」を削除しますか?"}
+          title={"「" + (name || "この項目") + "」を削除しますか？"}
           description="元に戻せません。履歴も一緒に消えます。"
           confirmLabel="削除する"
-          busyLabel="削除中..."
+          busyLabel="削除中…"
           variant="danger"
           busy={isDeleting}
           onConfirm={handleDelete}
@@ -1556,16 +1556,16 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
         <ConfirmSheet
           title={
             accountType === "continuous"
-              ? "「" + (name || "このサービス") + "」の失効を記録しますか?"
-              : "「" + (name || "このサービス") + "」を" + (pendingOutcome === "used_up" ? "使いきった" : "失効した") + "ものとして記録しますか?"
+              ? "「" + (name || "この項目") + "」の失効を記録しますか？"
+              : "「" + (name || "この項目") + "」を" + (pendingOutcome === "used_up" ? "使いきった" : "失効した") + "ものとして記録しますか？"
           }
           description={
             accountType === "continuous"
               ? "残高は0にリセットされます。"
-              : "記録を残し、このサービスは一覧から消えます。元に戻せません。"
+              : "記録を残し、この項目は一覧から消えます。元に戻せません。"
           }
           confirmLabel="記録する"
-          busyLabel="記録中..."
+          busyLabel="記録中…"
           variant={pendingOutcome === "expired" ? "danger" : "normal"}
           busy={isRecordingOutcome}
           onConfirm={() => handleOutcome(pendingOutcome)}
@@ -1574,7 +1574,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
       )}
       {showReplaceConfirm && duplicateAccount && (
         <ConfirmSheet
-          title="置き換えますか?"
+          title="置き換えますか？"
           description={replaceDescription(
             replaceChanges(
               {
@@ -1593,7 +1593,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
             )
           )}
           confirmLabel="置き換える"
-          busyLabel="置き換え中..."
+          busyLabel="置き換え中…"
           variant="danger"
           busy={isSubmitting}
           onConfirm={async () => {

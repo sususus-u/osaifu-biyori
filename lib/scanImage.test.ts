@@ -22,10 +22,10 @@ test("413(本文が JSON でない) → 撮り直しの文言", async () => {
 });
 test("JSONでない応答(500のHTML、200のテキスト)でも、生の例外を出さない", async () => {
   await assert.rejects(readScanJson(new Response("<html>error</html>", { status: 500 })), {
-    message: "読み取りに失敗しました",
+    message: "読み取りに失敗しました。もう一度お試しいただくか、手入力で登録してください。",
   });
   await assert.rejects(readScanJson(new Response("Rate limit", { status: 200 })), {
-    message: "読み取りに失敗しました",
+    message: "読み取りに失敗しました。もう一度お試しいただくか、手入力で登録してください。",
   });
 });
 test("サーバーの案内文(上限到達など)は、そのまま使う", async () => {

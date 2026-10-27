@@ -41,7 +41,7 @@ export default function NotificationSetup() {
         disabled={status === "loading"}
         className="text-xs border border-gray-300 rounded-md px-4 min-h-11 disabled:opacity-50 flex items-center justify-center gap-1"
       >
-        <Bell size={12} /> {status === "loading" ? "設定中..." : "通知を有効にする"}
+        <Bell size={12} /> {status === "loading" ? "設定中…" : "通知を有効にする"}
       </button>
       {status === "error" && <p className="text-xs text-red-600 mt-1">{errorReason}</p>}
     </div>

@@ -372,10 +372,10 @@ test("切手の読み取り: 準備中、読み取り中の順に出る。どち
 });
 
 test("スクショの読み取り: 処理中だけ出る。文が空なら準備中、読み取りの文なら読み取り中、ほかはその文", () => {
-  assert.equal(busyViewForScan(false, "画像を読み取っています..."), null);
+  assert.equal(busyViewForScan(false, "画像を読み取っています…"), null);
   assert.equal(busyViewForScan(true, "")!.title, BUSY_PREPARING);
-  assert.equal(busyViewForScan(true, "画像を読み取っています...")!.title, BUSY_READING);
-  assert.equal(busyViewForScan(true, "既存のサービスを確認しています...")!.title, "既存のサービスを確認しています…");
+  assert.equal(busyViewForScan(true, "画像を読み取っています…")!.title, BUSY_READING);
+  assert.equal(busyViewForScan(true, "既存の項目を確認しています…")!.title, "既存の項目を確認しています…");
 });
 import { stashStampSavedMessage, takeStampSavedMessage } from "./stampToast.ts";
 

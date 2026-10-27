@@ -7,7 +7,7 @@ export const SCAN_IMAGE_QUALITY = 0.8;
 
 export const SCAN_TOO_LARGE_MESSAGE =
   "写真が大きすぎて読み取れませんでした。もう一度、撮り直してください";
-const SCAN_FAILED_MESSAGE = "読み取りに失敗しました";
+export const SCAN_FAILED_MESSAGE = "読み取りに失敗しました。もう一度お試しいただくか、手入力で登録してください。";
 
 // 長辺が max を超えるときだけ、縦横比を保って縮める(拡大はしない)
 export function computeTargetSize(width: number, height: number, max = SCAN_IMAGE_MAX_EDGE) {

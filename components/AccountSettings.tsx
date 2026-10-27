@@ -64,7 +64,7 @@ export default function AccountSettings() {
       await setDoc(doc(db, "users", uid), { displayName: trimmed }, { merge: true });
       setDoneMessage("保存しました");
     } catch {
-      setMessage("保存に失敗しました。時間をおいて再度お試しください。");
+      setMessage("保存に失敗しました。時間をおいてもう一度お試しください。");
     } finally {
       setSaving(false);
     }

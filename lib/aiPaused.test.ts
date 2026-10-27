@@ -51,6 +51,6 @@ test("2つの窓口は、上限のときだけ 503 と印を返し、運営者�
   for (const route of ["scan-account", "scan-physical-count"]) {
     const src = readFileSync(new URL(`../app/api/${route}/route.ts`, import.meta.url), "utf8");
     assert.match(src, new RegExp(`if \\(isSpendLimitError\\(error\\)\\) \\{\\s+console\\.error\\(aiPausedLog\\("${route}"\\)\\);\\s+await notifyAdmin\\(ADMIN_AI_PAUSED\\);\\s+return NextResponse\\.json\\(aiPausedBody\\(\\), \\{ status: 503 \\}\\);`));
-    assert.match(src, /return NextResponse\.json\(\{ error: "読み取りに失敗しました" \}, \{ status: 500 \}\);/);
+    assert.match(src, /return NextResponse\.json\(\{ error: "読み取りに失敗しました。もう一度お試しいただくか、手入力で登録してください。" \}, \{ status: 500 \}\);/);
   }
 });

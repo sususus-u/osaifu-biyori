@@ -120,7 +120,7 @@ export default function ScanUpload() {
     try {
       const { base64, mediaType } = await prepareScanImage(file);
 
-      setStatusMessage("画像を読み取っています...");
+      setStatusMessage("画像を読み取っています…");
       // 1日の回数をアカウントごとに数えるため、本人のIDトークンを付けて送る。
       // 上限に達した場合は、サーバーからの案内文(data.error)をそのまま表示する。
       const res = await authFetch("/api/scan-account", {
@@ -167,7 +167,7 @@ export default function ScanUpload() {
 
       const { groupName, accountName, investedAccountName } = normalizeServiceName(serviceName);
 
-      setStatusMessage("既存のサービスを確認しています...");
+      setStatusMessage("既存の項目を確認しています…");
 
       // 内訳(期間・用途限定ポイント等)が見つかった場合は、通常分/限定分の2口座に分けて扱う。
       // 実際に値が読み取れなかった項目については、空の確認項目を出さないようtargetを作らない。
@@ -306,7 +306,7 @@ export default function ScanUpload() {
       router.push("/accounts/new");
     } catch (error) {
       console.error(error);
-      setErrorMessage(error instanceof Error ? error.message : "読み取りに失敗しました");
+      setErrorMessage(error instanceof Error ? error.message : "読み取りに失敗しました。もう一度お試しいただくか、手入力で登録してください。");
       setIsProcessing(false);
     }
   }
@@ -409,7 +409,7 @@ export default function ScanUpload() {
       <div className="max-w-md mx-auto p-6 space-y-4">
         <h1 className="text-lg font-semibold">読み取り内容の確認</h1>
         <p className="text-sm text-gray-500">
-          既に同じ名前のサービスがあります。内容を確認・修正してから保存してください。
+          既に同じ名前の項目があります。内容を確認・修正してから保存してください。
         </p>
 
         {matchItems.map((item, index) => (
@@ -483,7 +483,7 @@ export default function ScanUpload() {
           className="btn-primary"
           style={{ width: "100%" }}
         >
-          {isSaving ? "更新中..." : "この内容で更新する"}
+          {isSaving ? "更新中…" : "この内容で更新する"}
         </button>
 
         <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "16px 0" }}>
@@ -499,7 +499,7 @@ export default function ScanUpload() {
           className="btn-outline"
           style={{ width: "100%" }}
         >
-          別サービスとして登録する
+          別の項目として登録する
         </button>
 
         <button
@@ -518,7 +518,7 @@ export default function ScanUpload() {
   return (
     <div>
       <p style={{ fontSize: 13, color: "#999" }}>
-        残高・期限が写ったスクリーンショットを選んでください。同じ名前のサービスがすでにあれば内容を確認してから更新し、初めてのサービスなら内容確認画面に進みます。
+        残高・期限が写ったスクリーンショットを選んでください。同じ名前の項目がすでにあれば内容を確認してから更新し、初めての項目なら内容確認画面に進みます。
       </p>
       <Link href="/accounts/scan-physical" style={{ fontSize: 13, color: "var(--brand)", textDecoration: "underline" }}>
         切手・紙の商品券などの現物はこちら →

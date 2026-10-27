@@ -223,7 +223,7 @@ export default function ScanPhysicalUpload() {
       }
     } catch (error) {
       console.error(error);
-      setErrorMessage(error instanceof Error ? error.message : "読み取りに失敗しました");
+      setErrorMessage(error instanceof Error ? error.message : "読み取りに失敗しました。もう一度お試しいただくか、手入力で登録してください。");
     } finally {
       setIsProcessing(false);
     }
@@ -339,8 +339,10 @@ export default function ScanPhysicalUpload() {
         undo = { createIds: [created.id], restores: [] };
       }
 
-      setSavedMessage(`「${name}」を保存しました`);
-      stashStampSavedMessage(window.sessionStorage, { message: `「${name}」を保存しました`, items: [], undo });
+      // 新しく作ったら「登録しました」、既存に足した・置き換えたら「更新しました」(依頼252)
+      const savedText = `「${name}」を${matchedAccountId ? "更新しました" : "登録しました"}`;
+      setSavedMessage(savedText);
+      stashStampSavedMessage(window.sessionStorage, { message: savedText, items: [], undo });
       setTimeout(() => router.push("/"), 800);
     } catch (error) {
       console.error(error);
@@ -426,7 +428,7 @@ export default function ScanPhysicalUpload() {
       {busy && <BusyIndicator title={busy.title} note={busy.note} />}
       {showReplaceConfirm && (
         <ConfirmSheet
-          title="置き換えますか?"
+          title="置き換えますか？"
           description={
             <>
               {(() => {
@@ -450,7 +452,7 @@ export default function ScanPhysicalUpload() {
             </>
           }
           confirmLabel="置き換える"
-          busyLabel="置き換え中..."
+          busyLabel="置き換え中…"
           variant="danger"
           busy={isSaving}
           onConfirm={async () => {
@@ -467,7 +469,7 @@ export default function ScanPhysicalUpload() {
         <div className="card" style={{ marginTop: 8 }}>
           {matchedAccountId && !stampMode && (
             <p style={{ fontSize: 12, color: "var(--brand)", marginBottom: 12 }}>
-              既存のサービスと同じ名前です。現在の残高:¥{(existingBalance ?? 0).toLocaleString()}
+              既存の項目と同じ名前です。現在の残高:¥{(existingBalance ?? 0).toLocaleString()}
             </p>
           )}
           {overLimit && <p style={{ fontSize: 12, color: "#b3261e", marginBottom: 8 }}>{MSG_TOO_MANY}</p>}
@@ -668,7 +670,7 @@ export default function ScanPhysicalUpload() {
                 className="btn-primary"
                 style={{ flex: 1 }}
               >
-                {isSaving ? "保存中..." : "置き換える"}
+                {isSaving ? "保存中…" : "置き換える"}
               </button>
               <button
                 type="button"
@@ -677,7 +679,7 @@ export default function ScanPhysicalUpload() {
                 className="btn-primary"
                 style={{ flex: 1 }}
               >
-                {isSaving ? "保存中..." : "今回の分を追加する"}
+                {isSaving ? "保存中…" : "今回の分を追加する"}
               </button>
             </div>
           ) : (
@@ -688,7 +690,7 @@ export default function ScanPhysicalUpload() {
               className="btn-primary"
               style={{ width: "100%" }}
             >
-              {isSaving ? "保存中..." : stampMode ? "この内容で登録する(同じ項目があれば足す)" : "この内容で登録する"}
+              {isSaving ? "保存中…" : stampMode ? "この内容で登録する(同じ項目があれば足す)" : "この内容で登録する"}
             </button>
           )}
         </div>

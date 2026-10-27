@@ -66,14 +66,14 @@ function PushToggle() {
         setMessage(
           data.error === "no_subscription"
             ? "この端末では通知が許可されていません。ホームの通知設定をご確認ください。"
-            : "切り替えに失敗しました。時間をおいて再度お試しください。",
+            : "切り替えに失敗しました。時間をおいてもう一度お試しください。",
         );
         return;
       }
       setEnabled(next);
       setDoneMessage(next ? "通知をONにしました" : "通知をOFFにしました");
     } catch {
-      setMessage("切り替えに失敗しました。時間をおいて再度お試しください。");
+      setMessage("切り替えに失敗しました。時間をおいてもう一度お試しください。");
     } finally {
       setSaving(false);
     }
@@ -183,7 +183,7 @@ function HubAnnouncements() {
           disabled={selectedCount === 0}
           onClick={() => setShowConfirm(true)}
         >
-          選んだお知らせを消す{selectedCount > 0 ? `(${selectedCount}件)` : ""}
+          選んだお知らせを削除する{selectedCount > 0 ? `(${selectedCount}件)` : ""}
         </button>
       </div>
 
@@ -208,14 +208,14 @@ function HubAnnouncements() {
 
       {showConfirm && (
         <ConfirmSheet
-          title={"選んだ" + selectedCount + "件のお知らせを消しますか?"}
+          title={"選んだ" + selectedCount + "件のお知らせを削除しますか？"}
           description={
             <>
-              この一覧から消します。<strong>消したあとは、元に戻せません。</strong>
+              選んだお知らせは、この一覧から消えます。<strong>削除したあとは、元に戻せません。</strong>
               「過去のお知らせ」からは、引き続き読むことができます。
             </>
           }
-          confirmLabel={selectedCount + "件を消す"}
+          confirmLabel={selectedCount + "件を削除する"}
           variant="danger"
           onConfirm={handleDismiss}
           onClose={() => setShowConfirm(false)}

@@ -21,8 +21,8 @@ import { useDismissedAnnouncementIds } from "@/lib/dismissedAnnouncements";
 const HUB_URL = "https://okizukibiyori.com/";
 
 const SCREEN_TITLES: Record<string, string> = {
-  "/": "サービス一覧",
-  "/accounts/new": "サービスを登録",
+  "/": "おさいふの中身",
+  "/accounts/new": "項目を登録",
   "/accounts/scan": "スクショで登録",
   "/accounts/quick-update": "クイック更新",
   "/menu": "メニュー",
@@ -40,7 +40,7 @@ export function useHasNewAnnouncement(): boolean {
 
 function getTitle(pathname: string): string {
   if (SCREEN_TITLES[pathname]) return SCREEN_TITLES[pathname];
-  if (pathname.startsWith("/accounts/") && pathname.endsWith("/edit")) return "サービスを編集";
+  if (pathname.startsWith("/accounts/") && pathname.endsWith("/edit")) return "項目を編集";
   return "おさいふびより";
 }
 

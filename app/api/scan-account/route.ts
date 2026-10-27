@@ -113,6 +113,6 @@ JSONを作成する前に、まず画面に表示されているすべての項�
       await notifyAdmin(ADMIN_AI_PAUSED);
       return NextResponse.json(aiPausedBody(), { status: 503 });
     }
-    return NextResponse.json({ error: "読み取りに失敗しました" }, { status: 500 });
+    return NextResponse.json({ error: "読み取りに失敗しました。もう一度お試しいただくか、手入力で登録してください。" }, { status: 500 });
   }
 }

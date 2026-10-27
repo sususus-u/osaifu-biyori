@@ -5,7 +5,7 @@ import { displayAccountName } from "./stampMerge.ts";
 import type { StampSavedPayload } from "./stampToast.ts";
 import type { RestoreChange } from "./undoRestore.ts";
 
-export const UNDO_FAILED_MESSAGE = "取り消しに失敗しました。もう一度お試しください。";
+export const UNDO_FAILED_MESSAGE = "元に戻せませんでした。もう一度お試しください。";
 
 const label = (name: string) => `「${displayAccountName(name.trim())}」`;
 

@@ -526,7 +526,7 @@ export default function AccountList() {
         {[
           { key: "withExpiry", label: "期間限定" },
           { key: "noExpiry", label: "期限なし" },
-          { key: "byGroup", label: "サービス別" },
+          { key: "byGroup", label: "発行元別" },
         ].map((t) => (
           <button
             key={t.key}
@@ -584,9 +584,9 @@ export default function AccountList() {
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {monthKeys.length === 0 && withExpiryUndated.length === 0 && (
                 <div className="list-empty">
-                  <p>まだ期間限定のサービスが登録されていません。</p>
+                  <p>まだ期間限定の項目が登録されていません。</p>
                   <Link href="/accounts/new" className="btn-primary list-empty-btn">
-                    サービスを登録する
+                    + 項目を登録する
                   </Link>
                 </div>
               )}
@@ -698,9 +698,9 @@ export default function AccountList() {
           ) : (
             withExpiry.length === 0 ? (
               <div className="list-empty">
-                  <p>まだ期間限定のサービスが登録されていません。</p>
+                  <p>まだ期間限定の項目が登録されていません。</p>
                   <Link href="/accounts/new" className="btn-primary list-empty-btn">
-                    サービスを登録する
+                    + 項目を登録する
                   </Link>
                 </div>
             ) : (
@@ -750,9 +750,9 @@ export default function AccountList() {
           </div>
           {noExpiry.length === 0 ? (
             <div className="list-empty">
-                  <p>まだ期限なしのサービスが登録されていません。</p>
+                  <p>まだ期限なしの項目が登録されていません。</p>
                   <Link href="/accounts/new" className="btn-primary list-empty-btn">
-                    サービスを登録する
+                    + 項目を登録する
                   </Link>
                 </div>
           ) : (
@@ -798,9 +798,9 @@ export default function AccountList() {
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {serviceGroupKeys.length === 0 && (
               <div className="list-empty">
-                  <p>まだサービスが登録されていません。</p>
+                  <p>まだ項目が登録されていません。</p>
                   <Link href="/accounts/new" className="btn-primary list-empty-btn">
-                    サービスを登録する
+                    + 項目を登録する
                   </Link>
                 </div>
             )}
@@ -927,7 +927,7 @@ export default function AccountList() {
             </>
           }
           confirmLabel={deleteConfirm.confirmLabel}
-          busyLabel="削除中..."
+          busyLabel="削除中…"
           variant="danger"
           busy={deleting}
           onConfirm={runDelete}

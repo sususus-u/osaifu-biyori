@@ -33,7 +33,7 @@ export default function LogoutButton() {
       // メニューは未ログインでも見られるため、トップへ移って案内の画面を出す
       router.replace("/");
     } catch {
-      setError("ログアウトできませんでした。もう一度お試しください");
+      setError("ログアウトできませんでした。もう一度お試しください。");
       setConfirming(false);
     } finally {
       setBusy(false);
@@ -70,7 +70,7 @@ export default function LogoutButton() {
 
       {confirming && (
         <ConfirmSheet
-          title="ログアウトしますか?"
+          title="ログアウトしますか？"
           description="この端末に残っている、おさいふびよりのデータも消えます。"
           confirmLabel="ログアウトする"
           busyLabel="処理中…"
