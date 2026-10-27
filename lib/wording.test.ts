@@ -85,7 +85,7 @@ test("1人ごとの1日の AI の回数の上限の文(依頼253)", () => {
 test("削除のボタンは、どこでも .btn-danger の形(依頼253)", () => {
   const css = read("../app/globals.css");
   assert.match(css, /\.btn-danger \{[^}]*background: #fff;[^}]*color: #b3261e;[^}]*border: 1px solid #b3261e;[^}]*border-radius: var\(--radius-pill\);/);
-  assert.ok(read("../components/AccountForm.tsx").includes('className="btn-danger"'));
+  assert.ok(read("../components/AccountForm.tsx").includes('className="btn-danger form-btn form-btn-danger-gap"'));
   assert.ok(read("../components/AccountList.tsx").includes('className="btn-danger btn-danger-compact"'));
   assert.ok(read("../components/ScanPhysicalUpload.tsx").includes('className="btn-danger btn-danger-small"'));
 });
@@ -110,4 +110,67 @@ test("利用者向けの通知の題は「おさいふびより:何の知らせ�
   assert.ok(read("../app/api/send-notifications/route.ts").includes('title: "おさいふびより:期限のお知らせ"'));
   assert.ok(read("./messaging.ts").includes('|| "おさいふびより:お知らせ"'));
   assert.ok(read("../scripts/firebase-messaging-sw.template.js").includes('|| "おさいふびより:お知らせ"'));
+});
+
+test("編集の画面のボタン: 更新する、ほかの操作、少し空けて削除。横いっぱい、同じ高さ(依頼257)", () => {
+  const css = read("../app/globals.css");
+  // 4つの形に同じ修飾を足し、高さ・余白・文字をそろえる
+  assert.match(
+    css,
+    /\.btn-primary\.form-btn,\s*\.btn-outline\.form-btn,\s*\.btn-outline-warm\.form-btn,\s*\.btn-danger\.form-btn \{[^}]*width: 100%;[^}]*box-sizing: border-box;[^}]*min-height: 48px;[^}]*padding: 12px 16px;[^}]*font-size: 15px;[^}]*font-weight: 500;/,
+  );
+  assert.match(css, /\.form-btn-stack \{[^}]*flex-direction: column;[^}]*gap: 10px;[^}]*margin-top: 10px;/);
+  assert.match(css, /\.form-btn-danger-gap \{[^}]*margin-top: 24px;/);
+  // ほかの場所の .btn-primary の形は変えていない
+  assert.match(css, /\.btn-primary \{[^}]*padding: 13px;/);
+
+  const form = read("../components/AccountForm.tsx");
+  const primary = form.indexOf('{isSubmitting ? (isEditMode ? "更新中…"');
+  const stack = form.indexOf('<div className="form-btn-stack">');
+  const usedUp = form.indexOf('className="btn-outline form-btn"');
+  const expired = form.indexOf('className="btn-outline-warm form-btn"');
+  const del = form.indexOf('className="btn-danger form-btn form-btn-danger-gap"');
+  assert.ok(primary > 0 && primary < stack && stack < usedUp && usedUp < expired && expired < del, "並びの順");
+  assert.ok(!form.includes('className="action-row"'), "2列の並びはやめた");
+
+  // ほかの編集の画面も同じ形
+  assert.ok(read("../components/QuickUpdate.tsx").includes('className="btn-primary form-btn"'));
+  const scan = read("../components/ScanUpload.tsx");
+  assert.ok(scan.includes('className="btn-primary form-btn"'));
+  assert.equal(scan.split('className="btn-outline form-btn"').length - 1, 2);
+});
+
+test("待ちの文: 直すときは「更新中…」、新しく作るときは「登録中…」。「保存中…」は設定だけ(依頼257)", () => {
+  const form = read("../components/AccountForm.tsx");
+  assert.ok(form.includes('{isSubmitting ? (isEditMode ? "更新中…" : "登録中…") : isEditMode ? "更新する" : "登録する"}'));
+  assert.ok(form.includes('submitAction === "replace" ? "更新中…" : "置き換える"'));
+  assert.ok(form.includes('submitAction === "add" ? "更新中…" : "今回の分を追加する"'));
+  assert.ok(form.includes('submitAction === "submit" ? "登録中…" : "新たに登録する"'));
+  const physical = read("../components/ScanPhysicalUpload.tsx");
+  assert.ok(physical.includes('{isSaving ? "更新中…" : "置き換える"}'));
+  assert.ok(physical.includes('{isSaving ? "更新中…" : "今回の分を追加する"}'));
+  assert.ok(physical.includes('{isSaving ? "登録中…" : stampMode'));
+  for (const f of SCREENS) {
+    if (f.endsWith("AccountSettings.tsx")) continue;
+    assert.ok(!read(f).includes("保存中…"), f + ": 「保存中…」");
+  }
+  assert.ok(read("../components/AccountSettings.tsx").includes('"保存中…" : "保存"'));
+});
+
+test("お知らせの非表示は削除ではないので、赤ではなくサービスの色(依頼257)", () => {
+  const src = read("../app/notifications/page.tsx");
+  assert.ok(!src.includes('variant="danger"'));
+  assert.ok(src.includes('variant="normal"'));
+  assert.match(read("../app/globals.css"), /\.announcement-dismiss-btn \{[^}]*color: var\(--brand\);/);
+});
+
+test("件数のかっこは全角の「（」「）」(依頼257)", () => {
+  assert.ok(read("../app/notifications/page.tsx").includes("選んだお知らせを非表示にする{selectedCount > 0 ? `（${selectedCount}件）` : \"\"}"));
+  assert.ok(read("../components/AccountForm.tsx").includes("（枚数:{duplicateAccount.itemQuantity}枚）"));
+  for (const f of SCREENS) {
+    const src = read(f)
+      .replace(/\/\/.*$/gm, "")
+      .replace(/aria-label="[^"]*"/g, "");
+    assert.ok(!/\([^()\n]{0,40}(件|枚)\)/.test(src), f + ": 半角のかっこの件数");
+  }
 });

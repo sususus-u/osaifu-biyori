@@ -176,6 +176,8 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
     CATEGORY_DEFAULTS.electronic_money.notificationDaysBefore[1]
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // どのボタンで送ったか。押したボタンだけに待ちの文(「登録中…」「更新中…」)を出す(依頼257)
+  const [submitAction, setSubmitAction] = useState<"submit" | "replace" | "add">("submit");
   // 現物の写真を縮めている間(縮小が終わるまで画面が変わらないため、待たされていることを伝える)
   const [isPreparingPhoto, setIsPreparingPhoto] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -699,6 +701,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
     setErrorMessage("");
     if (!validateForm()) return;
 
+    setSubmitAction("submit");
     setIsSubmitting(true);
     try {
       const { now, payload, updateRecord } = buildPayloadAndUpdateRecord();
@@ -735,6 +738,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
     if (!validateForm()) return;
     if (!duplicateAccount) return;
 
+    setSubmitAction("replace");
     setIsSubmitting(true);
     try {
       const { payload, updateRecord } = buildPayloadAndUpdateRecord();
@@ -759,6 +763,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
     if (!validateForm()) return;
     if (!duplicateAccount) return;
 
+    setSubmitAction("add");
     setIsSubmitting(true);
     try {
       const addQuantity = itemQuantity === "" ? 0 : Number(itemQuantity);
@@ -1468,18 +1473,18 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
             <p style={{ fontSize: 13, color: "#555", marginBottom: 12 }}>
               同じ名前のポイント・残高が既にあります。現在の残高:¥{duplicateAccount.currentBalance ?? 0}
               {duplicateAccount.itemQuantity !== null && duplicateAccount.itemQuantity !== undefined && (
-                <>(枚数:{duplicateAccount.itemQuantity}枚)</>
+                <>（枚数:{duplicateAccount.itemQuantity}枚）</>
               )}
             </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {!isStampLikeEntry({ name, category, groupName }) && (
                 <button
                   type="button"
                   onClick={() => setShowReplaceConfirm(true)}
                   disabled={isSubmitting || isDeleting}
-                  className="btn-primary"
+                  className="btn-primary form-btn"
                 >
-                  {isSubmitting ? "保存中…" : "置き換える"}
+                  {isSubmitting && submitAction === "replace" ? "更新中…" : "置き換える"}
                 </button>
               )}
               {duplicateAccount.type === "finite" && (
@@ -1487,30 +1492,31 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
                   type="button"
                   onClick={handleAddToExisting}
                   disabled={isSubmitting || isDeleting}
-                  className="btn-primary"
+                  className="btn-primary form-btn"
                 >
-                  {isSubmitting ? "保存中…" : "今回の分を追加する"}
+                  {isSubmitting && submitAction === "add" ? "更新中…" : "今回の分を追加する"}
                 </button>
               )}
-              <button type="submit" disabled={isSubmitting || isDeleting} className="btn-primary">
-                {isSubmitting ? "保存中…" : "新たに登録する"}
+              <button type="submit" disabled={isSubmitting || isDeleting} className="btn-primary form-btn">
+                {isSubmitting && submitAction === "submit" ? "登録中…" : "新たに登録する"}
               </button>
             </div>
           </>
         ) : (
-          <button type="submit" disabled={isSubmitting || isDeleting} className="btn-primary">
-            {isSubmitting ? "保存中…" : isEditMode ? "更新する" : "登録する"}
+          <button type="submit" disabled={isSubmitting || isDeleting} className="btn-primary form-btn">
+            {isSubmitting ? (isEditMode ? "更新中…" : "登録中…") : isEditMode ? "更新する" : "登録する"}
           </button>
         )}
 
+        {/* 編集の画面のボタンの並び(依頼257。全サービスの手本): 「更新する」、ほかの操作(横いっぱいに縦に並べる)、少し空けて削除 */}
         {isEditMode && (
-          <div className="action-row" style={{ marginTop: 12 }}>
+          <div className="form-btn-stack">
             {accountType === "finite" && (
               <button
                 type="button"
                 onClick={() => setPendingOutcome("used_up")}
                 disabled={isSubmitting || isDeleting}
-                className="btn-outline"
+                className="btn-outline form-btn"
               >
                 使いきった
               </button>
@@ -1519,7 +1525,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
               type="button"
               onClick={() => setPendingOutcome("expired")}
               disabled={isSubmitting || isDeleting}
-              className="btn-outline-warm"
+              className="btn-outline-warm form-btn"
             >
               失効した
             </button>
@@ -1531,8 +1537,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
             type="button"
             onClick={() => setShowDeleteModal(true)}
             disabled={isSubmitting || isDeleting}
-            className="btn-danger"
-            style={{ marginTop: 12 }}
+            className="btn-danger form-btn form-btn-danger-gap"
           >
             このポイント・残高を削除する
           </button>

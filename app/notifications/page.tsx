@@ -191,7 +191,7 @@ function HubAnnouncements() {
           disabled={selectedCount === 0}
           onClick={() => setShowConfirm(true)}
         >
-          選んだお知らせを非表示にする{selectedCount > 0 ? `(${selectedCount}件)` : ""}
+          選んだお知らせを非表示にする{selectedCount > 0 ? `（${selectedCount}件）` : ""}
         </button>
       </div>
 
@@ -224,7 +224,8 @@ function HubAnnouncements() {
             </>
           }
           confirmLabel={selectedCount + "件を非表示にする"}
-          variant="danger"
+          // 非表示は削除ではないので、赤ではなくサービスの色(赤は戻せない削除だけ。依頼257)
+          variant="normal"
           onConfirm={() => handleDismiss(selectedCount)}
           onClose={() => setShowConfirm(false)}
         />

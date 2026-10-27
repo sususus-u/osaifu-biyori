@@ -314,7 +314,8 @@ button {
   padding: 7px 14px;
   font-size: 12px;
   font-weight: 500;
-  color: #b3261e;
+  /* 非表示は削除ではないので、赤ではなくサービスの色(依頼257) */
+  color: var(--brand);
   cursor: pointer;
 }
 
@@ -473,6 +474,36 @@ button {
   background: #eee;
   border-color: #bbb;
   cursor: default;
+}
+
+/* 編集・登録の画面の下のボタン(依頼257。全サービスの手本)。
+   上から「更新する」(.btn-primary)、ほかの操作(.btn-outline など)、少し空けて削除(.btn-danger)。
+   どれも横いっぱい、同じ高さ・同じ丸み。ほかの場所の .btn-* の形は変えないよう、修飾のクラスで足す */
+.btn-primary.form-btn,
+.btn-outline.form-btn,
+.btn-outline-warm.form-btn,
+.btn-danger.form-btn {
+  display: block;
+  width: 100%;
+  flex: none;
+  box-sizing: border-box;
+  min-height: 48px;
+  padding: 12px 16px;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.4;
+  text-align: center;
+}
+/* 1つ目と2つ目の間、ほかの操作どうしの間は 10px */
+.form-btn-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+/* 削除は、ほかのボタンから大きく離す */
+.form-btn-danger-gap {
+  margin-top: 24px;
 }
 
 .btn-ghost {

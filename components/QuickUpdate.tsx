@@ -301,7 +301,7 @@ export default function QuickUpdate() {
       <button
         onClick={handleSaveAll}
         disabled={isSaving}
-        className="w-full bg-gray-900 text-white rounded-md py-3 text-base font-medium disabled:opacity-50"
+        className="btn-primary form-btn"
       >
         {isSaving ? "更新中…" : "更新する"}
       </button>

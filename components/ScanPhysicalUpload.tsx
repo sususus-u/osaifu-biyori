@@ -654,24 +654,22 @@ export default function ScanPhysicalUpload() {
           </div>
 
           {matchedAccountId && !stampMode ? (
-            <div className="action-row">
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               <button
                 type="button"
                 onClick={() => setShowReplaceConfirm(true)}
                 disabled={isSaving}
-                className="btn-primary"
-                style={{ flex: 1 }}
+                className="btn-primary form-btn"
               >
-                {isSaving ? "保存中…" : "置き換える"}
+                {isSaving ? "更新中…" : "置き換える"}
               </button>
               <button
                 type="button"
                 onClick={() => handleSave("add")}
                 disabled={isSaving}
-                className="btn-primary"
-                style={{ flex: 1 }}
+                className="btn-primary form-btn"
               >
-                {isSaving ? "保存中…" : "今回の分を追加する"}
+                {isSaving ? "更新中…" : "今回の分を追加する"}
               </button>
             </div>
           ) : (
@@ -679,10 +677,9 @@ export default function ScanPhysicalUpload() {
               type="button"
               onClick={() => handleSave("replace")}
               disabled={isSaving || isProcessing || isPreparing}
-              className="btn-primary"
-              style={{ width: "100%" }}
+              className="btn-primary form-btn"
             >
-              {isSaving ? "保存中…" : stampMode ? "この内容で登録する(同じものがあれば足す)" : "この内容で登録する"}
+              {isSaving ? "登録中…" : stampMode ? "この内容で登録する(同じものがあれば足す)" : "この内容で登録する"}
             </button>
           )}
         </div>

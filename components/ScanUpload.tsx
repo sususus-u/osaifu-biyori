@@ -480,8 +480,7 @@ export default function ScanUpload() {
           type="button"
           onClick={handleConfirmSave}
           disabled={isSaving}
-          className="btn-primary"
-          style={{ width: "100%" }}
+          className="btn-primary form-btn"
         >
           {isSaving ? "更新中…" : "この内容で更新する"}
         </button>
@@ -496,8 +495,7 @@ export default function ScanUpload() {
           type="button"
           onClick={handleRegisterAsNew}
           disabled={isSaving}
-          className="btn-outline"
-          style={{ width: "100%" }}
+          className="btn-outline form-btn"
         >
           別のポイント・残高として登録する
         </button>
@@ -506,8 +504,8 @@ export default function ScanUpload() {
           type="button"
           onClick={handleCancelConfirm}
           disabled={isSaving}
-          className="btn-ghost"
-          style={{ width: "100%", marginTop: 8 }}
+          className="btn-outline form-btn"
+          style={{ marginTop: 10 }}
         >
           キャンセル
         </button>
