@@ -5,6 +5,8 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { guardAiRead } from "@/lib/usageLimit";
 import { isSpendLimitError, aiPausedBody, aiPausedLog } from "@/lib/aiPaused";
+import { notifyAdmin } from "@/lib/adminPushFirestore";
+import { ADMIN_AI_PAUSED } from "@/lib/adminPush";
 
 export async function POST(req: NextRequest) {
   // AI読み取りの回数を1つ使ったあとで失敗したときに、その1回分を戻すための関数。
@@ -108,6 +110,7 @@ JSONを作成する前に、まず画面に表示されているすべての項�
     await refund?.();
     if (isSpendLimitError(error)) {
       console.error(aiPausedLog("scan-account"));
+      await notifyAdmin(ADMIN_AI_PAUSED);
       return NextResponse.json(aiPausedBody(), { status: 503 });
     }
     return NextResponse.json({ error: "読み取りに失敗しました" }, { status: 500 });

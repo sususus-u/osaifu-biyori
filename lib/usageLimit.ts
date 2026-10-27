@@ -11,6 +11,8 @@ import { NextResponse } from "next/server";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { adminDb } from "@/lib/firebaseAdmin";
 import { verifyBearerIdToken } from "@/lib/verifyIdToken";
+import { notifyAdmin } from "@/lib/adminPushFirestore";
+import { ADMIN_AI_DAILY_BUDGET } from "@/lib/adminPush";
 import { consumeCore, refundCore } from "@/lib/usageCore";
 import {
   getPlan,
@@ -165,7 +167,7 @@ type GuardResult =
 // Firestoreに問い合わせられない場合も、上限を確かめられないままAIを呼ぶことはしない。
 // feature は、全員の合計の1日の点数で、1回を何点と数えるか(lib/aiBudget.ts の AI_POINTS)。
 // 全員の合計の上限に届いたときは、AI の利用額の上限と同じ「休んでいます」の文を 503 で返し、
-// ログに [AI_DAILY_BUDGET] を出す(どの窓口かを route で書く)。
+// ログに [AI_DAILY_BUDGET] を出し(どの窓口かを route で書く)、運営者の端末に知らせる(依頼245)。
 export async function guardAiRead(
   authorization: string | null,
   feature: AiFeature,
@@ -194,6 +196,7 @@ export async function guardAiRead(
   if ("blocked" in consumed) {
     if (consumed.blocked === "budget") {
       console.error(aiBudgetLog(route, consumed.used, consumed.limit));
+      await notifyAdmin(ADMIN_AI_DAILY_BUDGET);
       return { ok: false, response: NextResponse.json(aiPausedBody(), { status: 503 }) };
     }
     if (consumed.blocked === "monthly") {

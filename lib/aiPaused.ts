@@ -1,7 +1,7 @@
 // AI の利用額の上限(Claude Console の Spend limits)に届いたときの扱い(依頼214、点検の M8)。
 // 上限に届くと、その月は Anthropic API が 400 の invalid_request_error で断る。
 // そのときだけ、通信の失敗などとは別の印(503 と code: "ai_paused")を画面に返し、
-// ログに決まった印 [AI_PAUSED] を出す。画面は、サーバーの文(error)をそのまま出す(readScanJson)。
+// ログに決まった印 [AI_PAUSED] を出し、運営者の端末に知らせる(依頼245、lib/adminPushFirestore.ts)。画面は、サーバーの文(error)をそのまま出す(readScanJson)。
 
 export const AI_PAUSED = "ai_paused";
 export const AI_PAUSED_MESSAGE = "ただいま AI の読み取りを休んでいます。手入力で登録できます。";
