@@ -656,7 +656,7 @@ export default function AccountList() {
                           }}
                         >
                           <span>{key}</span>
-                          <span style={{ color: "#bbb" }}>{expanded ? "－" : "+"}</span>
+                          <span style={{ color: "#bbb" }}>{expanded ? "−" : "+"}</span>
                         </button>
                       </div>
                     ) : (
@@ -674,7 +674,7 @@ export default function AccountList() {
                         }}
                       >
                         <span>{key}</span>
-                        <span style={{ color: "#bbb" }}>{expanded ? "－" : "+"}</span>
+                        <span style={{ color: "#bbb" }}>{expanded ? "−" : "+"}</span>
                       </button>
                     )}
                     {expanded && (

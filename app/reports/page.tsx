@@ -176,7 +176,7 @@ export default function ReportsPage() {
                 className="collapse-toggle"
                 style={{ padding: "6px 0 0" }}
               >
-                {showUsedUpList ? "－ 閉じる" : "+ 内訳を見る"}
+                {showUsedUpList ? "− 閉じる" : "+ 内訳を見る"}
               </button>
             )}
             {showUsedUpList && (
@@ -209,7 +209,7 @@ export default function ReportsPage() {
                 className="collapse-toggle"
                 style={{ padding: "6px 0 0" }}
               >
-                {showExpiredList ? "－ 閉じる" : "+ 内訳を見る"}
+                {showExpiredList ? "− 閉じる" : "+ 内訳を見る"}
               </button>
             )}
             {showExpiredList && (

@@ -65,6 +65,15 @@ test("「+」は半角(全角の「＋」は使わない。依頼253)", () => {
   for (const f of SCREENS) assert.ok(!read(f).includes("＋"), f);
 });
 
+test("開閉の印は「−」(U+2212)と半角の「+」(全角の「－」は使わない。依頼256)", () => {
+  for (const f of SCREENS) assert.ok(!read(f).includes("－"), f);
+  const reports = read("../app/reports/page.tsx");
+  assert.ok(reports.includes('showUsedUpList ? "− 閉じる" : "+ 内訳を見る"'));
+  assert.ok(reports.includes('showExpiredList ? "− 閉じる" : "+ 内訳を見る"'));
+  const list = read("../components/AccountList.tsx");
+  assert.equal(list.split('expanded ? "−" : "+"').length - 1, 2);
+});
+
 test("1人ごとの1日の AI の回数の上限の文(依頼253)", () => {
   assert.ok(
     read("./usageLimit.ts").includes(
