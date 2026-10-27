@@ -1,5 +1,5 @@
 // 下のメニューの「+ 登録」を丸に(依頼273の追記。3つのサービス共通)の試験。
-// 丸は直径48px、地はブランドの色、メニューの中(上へはみ出さない)、「登録」の字は丸の中、白い字との比は 4.5:1 以上。
+// 丸は直径40px、地はブランドの色、メニューの中(上へはみ出さない)、「登録」の字は丸の中、白い字との比は 4.5:1 以上。
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -22,10 +22,10 @@ function token(name: string): string {
   return m[1];
 }
 
-test("丸は直径48px、まんまる、地はブランドの色、白い縁なし、影は 0 1px 4px rgba(0,0,0,0.2)", () => {
+test("丸は直径40px、まんまる、地はブランドの色、白い縁なし、影は 0 1px 4px rgba(0,0,0,0.2)", () => {
   const r = rule(".tabbar-add-circle");
-  assert.match(r, /width:\s*48px/);
-  assert.match(r, /height:\s*48px/);
+  assert.match(r, /width:\s*40px/);
+  assert.match(r, /height:\s*40px/);
   assert.match(r, /border-radius:\s*50%/);
   assert.match(r, /background:\s*var\(--brand\)/);
   assert.match(r, /box-shadow:\s*0 1px 4px rgba\(0, 0, 0, 0\.2\)/);
@@ -51,7 +51,7 @@ test("「登録」の字は丸の中(12px、太字、行の高さ1)。丸の下�
   assert.match(label, /line-height:\s*1\b/);
   const m = shell.match(/<span className="tabbar-add-circle">([\s\S]*?)<\/span>\n\s*<\/Link>/);
   assert.ok(m, "丸の中身が見つからない");
-  assert.match(m[1], /<Plus size=\{20\} strokeWidth=\{2\.5\}/);
+  assert.match(m[1], /<Plus size=\{16\} strokeWidth=\{2\.5\}/);
   assert.match(m[1], /className="tabbar-add-label"/);
   assert.match(shell, /aria-label="登録"/);
 });

@@ -203,7 +203,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         {tabs.map((tab) => {
           const Icon = tab.icon;
           if (tab.href === "/accounts/new") {
-            // 「+ 登録」は、下のメニューの中の丸(依頼273の追記。3つのサービス共通): 直径48px、地はブランドの色、
+            // 「+ 登録」は、下のメニューの中の丸(依頼273の追記。3つのサービス共通): 直径40px、地はブランドの色、
             // 中に白い「+」と「登録」。メニューの上の線より上には出さない
             return (
               <Link
@@ -214,7 +214,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 className={`tabbar-item tabbar-add ${tab.active ? "active" : ""}`}
               >
                 <span className="tabbar-add-circle">
-                  <Plus size={20} strokeWidth={2.5} aria-hidden="true" />
+                  <Plus size={16} strokeWidth={2.5} aria-hidden="true" />
                   <span className="tabbar-add-label">{tab.label}</span>
                 </span>
               </Link>

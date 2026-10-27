@@ -459,14 +459,14 @@ textarea::placeholder {
 }
 
 /* 「+ 登録」の丸(依頼273の追記。3つのサービス共通): 下のメニューの中で、上下の真ん中に置く(上の線より上に出さない)。
-   直径48px、地はブランドの色(--brand)。白い文字との比は 10.29:1(4.5:1 以上。--brand-dark とは 12.75:1)。開いている間は、ブランドの濃い色(--brand-dark) */
+   直径40px(ホームバーのある iPhone でも、行の高さ 43px に収まる)、地はブランドの色(--brand)。白い文字との比は 10.29:1(4.5:1 以上。--brand-dark とは 12.75:1)。開いている間は、ブランドの濃い色(--brand-dark) */
 .tabbar-add,
 .tabbar-add.active {
   color: #fff;
 }
 .tabbar-add-circle {
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   background: var(--brand);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
