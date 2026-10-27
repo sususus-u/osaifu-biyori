@@ -557,3 +557,13 @@
 - 切手を額面ごとに保存したときの失敗の文(components/ScanPhysicalUpload.tsx)を「登録・更新に失敗しました。何も保存されていません。もう一度お試しください。」にした(依頼260で消えた一文を戻した)。
 - テスト: lib/wording.test.ts の該当のテストを直した。
 - 戻す先: 9fb5b82(依頼260)。
+
+## 合言葉の入口(M3 案2 の1回目。2026-10-27、依頼264)
+- 入口: ハブのホームのカードは https://osaifu.okizukibiyori.com/?entry=home で開く(このサービスに招待はない)。authToken がなく entry=home のときは、起動のいちばん初め(lib/firebase.ts のモジュール読み込み時、ログイン状態の判定より前)に、entry を外し、state を作って控え(localStorage)、https://okizukibiyori.com/login?return=<entry を外した今のURL+?state=> へ location.replace で移動する。ログイン済みでも行う(ハブのアカウントを優先)。移動中はログイン状態の判定を始めないので、案内の画面はちらつかない。
+- 案0のボタンの「1回の起動で1回」の数え(sessionStorage)は使わない。return に entry を入れないので往復しない。state を控えられないとき、entry の値が home 以外のとき、authToken もあるときは、entry を外すだけで今までどおり進む。
+- 部品: lib/hubEntry.ts(planHomeEntry、stripEntry、hasAuthTokenInUrl、buildHomeEntryLoginUrl)。lib/hubLogin.ts の import を相対(./authToken.ts など)にして、テストから読めるようにした(動きは同じ)。
+- 印(数え): state なしのトークンを受け入れたとき「no-state」、state の照合で拒否したとき「mismatch」を、navigator.sendBeacon で https://okizukibiyori.com/api/auth-state-mark へ送る(本文は文字列 {"service":"tamari-biyori","kind":…}。text/plain なので事前の確認の通信なし。uid・トークン・state は送らない。失敗してもログインは止めない)。lib/stateMark.ts。CSP の connect-src に https://okizukibiyori.com を足した(next.config.ts)。
+- state なしのトークンは、今までどおり受け入れる(段階1のまま)。
+- テスト: lib/hubEntry.test.ts(8件)、lib/stateMark.test.ts(3件)。全部で283件。
+- 戻す先: 281b613(依頼262)。
+- 次(段階2): ハブのカードがすべて entry=home になり、no-state の数が0に近くなったのを確かめてから、state なしのトークンを拒否する(lib/handoffState.ts の consumeState)。

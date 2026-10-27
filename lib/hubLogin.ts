@@ -6,8 +6,8 @@
 // 照合用の乱数 state は、return の中に ?state= で足す(ハブは return のクエリをそのまま返す。まもりびよりと同じ形)。
 // ログイン画面のアドレスの外側には付けない(ハブは無視する)。
 
-import { stripAuthToken, STATE_PARAM } from "@/lib/authToken";
-import { issueState } from "@/lib/handoffState";
+import { stripAuthToken, STATE_PARAM } from "./authToken.ts";
+import { issueState } from "./handoffState.ts";
 
 const HUB_LOGIN_URL = "https://okizukibiyori.com/login";
 

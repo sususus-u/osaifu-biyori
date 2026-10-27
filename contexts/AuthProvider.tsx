@@ -19,6 +19,7 @@ import {
   customTokenSignInReady,
   hasCustomTokenHandoffFailed,
   removeAuthTokenFromUrl,
+  removeEntryFromUrl,
 } from "@/lib/firebase";
 import { resetHubLoginCount } from "@/lib/hubLogin";
 import { clearUserLocalData } from "@/lib/clearUserData";
@@ -55,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // 競合状態が起きるため。
     customTokenSignInReady.then(() => {
       removeAuthTokenFromUrl();
+      removeEntryFromUrl();
       if (cancelled) return;
       setHandoffFailed(hasCustomTokenHandoffFailed());
       unsubscribe = onAuthStateChanged(auth, async (user: User | null) => {

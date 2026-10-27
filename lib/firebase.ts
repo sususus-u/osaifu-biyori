@@ -5,7 +5,9 @@ import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth, signInWithCustomToken } from "firebase/auth";
 import { extractAuthToken } from "@/lib/authToken";
-import { consumeState } from "@/lib/handoffState";
+import { consumeState, issueState } from "@/lib/handoffState";
+import { buildHomeEntryLoginUrl, planHomeEntry, stripEntry } from "@/lib/hubEntry";
+import { sendStateMark } from "@/lib/stateMark";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -46,8 +48,52 @@ export function removeAuthTokenFromUrl(): void {
   }
 }
 
+// アドレスから entry(ハブのホームのカードの印)を消す。AuthProvider からも呼び直す
+export function removeEntryFromUrl(): void {
+  if (typeof window === "undefined") return;
+  try {
+    if (planHomeEntry(window.location.href).action === "none") return;
+    const u = new URL(stripEntry(window.location.href));
+    window.history.replaceState(null, "", u.pathname + u.search + u.hash);
+  } catch {
+    // 消せなくても、ログインには影響しない
+  }
+}
+
+// ハブのホームのカード(?entry=home。authToken なし)から開かれたら、state を作って控え、
+// ハブのログイン画面へ移動し直す(依頼264)。ログイン済みでも行う(ハブのアカウントを優先するため)。
+// 案0のボタンの「1回の起動で1回」の数えは使わない(return に entry を入れないので往復しない)。
+// 移動するときは true(ログイン状態の判定を始めない。案内の画面がちらつかないように)。
+// state を控えられないときは、entry を外して、今までどおり進む。
+function redirectFromHomeEntry(): boolean {
+  let returnHref: string;
+  try {
+    const plan = planHomeEntry(window.location.href);
+    if (plan.action !== "redirect") return false;
+    returnHref = plan.returnHref;
+  } catch {
+    return false;
+  }
+  let state: string | null = null;
+  try {
+    state = issueState(window.localStorage);
+  } catch {
+    state = null;
+  }
+  // 控えられないときは、entry を外して(呼び出し元の removeEntryFromUrl)、今までどおり進む
+  if (state === null) return false;
+  window.location.replace(buildHomeEntryLoginUrl(returnHref, state));
+  return true;
+}
+
 export const customTokenSignInReady: Promise<void> = (async () => {
   if (typeof window === "undefined") return;
+
+  if (redirectFromHomeEntry()) {
+    // 移動するまで、ログイン状態の判定を始めない(終わらない Promise で止める)
+    await new Promise<never>(() => {});
+  }
+  removeEntryFromUrl();
 
   // 読んだらすぐ、アドレスから消す(クエリもフラグメントも。成否を待たない)
   const { token, rejected, state } = extractAuthToken(window.location.href);
@@ -61,6 +107,7 @@ export const customTokenSignInReady: Promise<void> = (async () => {
       stateOk = state === null;
     }
     if (!stateOk) {
+      sendStateMark("mismatch");
       customTokenHandoffFailed = true;
       console.error("照合用の値(state)が合わないため、ログインを行いませんでした");
       return;
@@ -72,6 +119,9 @@ export const customTokenSignInReady: Promise<void> = (async () => {
     return;
   }
   if (!token) return;
+
+  // state なしで受け入れた(段階1の間は通す)。段階2へ進める判断のため、回数だけハブへ知らせる
+  if (state === null) sendStateMark("no-state");
 
   try {
     await signInWithCustomToken(auth, token);
