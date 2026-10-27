@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Timestamp } from "firebase-admin/firestore";
 import { adminDb, adminMessaging } from "@/lib/firebaseAdmin";
+import { isCronAuthorized } from "@/lib/cronAuth";
 import type { AccountDoc, UserDoc } from "@/types/firestore";
 
 function toIsoDate(date: Date): string {
@@ -20,8 +21,8 @@ function daysBetween(from: Date, to: Date): number {
 
 export async function GET(req: NextRequest) {
   // Vercel Cronからの呼び出しであることを確認(手違いで誰でも叩けないようにする)
-  const authHeader = req.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  // CRON_SECRET が未設定なら、常に断る
+  if (!isCronAuthorized(req.headers.get("authorization"), process.env.CRON_SECRET)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
