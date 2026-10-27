@@ -25,6 +25,7 @@ import {
 import { db } from "@/lib/firebase";
 import { displayAccountName } from "@/lib/stampMerge";
 import { useAuth } from "@/contexts/AuthProvider";
+import { LOADING_TEXT, listCountText } from "@/lib/listCount";
 import type { AccountDoc } from "@/types/firestore";
 
 interface AccountWithId extends AccountDoc {
@@ -66,6 +67,8 @@ export default function QuickUpdate() {
   const [undoFailed, setUndoFailed] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [pendingScan, setPendingScan] = useState<PendingScan | null>(null);
+  // 最初の読み込みが済んだか(済むまでは「読み込み中…」。ゼロ件の枠を先に出さない。依頼268)
+  const [loaded, setLoaded] = useState(false);
 
   // スクショでサービス名が読み取れなかった場合、ScanUpload側から引き継がれた数値がないか確認する
   useEffect(() => {
@@ -93,6 +96,7 @@ export default function QuickUpdate() {
       }));
       list.sort((a, b) => a.name.localeCompare(b.name, "ja"));
       setAccounts(list);
+      setLoaded(true);
     });
     return () => unsubscribe();
   }, [uid]);
@@ -193,7 +197,7 @@ export default function QuickUpdate() {
   }
 
   if (isLoading) {
-    return <p className="p-6 text-sm text-gray-500">読み込み中…</p>;
+    return <p className="p-6 text-sm text-gray-500">{LOADING_TEXT}</p>;
   }
 
   // グループ選択画面
@@ -232,29 +236,42 @@ export default function QuickUpdate() {
           />
         )}
 
-        <ul className="divide-y border rounded-md">
-          {groupKeys.length === 0 && (
-            <li className="px-3 py-4 text-sm text-gray-500">
-              まだ継続型のポイント・残高が登録されていません。
-            </li>
-          )}
-          {groupKeys.map((key) => {
-            const items = groups.get(key)!;
-            return (
-              <li key={key}>
-                <button
-                  onClick={() => selectGroup(key)}
-                  className="w-full text-left px-4 py-3 text-base flex justify-between items-center"
-                >
-                  <span>{key}</span>
-                  {items.length > 1 && (
-                    <span className="text-xs text-gray-400">{items.length}件まとめて</span>
-                  )}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+        {/* 一覧の見せ方の決まり(依頼268。ハブの BRAND.md 5章): 白い枠(角16px、細い線)の中に行。
+            枠のすぐ下の真ん中に「全○件」(1行=1つのまとまり。「○件まとめて」の行も1件と数える)。
+            ゼロ件は点線の枠に「まだ○○が登録されていません。」と、登録のボタン(半角の「+」)。「全0件」は出さない */}
+        {!loaded ? (
+          <p className="text-sm text-gray-500">{LOADING_TEXT}</p>
+        ) : groupKeys.length === 0 ? (
+          <div className="list-empty">
+            <p>まだ継続型のポイント・残高が登録されていません。</p>
+            <Link href="/accounts/new" className="btn-primary list-empty-btn">
+              + ポイント・残高を登録する
+            </Link>
+          </div>
+        ) : (
+          <div>
+            <ul className="card" style={{ padding: 0, overflow: "hidden", margin: 0, listStyle: "none" }}>
+              {groupKeys.map((key, index) => {
+                const items = groups.get(key)!;
+                return (
+                  <li key={key} style={index === 0 ? undefined : { borderTop: "0.5px solid #f0f0f0" }}>
+                    <button
+                      onClick={() => selectGroup(key)}
+                      className="w-full text-left text-base flex justify-between items-center"
+                      style={{ padding: "12px 14px", minHeight: 48, background: "none", border: "none" }}
+                    >
+                      <span>{key}</span>
+                      {items.length > 1 && (
+                        <span className="text-xs text-gray-400">{items.length}件まとめて</span>
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+            <p className="list-count">{listCountText(groupKeys.length)}</p>
+          </div>
+        )}
       </div>
     );
   }

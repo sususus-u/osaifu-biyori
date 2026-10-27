@@ -18,6 +18,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { displayAccountName } from "@/lib/stampMerge";
 import { useAuth } from "@/contexts/AuthProvider";
+import { LOADING_TEXT } from "@/lib/listCount";
 import type { AccountDoc, OutcomeEventDoc } from "@/types/firestore";
 
 interface OutcomeEventWithId extends OutcomeEventDoc {
@@ -135,7 +136,7 @@ export default function ReportsPage() {
   const noExpiryRows = continuousRows.filter((r) => !r.account.expiryDate);
 
   if (isLoading) {
-    return <p style={{ fontSize: 14, color: "#999" }}>読み込み中…</p>;
+    return <p style={{ fontSize: 14, color: "#999" }}>{LOADING_TEXT}</p>;
   }
 
   return (
@@ -160,7 +161,7 @@ export default function ReportsPage() {
         </button>
       </div>
 
-      {isFetching && <p style={{ fontSize: 13, color: "#999" }}>集計しています…</p>}
+      {isFetching && <p style={{ fontSize: 13, color: "#999" }}>{LOADING_TEXT}</p>}
 
       {!isFetching && (
         <>

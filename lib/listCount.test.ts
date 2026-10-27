@@ -34,3 +34,29 @@ test("おさいふびよりの一覧: タブごとの件数(閉じている月�
   assert.match(css, /\.list-empty \{[^}]*border: 1px dashed/);
   assert.match(css, /\.list-count \{[^}]*text-align: center;[^}]*font-size: 12px;[^}]*color: #999;/);
 });
+
+test("主な一覧以外の一覧(依頼268): クイック更新の一覧は白い枠・「全○件」・ゼロ件の点線の枠と登録のボタン", () => {
+  const qu = read("../components/QuickUpdate.tsx");
+  const has = (s: string) => assert.ok(qu.includes(s), s);
+  // 白い枠(角16px、細い線)。以前の Tailwind の枠(角6px)はやめた
+  has('<ul className="card" style={{ padding: 0, overflow: "hidden", margin: 0, listStyle: "none" }}>');
+  assert.ok(!qu.includes('className="divide-y border rounded-md"'));
+  // 枠の外の、すぐ下に「全○件」(1行=1つのまとまり)
+  has('<p className="list-count">{listCountText(groupKeys.length)}</p>');
+  assert.ok(qu.indexOf("</ul>") < qu.indexOf("{listCountText(groupKeys.length)}"));
+  // ゼロ件: 点線の枠、「まだ○○が登録されていません。」、半角の「+」付きの登録のボタン
+  has('<div className="list-empty">');
+  has("<p>まだ継続型のポイント・残高が登録されていません。</p>");
+  has('<Link href="/accounts/new" className="btn-primary list-empty-btn">');
+  has("+ ポイント・残高を登録する");
+  assert.ok(!qu.includes("＋"));
+  // 読み込みが済むまでは「読み込み中…」(ゼロ件の枠を先に出さない)
+  assert.ok(qu.indexOf("{!loaded ? (") < qu.indexOf('<div className="list-empty">'));
+  has("setLoaded(true);");
+});
+
+test("主な一覧以外の一覧(依頼268): 実績の画面の待ちの文も「読み込み中…」", () => {
+  const rep = read("../app/reports/page.tsx");
+  assert.ok(!rep.includes("集計しています"));
+  assert.ok(rep.includes("{isFetching && <p style={{ fontSize: 13, color: \"#999\" }}>{LOADING_TEXT}</p>}"));
+});
