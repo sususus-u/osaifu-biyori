@@ -24,6 +24,7 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { guessServiceInfo } from "@/lib/knownServices";
+import { candidateDefaults } from "@/lib/candidateDefaults";
 import { getYenValue } from "@/lib/accountUtils";
 import BusyIndicator from "@/components/BusyIndicator";
 import { manualAdd, MANUAL_ADD_CHANGED_MESSAGE } from "@/lib/manualAdd";
@@ -276,21 +277,27 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
     setYenExchangeRate(String(yen / count));
   }, [exchangeUnitCount, exchangeUnitYen, exchangeRateTouched]);
 
-  // 名前欄が既知の口座名候補と完全一致した場合(候補から選んだ・自動入力された場合)、
-  // その名前から種類・円建てフラグを推測して連動させる
+  // 新しく登録するときだけ、名前欄が既知の口座名候補と完全一致した場合(候補から選んだ・自動入力された場合)、
+  // その名前から種類・円建てフラグなどを推測して連動させる。
+  // 編集の画面では、保存してある種類・タイプなどを上書きしない(依頼260。読み込みで名前が入っても入れない)
   useEffect(() => {
-    if (!KNOWN_ACCOUNT_NAMES.includes(name)) return;
-    const info = guessServiceInfo(name, null);
-    setCategory(info.category);
-    const defaults = CATEGORY_DEFAULTS[info.category];
-    setIsYenBased(info.isYenBased);
-    setAccountType(defaults.type);
-    setFirstStageDays(defaults.notificationDaysBefore[0]);
-    setSecondStageDays(defaults.notificationDaysBefore[1]);
-    const unitDefault = CATEGORY_UNIT_DEFAULTS[info.category];
-    if (unitDefault) {
-      setBalanceUnitFromValue(unitDefault);
+    const d = candidateDefaults(name, isEditMode, {
+      knownNames: KNOWN_ACCOUNT_NAMES,
+      guess: (n) => guessServiceInfo(n, null),
+      categoryDefaults: CATEGORY_DEFAULTS,
+      unitDefaults: CATEGORY_UNIT_DEFAULTS,
+    });
+    if (!d) return;
+    setCategory(d.category);
+    setIsYenBased(d.isYenBased);
+    setAccountType(d.type);
+    setFirstStageDays(d.firstStageDays);
+    setSecondStageDays(d.secondStageDays);
+    if (d.unit) {
+      setBalanceUnitFromValue(d.unit);
     }
+    // isEditMode は accountId から決まり、画面を開いている間は変わらない
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [name]);
 
   // 編集モードの場合、既存データを読み込んでフォームに反映する
