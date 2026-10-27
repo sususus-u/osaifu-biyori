@@ -4,7 +4,8 @@
 // 含めてすべて表示する。見るだけの画面なので、選ぶ・消すなどの操作は置かない。
 
 import Link from "next/link";
-import { timeLabel, useAnnouncements } from "@/lib/announcements";
+import { ANNOUNCEMENT_EMPTY_TEXT, timeLabel, useAnnouncements } from "@/lib/announcements";
+import { listCountText } from "@/lib/listCount";
 
 export default function PastAnnouncementsPage() {
   const announcements = useAnnouncements();
@@ -18,19 +19,23 @@ export default function PastAnnouncementsPage() {
       {announcements === null ? (
         <div className="loading-state">読み込み中…</div>
       ) : announcements.length === 0 ? (
-        <div className="empty-state">
-          <p>運営からのお知らせは、まだありません</p>
+        <div className="list-empty">
+          <p>{ANNOUNCEMENT_EMPTY_TEXT}</p>
         </div>
       ) : (
-        announcements.map((a) => (
-          <div className="notif-card announcement-card" key={a.id}>
-            <div className="notif-body">
-              <div className="notif-title">{a.title}</div>
-              <div className="notif-desc">{a.body}</div>
-              <div className="notif-time">{timeLabel(a.publishedAt)}</div>
+        <>
+          {announcements.map((a) => (
+            <div className="notif-card announcement-card" key={a.id}>
+              <div className="notif-body">
+                <div className="notif-title">{a.title}</div>
+                <div className="notif-desc">{a.body}</div>
+                <div className="notif-time">{timeLabel(a.publishedAt)}</div>
+              </div>
             </div>
-          </div>
-        ))
+          ))}
+          {/* 最後のお知らせのすぐ下の真ん中に「全○件」(依頼270) */}
+          <p className="list-count">{listCountText(announcements.length)}</p>
+        </>
       )}
     </div>
   );

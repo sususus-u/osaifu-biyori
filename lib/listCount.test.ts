@@ -60,3 +60,65 @@ test("主な一覧以外の一覧(依頼268): 実績の画面の待ちの文も�
   assert.ok(!rep.includes("集計しています"));
   assert.ok(rep.includes("{isFetching && <p style={{ fontSize: 13, color: \"#999\" }}>{LOADING_TEXT}</p>}"));
 });
+
+test("お知らせの一覧(依頼270): 1件ずつの枠のまま、最後に「全○件」。ゼロ件は3つとも「お知らせは、まだありません。」", () => {
+  const ann = read("./announcements.ts");
+  assert.ok(ann.includes('export const ANNOUNCEMENT_EMPTY_TEXT = "お知らせは、まだありません。";'));
+  const top = read("../app/notifications/page.tsx");
+  const all = read("../app/notifications/all/page.tsx");
+  for (const [name, src] of [["notifications", top], ["all", all]] as const) {
+    assert.ok(!src.includes("運営からのお知らせは、まだありません"), name);
+    assert.ok(!src.includes('className="empty-state"'), name);
+    assert.ok(src.includes('<div className="list-empty">'), name);
+  }
+  // あなたへのお知らせ・運営からのお知らせ(登録済みがゼロ)の2か所
+  assert.equal(top.split("{ANNOUNCEMENT_EMPTY_TEXT}").length - 1, 1);
+  assert.ok(top.includes("? ANNOUNCEMENT_EMPTY_TEXT"));
+  assert.ok(all.includes("<p>{ANNOUNCEMENT_EMPTY_TEXT}</p>"));
+  // 「全○件」は、最後のお知らせのすぐ下(過去のお知らせへのリンクより上)
+  assert.ok(top.includes('<p className="list-count">{listCountText(visible.length)}</p>'));
+  assert.ok(top.indexOf("{listCountText(visible.length)}") < top.lastIndexOf("<PastAnnouncementsLink />"));
+  assert.ok(top.indexOf("{visible.map(") < top.indexOf("{listCountText(visible.length)}"));
+  assert.ok(all.indexOf("{announcements.map(") < all.indexOf("{listCountText(announcements.length)}"));
+});
+
+test("実績の残高の表(依頼270): 見出しは枠の上の端の帯、ゼロ件は点線の枠(登録のボタンなし)、「全○件」は付けない", () => {
+  const rep = read("../app/reports/page.tsx");
+  const has = (s: string) => assert.ok(rep.includes(s), s);
+  has('<p className="list-band">{title}</p>');
+  has('<div className="list-empty with-band" style={style}>');
+  has('emptyText="まだ期間限定の継続型のポイント・残高が登録されていません。"');
+  has('emptyText="まだ期限なしの継続型のポイント・残高が登録されていません。"');
+  assert.ok(!rep.includes("対象のポイント・残高がありません"));
+  assert.ok(!rep.includes("listCountText"));
+  assert.ok(!rep.includes("list-empty-btn"));
+  // 帯は、主な一覧の月の見出しと同じ色・余白
+  const css = read("../app/globals.css");
+  assert.match(css, /\.list-band \{[^}]*padding: 10px 14px;[^}]*font-size: 13px;[^}]*font-weight: 500;[^}]*background: #faf8f6;/);
+});
+
+test("ゼロ件の点線の枠(依頼270): 文とボタンを、枠の中の上下・左右の真ん中に", () => {
+  const css = read("../app/globals.css");
+  assert.match(css, /\.list-empty \{[^}]*display: flex;[^}]*flex-direction: column;[^}]*align-items: center;[^}]*justify-content: center;[^}]*min-height: 140px;[^}]*text-align: center;/);
+  assert.match(css, /\.list-empty-body \{[^}]*align-items: center;[^}]*justify-content: center;/);
+  assert.match(css, /\.list-empty p:last-child \{[^}]*margin-bottom: 0;/);
+});
+
+test("一覧の枠の線(依頼270): 白い地と見出しの帯に対して、コントラスト 3:1 以上", () => {
+  const css = read("../app/globals.css");
+  const m = css.match(/--list-frame-border: (#[0-9a-f]{6});/);
+  assert.ok(m);
+  const lum = (h: string) => {
+    const c = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  };
+  const ratio = (a: string, b: string) => {
+    const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
+    return (x + 0.05) / (y + 0.05);
+  };
+  // 画面の地(.app-shell)と枠の中は #fff、見出しの帯は #faf8f6
+  for (const bg of ["#ffffff", "#faf8f6"]) assert.ok(ratio(m[1], bg) >= 3, bg);
+  assert.match(css, /\.card \{[^}]*border: 1px solid var\(--list-frame-border\);/);
+  assert.match(css, /\.notif-card \{[^}]*border: 1px solid var\(--list-frame-border\);/);
+  assert.match(css, /\.list-empty \{[^}]*border: 1px dashed var\(--list-frame-border\);/);
+});

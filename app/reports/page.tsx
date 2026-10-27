@@ -5,7 +5,7 @@
 // 継続型(電子マネー・ポイント等)は各口座の updates 履歴から、選択月内の最初と最後の残高を比較する。
 // 履歴が無い月(記録を始める前の過去月)は「データなし」として扱う。
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, type CSSProperties } from "react";
 import {
   collection,
   query,
@@ -43,6 +43,54 @@ function monthLabel(d: Date) {
 function formatBalance(balance: number | null, unit?: string | null) {
   if (balance === null) return "—";
   return unit === "円" ? `¥${balance.toLocaleString()}` : `${balance.toLocaleString()}${unit ?? ""}`;
+}
+
+// 「期間限定残高」「期限なし残高」の表(依頼270)。
+// 見出しは、枠の上の端の帯(主な一覧の月の見出しと同じ形)。集計の表なので「全○件」は付けない。
+// ゼロ件は、点線の枠に「まだ○○が登録されていません。」(集計の表なので、登録のボタンは置かない)。
+function BalanceTable({
+  title,
+  rows,
+  emptyText,
+  style,
+}: {
+  title: string;
+  rows: ContinuousRow[];
+  emptyText: string;
+  style?: CSSProperties;
+}) {
+  if (rows.length === 0) {
+    return (
+      <div className="list-empty with-band" style={style}>
+        <p className="list-band">{title}</p>
+        <div className="list-empty-body">
+          <p>{emptyText}</p>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="card" style={{ padding: 0, overflow: "hidden", ...style }}>
+      <p className="list-band">{title}</p>
+      {rows.map((row) => (
+        <div
+          key={row.account.id}
+          style={{
+            padding: "12px 14px",
+            borderTop: "0.5px solid #f0f0f0",
+            fontSize: 14,
+          }}
+        >
+          <p style={{ margin: "0 0 2px", fontWeight: 500 }}>{displayAccountName(row.account.name)}</p>
+          <p style={{ margin: 0, fontSize: 13, color: row.hasData ? "#555" : "#bbb" }}>
+            {row.hasData
+              ? `${formatBalance(row.startBalance, row.account.balanceUnit)} → ${formatBalance(row.endBalance, row.account.balanceUnit)}`
+              : "この月の記録はありません"}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export default function ReportsPage() {
@@ -228,53 +276,17 @@ export default function ReportsPage() {
           {/* 継続型:残高の推移 */}
           <p style={{ fontSize: 13, color: "#999", margin: "20px 0 8px" }}>残高の推移（継続型）</p>
 
-          <p style={{ fontSize: 12, color: "#999", margin: "0 0 6px" }}>期間限定残高</p>
-          <div className="card" style={{ padding: 0, overflow: "hidden", marginBottom: 12 }}>
-            {withExpiryRows.length === 0 && (
-              <p style={{ fontSize: 13, color: "#999", padding: 14 }}>対象のポイント・残高がありません</p>
-            )}
-            {withExpiryRows.map((row) => (
-              <div
-                key={row.account.id}
-                style={{
-                  padding: "12px 14px",
-                  borderTop: "0.5px solid #f0f0f0",
-                  fontSize: 14,
-                }}
-              >
-                <p style={{ margin: "0 0 2px", fontWeight: 500 }}>{displayAccountName(row.account.name)}</p>
-                <p style={{ margin: 0, fontSize: 13, color: row.hasData ? "#555" : "#bbb" }}>
-                  {row.hasData
-                    ? `${formatBalance(row.startBalance, row.account.balanceUnit)} → ${formatBalance(row.endBalance, row.account.balanceUnit)}`
-                    : "この月の記録はありません"}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          <p style={{ fontSize: 12, color: "#999", margin: "0 0 6px" }}>期限なし残高</p>
-          <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-            {noExpiryRows.length === 0 && (
-              <p style={{ fontSize: 13, color: "#999", padding: 14 }}>対象のポイント・残高がありません</p>
-            )}
-            {noExpiryRows.map((row) => (
-              <div
-                key={row.account.id}
-                style={{
-                  padding: "12px 14px",
-                  borderTop: "0.5px solid #f0f0f0",
-                  fontSize: 14,
-                }}
-              >
-                <p style={{ margin: "0 0 2px", fontWeight: 500 }}>{displayAccountName(row.account.name)}</p>
-                <p style={{ margin: 0, fontSize: 13, color: row.hasData ? "#555" : "#bbb" }}>
-                  {row.hasData
-                    ? `${formatBalance(row.startBalance, row.account.balanceUnit)} → ${formatBalance(row.endBalance, row.account.balanceUnit)}`
-                    : "この月の記録はありません"}
-                </p>
-              </div>
-            ))}
-          </div>
+          <BalanceTable
+            title="期間限定残高"
+            rows={withExpiryRows}
+            emptyText="まだ期間限定の継続型のポイント・残高が登録されていません。"
+            style={{ marginBottom: 12 }}
+          />
+          <BalanceTable
+            title="期限なし残高"
+            rows={noExpiryRows}
+            emptyText="まだ期限なしの継続型のポイント・残高が登録されていません。"
+          />
         </>
       )}
     </div>

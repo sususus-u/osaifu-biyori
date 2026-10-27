@@ -5,6 +5,10 @@
 
 import { useEffect, useState } from "react";
 
+// お知らせの一覧(「あなたへのお知らせ」「運営からのお知らせ」「過去のお知らせ」)のゼロ件の文(依頼270。3つとも同じ文)。
+// お知らせは利用者が登録するものではないので、「まだ○○が登録されていません。」の形にしない。
+export const ANNOUNCEMENT_EMPTY_TEXT = "お知らせは、まだありません。";
+
 export interface Announcement {
   id: string;
   title: string;

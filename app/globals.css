@@ -16,6 +16,11 @@
      おきづきびよりブランド全体の基準色「陽だまりの金」に揃える */
   --gold: #ad8a4c;
 
+  /* 一覧の枠の線(依頼270)。白い枠の線が薄すぎたので、画面の地(#fff)と枠の中(#fff)に対して 3.60:1、
+     見出しの帯(#faf8f6)に対して 3.40:1(3:1 以上)。このサービスには暗い表示(ダークモード)が無いので、明るい表示の値だけ。
+     区切りの線や入力の欄は変えない(一覧の枠と、ゼロ件の点線の枠だけに使う) */
+  --list-frame-border: #8f8580;
+
   --radius-card: 16px;
   --radius-pill: 100px;
 
@@ -151,10 +156,17 @@ button {
 /* 一覧の見せ方の決まり(依頼236。3つのサービス共通)。
    ゼロ件のときは、点線の枠の中に「まだ○○が登録されていません。」。一覧の最後に、小さな灰色の文字で、真ん中に「全○件」 */
 .list-empty {
+  /* 文とボタンを、枠の中の上下・左右の真ん中に(依頼270) */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 140px;
+  box-sizing: border-box;
   text-align: center;
   padding: 36px 14px;
   background: #fff;
-  border: 1px dashed #d9cfcf;
+  border: 1px dashed var(--list-frame-border);
   border-radius: var(--radius-card);
   color: #666;
 }
@@ -162,6 +174,35 @@ button {
   font-size: 13px;
   margin: 0 0 14px;
   line-height: 1.7;
+}
+/* 枠の上の端の、見出しの帯(主な一覧の月の見出しと同じ形。実績の「期間限定残高」「期限なし残高」で使う。依頼270) */
+.list-band {
+  margin: 0;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  background: #faf8f6;
+  text-align: left;
+}
+/* 見出しの帯のある、ゼロ件の点線の枠: 帯は上の端に、文は残りの所の上下・左右の真ん中に */
+.list-empty.with-band {
+  display: block;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+}
+.list-empty-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 104px;
+  box-sizing: border-box;
+  padding: 20px 14px;
+}
+/* ボタンの無いゼロ件の枠(お知らせ・実績)では、文の下の余白を取り、上下の真ん中にそろえる */
+.list-empty p:last-child {
+  margin-bottom: 0;
 }
 .list-empty-btn {
   display: inline-block;
@@ -275,7 +316,7 @@ button {
 
 .notif-card {
   background: #fff;
-  border: 0.5px solid #eee;
+  border: 1px solid var(--list-frame-border);
   border-radius: var(--radius-card);
   padding: 14px;
   margin-bottom: 10px;
@@ -401,7 +442,7 @@ button {
 
 .card {
   background: #fff;
-  border: 0.5px solid #eee;
+  border: 1px solid var(--list-frame-border);
   border-radius: var(--radius-card);
   padding: 14px;
 }

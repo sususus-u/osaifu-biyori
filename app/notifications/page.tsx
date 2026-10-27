@@ -21,7 +21,8 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthProvider";
 import { authFetch } from "@/lib/authFetch";
 import { useHasNewAnnouncement } from "@/components/AppShell";
-import { timeLabel, useAnnouncements } from "@/lib/announcements";
+import { ANNOUNCEMENT_EMPTY_TEXT, timeLabel, useAnnouncements } from "@/lib/announcements";
+import { listCountText } from "@/lib/listCount";
 import { dismissAnnouncements, useDismissedAnnouncementIds } from "@/lib/dismissedAnnouncements";
 
 function PushToggle() {
@@ -108,8 +109,8 @@ function PushToggle() {
 
 function PersonalNotifications() {
   return (
-    <div className="empty-state">
-      <p>お知らせは、まだありません</p>
+    <div className="list-empty">
+      <p>{ANNOUNCEMENT_EMPTY_TEXT}</p>
     </div>
   );
 }
@@ -166,10 +167,10 @@ function HubAnnouncements() {
   if (visible.length === 0) {
     return (
       <>
-        <div className="empty-state">
+        <div className="list-empty">
           <p>
             {announcements.length === 0
-              ? "運営からのお知らせは、まだありません"
+              ? ANNOUNCEMENT_EMPTY_TEXT
               : "表示中のお知らせは、ありません"}
           </p>
         </div>
@@ -211,6 +212,9 @@ function HubAnnouncements() {
           </div>
         </label>
       ))}
+
+      {/* 最後のお知らせのすぐ下の真ん中に「全○件」(この一覧に出ている件数。依頼270) */}
+      <p className="list-count">{listCountText(visible.length)}</p>
 
       <PastAnnouncementsLink />
 
