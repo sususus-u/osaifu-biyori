@@ -231,9 +231,8 @@ test("失敗の文: 直すときは「更新に失敗しました。」、新し
   assert.ok(read("../components/AccountSettings.tsx").includes("保存に失敗しました。"));
 });
 
-test("切手の額面ごとの保存の失敗は「登録・更新に失敗しました。もう一度お試しください。」(足す分と作る分が混ざるため。依頼260)", () => {
+test("切手の額面ごとの保存の失敗は「登録・更新に失敗しました。何も保存されていません。もう一度お試しください。」(足す分と作る分が混ざるため。依頼260・依頼262)", () => {
   const src = read("../components/ScanPhysicalUpload.tsx");
-  assert.ok(src.includes('setErrorMessage("登録・更新に失敗しました。もう一度お試しください。");'));
+  assert.ok(src.includes('setErrorMessage("登録・更新に失敗しました。何も保存されていません。もう一度お試しください。");'));
   assert.ok(!src.includes("保存に失敗"));
-  assert.ok(!src.includes("何も保存されていません"));
 });

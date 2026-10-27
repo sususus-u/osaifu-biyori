@@ -387,7 +387,7 @@ export default function ScanPhysicalUpload() {
         return;
       }
       console.error(error);
-      setErrorMessage("登録・更新に失敗しました。もう一度お試しください。");
+      setErrorMessage("登録・更新に失敗しました。何も保存されていません。もう一度お試しください。");
     } finally {
       setIsSaving(false);
     }
