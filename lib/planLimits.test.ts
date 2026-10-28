@@ -18,7 +18,12 @@ test("プランごとの上限は PLAN_LIMITS から取れる", () => {
     [PLAN_LIMITS.free.maxRecords, PLAN_LIMITS.paid1.maxRecords, PLAN_LIMITS.paid2.maxRecords, FREE_MAX_GROUPS],
     [30, 100, 500, 3],
   );
-  assert.match(monthlyLimitMessage(PLAN_LIMITS.free.monthlyAiReads), /10回/);
+  // 月の回数は、3つのサービスの合計の回数(ハブの正本の AI_READ_LIMITS。依頼293)
+  assert.deepEqual(
+    [PLAN_LIMITS.free.monthlyAiReads, PLAN_LIMITS.paid1.monthlyAiReads, PLAN_LIMITS.paid2.monthlyAiReads],
+    [20, 100, 300],
+  );
+  assert.match(monthlyLimitMessage(), /^今月の AI の読み取りは、上限の回数に届きました。/);
 });
 
 test("月のキーは日本時間の年月(月末と月初の境界)", () => {

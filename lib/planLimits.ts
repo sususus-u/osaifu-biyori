@@ -1,14 +1,15 @@
 // プランごとの上限を、このファイルだけに書く(他の場所に数字を直書きしない)。
 // 暫定の数字で、将来変更する可能性がある。変えるときはここだけを書き換える。
 
-import type { Plan } from "./plan-resolve.ts";
+import { AI_PLAN_LIMIT_MESSAGES, AI_READ_LIMITS, type Plan } from "./plan-resolve.ts";
 
 export type { Plan };
 
+// AI の読み取りの月の回数は、3つのサービスの合計で、ハブの正本(plan-resolve.ts の AI_READ_LIMITS)に1か所で書く(依頼293)。
 export const PLAN_LIMITS: Record<Plan, { maxRecords: number; monthlyAiReads: number }> = {
-  free: { maxRecords: 30, monthlyAiReads: 10 },
-  paid1: { maxRecords: 100, monthlyAiReads: 50 },
-  paid2: { maxRecords: 500, monthlyAiReads: 150 },
+  free: { maxRecords: 30, monthlyAiReads: AI_READ_LIMITS.free.monthly },
+  paid1: { maxRecords: 100, monthlyAiReads: AI_READ_LIMITS.paid1.monthly },
+  paid2: { maxRecords: 500, monthlyAiReads: AI_READ_LIMITS.paid2.monthly },
 };
 
 // グループ数の上限(無料のみ。暫定)。
@@ -27,8 +28,9 @@ export function isPlanEnforced(env: string | undefined = process.env.ENFORCE_PLA
   return env === "true";
 }
 
-export function monthlyLimitMessage(limit: number): string {
-  return `今月のAI読み取りの回数（${limit}回）に達しました。毎月1日にリセットされます`;
+// 月の回数に届いたときの文(ハブの BRAND.md 3章。依頼293で、言葉の決まりの文にそろえた。回数は文に入れない)
+export function monthlyLimitMessage(): string {
+  return AI_PLAN_LIMIT_MESSAGES.monthly;
 }
 
 const JST_OFFSET_MS = 9 * 60 * 60 * 1000;

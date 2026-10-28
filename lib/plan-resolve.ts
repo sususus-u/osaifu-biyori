@@ -1,5 +1,5 @@
 // 写し(手で書き換えない)。正本: ハブ(okizukibiyori-hub)の src/lib/plan-resolve.ts
-// 正本の版: 17fd8a1950b876bb / 写しの中身の版: 17fd8a1950b876bb
+// 正本の版: 44d49d21d370d167 / 写しの中身の版: 44d49d21d370d167
 // 正本を直したら、ハブで node scripts/plan-resolve-copy.mjs を実行して写し直す(BRAND.md 17章)。
 // プランを決める部品(BRAND.md 17章「段階3」、依頼280)。ハブが正本。
 // 3つのサービスへ写す(段階3の5番目、依頼287。写しの頭に、正本の版を書く。BRAND.md 17章)。
@@ -230,4 +230,138 @@ export async function readPlanWithIdToken(input: {
     await store.save(uid, result.lastKnown).catch(() => undefined);
   }
   return result.plan;
+}
+
+// --- AI の読み取りの回数(3つのサービスの合計。段階3の6番目、依頼293。BRAND.md 17章) ---
+// 回数は、ここだけに書く(仮の数。無料の月20回だけ決定)。回数を見せる所(ホームのアカウントの画面など)も、ここから出す。
+// 3つのサービスのサーバーが、今の回数の数え(サービスごと・機能ごとの1日の上限と、全員の合計の1日の点数)が
+// 通ったあとに、この合計の記録を足す(ホームを通さない)。
+// - 上限の強制(enforced)がオフの間は、数えるだけで、断らない。オンのときだけ、プランの回数に届いたら断る。
+// - 数えの記録が書けなかったときは、読み取りそのものは止めない(not_counted を返す)。
+export const AI_READ_LIMITS: Record<Plan, { monthly: number; daily: number }> = {
+  free: { monthly: 20, daily: 5 },
+  paid1: { monthly: 100, daily: 15 },
+  paid2: { monthly: 300, daily: 30 },
+};
+
+// 上限に届いたときの文(BRAND.md 3章「言葉の決まり」)
+export const AI_PLAN_LIMIT_MESSAGES = {
+  monthly: "今月の AI の読み取りは、上限の回数に届きました。来月1日からまた使えます。手入力で登録できます。",
+  daily: "今日の AI の読み取りは、上限の回数に届きました。明日また使えます。手入力で登録できます。",
+} as const;
+
+// 合計の記録: ai_usage_monthly/{uid}_{日本時間の年月}
+// 欄: uid、month、total(今月の合計)、mamori・tamari・tabe(サービスごとの今月の数)、day(日本時間の日付)、
+// dayTotal(その日の合計)、updatedAt、expireAt(62日後。TTL を付ければ古い記録が消える)。
+export const AI_USAGE_COLLECTION = "ai_usage_monthly";
+const AI_USAGE_RETENTION_MS = 62 * 24 * 60 * 60 * 1000;
+const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
+
+export function jstDayKey(now: Date): string {
+  return new Date(now.getTime() + JST_OFFSET_MS).toISOString().slice(0, 10);
+}
+
+export function jstMonthKey(now: Date): string {
+  return jstDayKey(now).slice(0, 7);
+}
+
+export function aiUsageDocId(uid: string, now: Date): string {
+  return `${uid}_${jstMonthKey(now)}`;
+}
+
+const count = (v: unknown) => (typeof v === "number" && Number.isInteger(v) && v > 0 ? v : 0);
+
+// 記録の中身から、今月の合計と今日の合計を読む(日付が変わっていれば、今日は0)
+export function readAiUsage(data: Record<string, unknown> | undefined, now: Date): { total: number; dayTotal: number } {
+  if (!data) return { total: 0, dayTotal: 0 };
+  return { total: count(data.total), dayTotal: data.day === jstDayKey(now) ? count(data.dayTotal) : 0 };
+}
+
+export type AiUsageBlock = "monthly" | "daily";
+
+// この1回を足すと、プランの回数を超えるか
+export function aiUsageBlock(usage: { total: number; dayTotal: number }, plan: Plan): AiUsageBlock | null {
+  const limits = AI_READ_LIMITS[plan] ?? AI_READ_LIMITS.free;
+  if (usage.total >= limits.monthly) return "monthly";
+  if (usage.dayTotal >= limits.daily) return "daily";
+  return null;
+}
+
+type UsageSnapLike = { exists: boolean; data(): Record<string, unknown> | undefined };
+type UsageTxLike<R> = {
+  get(ref: R): Promise<UsageSnapLike>;
+  set(ref: R, data: Record<string, unknown>, options: { merge: true }): unknown;
+};
+type UsageDbLike<R> = {
+  collection(name: string): { doc(id: string): R };
+  runTransaction<T>(fn: (tx: UsageTxLike<R>) => Promise<T>): Promise<T>;
+};
+
+export type AiUsageCount =
+  | { status: "counted"; refund: () => Promise<void> }
+  | { status: "blocked"; reason: AiUsageBlock; message: string }
+  | { status: "not_counted" };
+
+// 合計の記録に1回足す。強制がオンでプランの回数に届いていれば、足さずに blocked。
+// 失敗(書けない・読めない)は not_counted(呼ぶ側は、読み取りを止めない)。例外は投げない。
+export async function countAiUsage<R>(
+  db: UsageDbLike<R>,
+  input: { uid: string; service: PlanService; plan: Plan; enforced: boolean; now: Date },
+): Promise<AiUsageCount> {
+  const { uid, service, plan, enforced, now } = input;
+  const day = jstDayKey(now);
+  let ref: R;
+  try {
+    ref = db.collection(AI_USAGE_COLLECTION).doc(aiUsageDocId(uid, now));
+    const outcome = await db.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      const data = snap.exists ? snap.data() : undefined;
+      const usage = readAiUsage(data, now);
+      const block = enforced ? aiUsageBlock(usage, plan) : null;
+      if (block) return block;
+      tx.set(
+        ref,
+        {
+          uid,
+          month: jstMonthKey(now),
+          total: usage.total + 1,
+          [service]: count(data?.[service]) + 1,
+          day,
+          dayTotal: usage.dayTotal + 1,
+          updatedAt: now,
+          expireAt: new Date(now.getTime() + AI_USAGE_RETENTION_MS),
+        },
+        { merge: true },
+      );
+      return null;
+    });
+    if (outcome) return { status: "blocked", reason: outcome, message: AI_PLAN_LIMIT_MESSAGES[outcome] };
+  } catch {
+    return { status: "not_counted" };
+  }
+  return {
+    status: "counted",
+    // AI の失敗などで、この1回を戻す(足したのと同じ月の記録。日付が同じときだけ、今日の数も戻す)
+    async refund() {
+      try {
+        await db.runTransaction(async (tx) => {
+          const snap = await tx.get(ref);
+          const data = snap.exists ? snap.data() : undefined;
+          if (!data) return;
+          tx.set(
+            ref,
+            {
+              total: Math.max(0, count(data.total) - 1),
+              [service]: Math.max(0, count(data[service]) - 1),
+              ...(data.day === day ? { dayTotal: Math.max(0, count(data.dayTotal) - 1) } : {}),
+              updatedAt: new Date(),
+            },
+            { merge: true },
+          );
+        });
+      } catch {
+        // 戻せなくても、読み取りの応答は返す
+      }
+    },
+  };
 }

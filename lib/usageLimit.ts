@@ -13,7 +13,7 @@ import { adminDb } from "@/lib/firebaseAdmin";
 import { verifyBearerIdToken } from "@/lib/verifyIdToken";
 import { notifyOperator } from "@/lib/operatorNotify";
 import { consumeCore, refundCore } from "@/lib/usageCore";
-import { firestoreLastKnownStore, readPlanWithIdToken } from "@/lib/plan-resolve";
+import { countAiUsage, firestoreLastKnownStore, readPlanWithIdToken, type AiUsageCount } from "@/lib/plan-resolve";
 import {
   isPlanEnforced,
   jstDateString,
@@ -88,11 +88,28 @@ async function planFor(uid: string, idToken: string) {
   });
 }
 
-async function consumeAiRead(uid: string, idToken: string, feature: AiFeature): Promise<Consumed> {
+// 3つのサービスの合計の回数(段階3の6番目、依頼293)。合計の記録 ai_usage_monthly/{uid}_{年月} に1回足す。
+// 強制がオフの間は、プランを読まず、数えるだけ。オンのときは、プランの回数に届いたら blocked。
+// 書けなかったときは not_counted(読み取りは止めない)。
+async function countTotal(uid: string, idToken: string): Promise<AiUsageCount> {
+  const result = await countAiUsage(adminDb, {
+    uid,
+    service: "tamari",
+    plan: await planFor(uid, idToken),
+    enforced: isPlanEnforced(),
+    now: new Date(),
+  });
+  if (result.status === "not_counted") console.warn("ai total usage not counted");
+  return result;
+}
+
+// 月の回数は、3つのサービスの合計(countTotal)で数えて止める(依頼293)。
+// この記録(usage_counts_tamari の月の分)は、おさいふびよりだけの数として残し、これでは止めない。
+async function consumeAiRead(uid: string, feature: AiFeature): Promise<Consumed> {
   const date = jstDateString();
   const month = jstMonthString();
   const ids = { daily: `${uid}_${date}`, monthly: `${uid}_${month}` };
-  const monthlyLimit = monthlyAiReadLimit(await planFor(uid, idToken));
+  const monthlyLimit = monthlyAiReadLimit("free");
   const ref = (id: string) => adminDb.collection(COLLECTION).doc(id);
   const budgetRef = adminDb.collection(AI_BUDGET_COLLECTION).doc(date);
   const points = AI_POINTS[feature];
@@ -144,7 +161,7 @@ async function consumeAiRead(uid: string, idToken: string, feature: AiFeature): 
         }),
       ),
     ids,
-    { daily: DAILY_AI_READ_LIMIT, monthly: monthlyLimit, enforceMonthly: isPlanEnforced() },
+    { daily: DAILY_AI_READ_LIMIT, monthly: monthlyLimit, enforceMonthly: false },
     { points, limit: pointLimit },
   );
   if (result === "budget") return { blocked: "budget", used: usedPoints, limit: pointLimit };
@@ -192,10 +209,10 @@ export async function guardAiRead(
       response: NextResponse.json({ error: "ログインを確認できませんでした" }, { status: 401 }),
     };
   }
+  const idToken = (authorization ?? "").replace(/^Bearer\s+/i, "").trim();
   let consumed: Consumed;
   try {
-    const idToken = (authorization ?? "").replace(/^Bearers+/i, "").trim();
-    consumed = await consumeAiRead(uid, idToken, feature);
+    consumed = await consumeAiRead(uid, feature);
   } catch (error) {
     console.error("usage count error", error);
     return {
@@ -216,7 +233,7 @@ export async function guardAiRead(
       return {
         ok: false,
         response: NextResponse.json(
-          { error: monthlyLimitMessage(consumed.monthlyLimit), code: "monthly_limit", limit: consumed.monthlyLimit },
+          { error: monthlyLimitMessage(), code: "monthly_limit", limit: consumed.monthlyLimit },
           { status: 429 },
         ),
       };
@@ -229,5 +246,25 @@ export async function guardAiRead(
       ),
     };
   }
-  return { ok: true, refund: consumed.refund };
+  // 今の数え(1日の回数と、全員の合計の点数)が通ったあとに、3つのサービスの合計を足す(依頼293)。
+  // プランの回数に届いていれば(強制がオンのときだけ)、今の数えの1回を戻して断る。
+  const total = await countTotal(uid, idToken);
+  if (total.status === "blocked") {
+    await consumed.refund();
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { error: total.message, code: total.reason === "monthly" ? "monthly_limit" : "daily_limit" },
+        { status: 429 },
+      ),
+    };
+  }
+  const refund = consumed.refund;
+  return {
+    ok: true,
+    async refund() {
+      await refund();
+      if (total.status === "counted") await total.refund();
+    },
+  };
 }
