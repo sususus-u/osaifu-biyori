@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { guardAiRead } from "@/lib/usageLimit";
-import { isSpendLimitError, aiPausedBody, aiPausedLog } from "@/lib/aiPaused";
+import { isAuthKeyError, isSpendLimitError, aiPausedBody, aiPausedLog } from "@/lib/aiPaused";
 import { notifyOperator } from "@/lib/operatorNotify";
 import { buildScanLog, buildScanErrorLog } from "@/lib/scanLog";
 import { PHYSICAL_SCAN_PROMPT } from "@/lib/physicalScanPrompt";
@@ -99,6 +99,10 @@ export async function POST(req: NextRequest) {
       console.error(aiPausedLog("scan-physical-count"));
       await notifyOperator("ai-budget-limit");
       return NextResponse.json(aiPausedBody(), { status: 503 });
+    }
+    if (isAuthKeyError(error)) {
+      console.error("[AI_KEY_ERROR] scan-physical-count: AI の鍵が使えません");
+      await notifyOperator("ai-key-error");
     }
     return NextResponse.json({ error: "読み取りに失敗しました。もう一度お試しいただくか、手入力で登録してください。" }, { status: 500 });
   }

@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { guardAiRead } from "@/lib/usageLimit";
-import { isSpendLimitError, aiPausedBody, aiPausedLog } from "@/lib/aiPaused";
+import { isAuthKeyError, isSpendLimitError, aiPausedBody, aiPausedLog } from "@/lib/aiPaused";
 import { notifyOperator } from "@/lib/operatorNotify";
 
 export async function POST(req: NextRequest) {
@@ -111,6 +111,10 @@ JSONを作成する前に、まず画面に表示されているすべての項�
       console.error(aiPausedLog("scan-account"));
       await notifyOperator("ai-budget-limit");
       return NextResponse.json(aiPausedBody(), { status: 503 });
+    }
+    if (isAuthKeyError(error)) {
+      console.error("[AI_KEY_ERROR] scan-account: AI の鍵が使えません");
+      await notifyOperator("ai-key-error");
     }
     return NextResponse.json({ error: "読み取りに失敗しました。もう一度お試しいただくか、手入力で登録してください。" }, { status: 500 });
   }

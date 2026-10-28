@@ -54,3 +54,15 @@ test("2つの窓口は、上限のときだけ 503 と印を返し、運営者�
     assert.match(src, /return NextResponse\.json\(\{ error: "読み取りに失敗しました。もう一度お試しいただくか、手入力で登録してください。" \}, \{ status: 500 \}\);/);
   }
 });
+
+test("鍵が正しくない(401)ときは、運営者に「AI の鍵の不具合」を知らせる(依頼295)", async () => {
+  const { isAuthKeyError } = await import("./aiPaused.ts");
+  assert.equal(isAuthKeyError({ status: 401, error: { type: "error", error: { type: "authentication_error" } } }), true);
+  assert.equal(isAuthKeyError({ status: 400 }), false);
+  assert.equal(isAuthKeyError(undefined), false);
+  const { readFileSync } = await import("node:fs");
+  for (const route of ["scan-account", "scan-physical-count"]) {
+    const src = readFileSync(new URL(`../app/api/${route}/route.ts`, import.meta.url), "utf8");
+    assert.match(src, /if \(isAuthKeyError\(error\)\) \{[\s\S]{0,120}?await notifyOperator\("ai-key-error"\);/);
+  }
+});

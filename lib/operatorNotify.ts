@@ -11,7 +11,8 @@ export const OPERATOR_NOTIFY_URL = "https://okizukibiyori.com/api/operator-notif
 export const OPERATOR_NOTIFY_SERVICE = "tamari-biyori";
 export const OPERATOR_NOTIFY_TIMEOUT_MS = 3000;
 
-export type OperatorNotifyKind = "ai-budget-limit" | "ai-daily-limit";
+// "ai-key-error" は、AI の鍵が使えないとき(401。依頼295)。
+export type OperatorNotifyKind = "ai-budget-limit" | "ai-daily-limit" | "ai-key-error";
 
 // 送る中身を作る(鍵がなければ null。送らない)。
 export function buildOperatorNotifyRequest(

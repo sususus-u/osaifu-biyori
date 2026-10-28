@@ -33,3 +33,10 @@ export function aiPausedBody() {
 export function aiPausedLog(route: string): string {
   return `${AI_PAUSED_LOG_MARK} osaifu-biyori ${route}: AI の利用額の上限に届いています`;
 }
+
+// AI(Anthropic)が「鍵が正しくない」と断ったか(401。依頼295)。待っても直らないので、運営者に知らせる。
+// 画面の文は、ふつうの失敗と同じ。
+export function isAuthKeyError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  return (error as { status?: unknown }).status === 401;
+}
