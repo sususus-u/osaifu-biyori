@@ -2,6 +2,7 @@
 // 全ユーザーの全口座を確認し、通知タイミング(1段階目/2段階目)に該当する口座があれば
 // プッシュ通知を送る。同じ期限日に対して二重送信しないよう、送信済みフラグを記録する。
 // 期限の7日前から当日までは、毎朝送る(lib/notificationSchedule.ts。依頼289)。
+// 合言葉 PUSH_RELAY_KEY があれば、ホームの通知で送る(lib/servicePush.ts。依頼290)。
 
 import { NextRequest, NextResponse } from "next/server";
 import { Timestamp } from "firebase-admin/firestore";
@@ -9,7 +10,8 @@ import { adminDb, adminMessaging } from "@/lib/firebaseAdmin";
 import { isCronAuthorized } from "@/lib/cronAuth";
 import type { AccountDoc, UserDoc } from "@/types/firestore";
 import { jstDateString } from "@/lib/planLimits";
-import { inDailyWindow, notifyBody, pickNotifyStage } from "@/lib/notificationSchedule";
+import { inDailyWindow, notifyBody, pickNotifyStage, type NotifyStage } from "@/lib/notificationSchedule";
+import { needsOwnSend, relayItem, relayViaHome } from "@/lib/servicePush";
 
 function toIsoDate(date: Date): string {
   return date.toISOString().slice(0, 10);
@@ -41,6 +43,15 @@ export async function GET(req: NextRequest) {
   let failureCount = 0;
   const failureCodes: Record<string, number> = {};
 
+  // 1. その日に知らせるものを集める
+  type Due = {
+    accountDoc: (typeof accountsSnap.docs)[number];
+    account: AccountDoc;
+    stage: NotifyStage;
+    daysUntilExpiry: number;
+    expiryIso: string;
+  };
+  const due: Due[] = [];
   for (const accountDoc of accountsSnap.docs) {
     const account = accountDoc.data() as AccountDoc;
     if (!account.expiryDate) continue;
@@ -64,6 +75,45 @@ export async function GET(req: NextRequest) {
 
     if (!stage) {
       skippedCount++;
+      continue;
+    }
+    due.push({ accountDoc, account, stage, daysUntilExpiry, expiryIso });
+  }
+
+  // 2. ホームの「代わりに送る」窓口に頼む(合言葉 PUSH_RELAY_KEY があるときだけ。依頼290)。
+  //    ホームで届けられなかったものだけ、今までどおり FCM で送る(2重に届かないように)。
+  const relayed = await relayViaHome(
+    due.map((d) =>
+      relayItem({
+        uid: d.account.ownerId,
+        stage: d.stage,
+        name: d.account.name,
+        days: d.daysUntilExpiry,
+        accountId: d.accountDoc.id,
+      }),
+    ),
+    process.env.PUSH_RELAY_KEY,
+  );
+  let relayedCount = 0;
+
+  for (const [index, { accountDoc, account, stage, daysUntilExpiry, expiryIso }] of due.entries()) {
+    // 7日前からの毎朝の分も、同じ日に2回送らないよう、送った日を残す
+    const markNotified = () =>
+      accountDoc.ref.update({
+        ...(stage === "first" ? { notifiedFirstStageForDate: expiryIso } : {}),
+        ...(stage === "second" ? { notifiedSecondStageForDate: expiryIso } : {}),
+        ...(inDailyWindow(daysUntilExpiry) ? { notifiedDailyOn: todayIso } : {}),
+      });
+
+    const relayResult = relayed[index];
+    if (!needsOwnSend(relayResult)) {
+      // ホームが送った(sent)、またはホームでオフにしている・回数の上限(off・limited)
+      if (relayResult === "sent") relayedCount++;
+      try {
+        await markNotified();
+      } catch (error) {
+        console.error(`送った印を残せませんでした(accountId: ${accountDoc.id})`, error);
+      }
       continue;
     }
 
@@ -98,23 +148,18 @@ export async function GET(req: NextRequest) {
         failureCodes[code] = (failureCodes[code] ?? 0) + 1;
       }
 
-      // 7日前からの毎朝の分も、同じ日に2回送らないよう、送った日を残す
-      await accountDoc.ref.update({
-        ...(stage === "first" ? { notifiedFirstStageForDate: expiryIso } : {}),
-        ...(stage === "second" ? { notifiedSecondStageForDate: expiryIso } : {}),
-        ...(inDailyWindow(daysUntilExpiry) ? { notifiedDailyOn: todayIso } : {}),
-      });
+      await markNotified();
     } catch (error) {
       console.error(`通知送信に失敗しました(accountId: ${accountDoc.id})`, error);
     }
   }
 
-  const summary = { failureCount, failureCodes, durationMs: Date.now() - today.getTime() };
+  const summary = { failureCount, failureCodes, relayedCount, durationMs: Date.now() - today.getTime() };
   if (failureCount > 0) {
     console.warn("通知送信の結果(失敗あり)", JSON.stringify(summary));
   } else {
     console.log("通知送信の結果", JSON.stringify(summary));
   }
 
-  return NextResponse.json({ sentCount, skippedCount, checkedAt: today.toISOString() });
+  return NextResponse.json({ sentCount, relayedCount, skippedCount, checkedAt: today.toISOString() });
 }
