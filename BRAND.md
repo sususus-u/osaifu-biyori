@@ -725,3 +725,10 @@
 - getPlan(いつも free)をやめ、AI の読み取りの月の上限のプランを、lib/usageLimit.ts の planFor で決める: プランの記録(subscriptions/{uid})を、その人の IDトークンで読む(ルールが効く)。上限の強制(ENFORCE_PLAN_LIMITS)がオフの間は、読まずに無料(今までどおり)。ルールの公開の前は断られる(403)ので、無料(エラーにしない)。読めたときの控えは plan_last_known/{uid} の tamari の欄(48時間、読めないときに使う)。
 - テスト321件、型チェック・lint・ビルドが通った。戻す先: ece96f8。
 - 気づいたこと(直していない): /api/scan-account は、ログインなしでも、中身が空なら 400(「画像がありません」)を返す(ログインの確かめより、中身の確かめが先)。AI は呼ばないので、害はない。
+
+## ホームの「通知と表示の決まり」のページのための数(2026-10-28、依頼288)
+
+- /notification-rules.json(ビルドのときに作る static。数だけ): 送る時刻(vercel.json の /api/send-notifications の時刻を日本時間に直したもの。今は9時)と、種類ごとのはじめの日数(CATEGORY_DEFAULTS の notificationDaysBefore)。作るのは lib/notificationRules.ts。ホームの /guide/notifications が1時間ごとに読む。
+- メニュー(/menu)の「設定」に「通知と表示の決まり」(ホームのページの #おさいふびより)を足した。
+- テスト323件、型チェック・lint・ビルドが通った。戻す先: 52922ac。
+- 洗い出しで分かったこと(直していない): 端末の通知を受け取る設定のボタン(NotificationSetup)が、2026-09-06 から画面にないので、新しい人は、期限のお知らせを受け取れない。ホームのページには「準備中」と書いた。
