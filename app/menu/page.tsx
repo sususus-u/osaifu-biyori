@@ -1,10 +1,12 @@
 import Link from "next/link";
-import { BarChart3, ChevronRight, ExternalLink, FileText, User } from "lucide-react";
+import { BarChart3, Bell, ChevronRight, ExternalLink, FileText, User } from "lucide-react";
 import AccountSettings from "@/components/AccountSettings";
 import LogoutButton from "@/components/LogoutButton";
 
 const HUB_TERMS_URL = "https://okizukibiyori.com/terms#おさいふびより";
 const HUB_PRIVACY_URL = "https://okizukibiyori.com/privacy#おさいふびより";
+// ホームの使い方のページ(どんな通知が、いつ来るか。依頼288)
+const HUB_NOTIFICATION_RULES_URL = "https://okizukibiyori.com/guide/notifications#おさいふびより";
 
 export default function MenuPage() {
   return (
@@ -49,6 +51,23 @@ export default function MenuPage() {
             <LogoutButton />
           </div>
         </div>
+
+        <a
+          href={HUB_NOTIFICATION_RULES_URL}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "14px",
+            textDecoration: "none",
+            color: "inherit",
+            borderTop: "0.5px solid #eee",
+          }}
+        >
+          <Bell size={18} color="var(--brand)" />
+          <span style={{ flex: 1, fontSize: 14, fontWeight: 500 }}>通知と表示の決まり</span>
+          <ExternalLink size={16} color="#ccc" />
+        </a>
 
         <a
           href={HUB_TERMS_URL}
