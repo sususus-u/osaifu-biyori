@@ -3,7 +3,6 @@ import assert from "node:assert/strict";
 import {
   FREE_MAX_GROUPS,
   PLAN_LIMITS,
-  getPlan,
   isPlanEnforced,
   jstMonthString,
   monthlyAiReadLimit,
@@ -20,10 +19,6 @@ test("プランごとの上限は PLAN_LIMITS から取れる", () => {
     [30, 100, 500, 3],
   );
   assert.match(monthlyLimitMessage(PLAN_LIMITS.free.monthlyAiReads), /10回/);
-});
-
-test("プランは今は常に free", async () => {
-  assert.equal(await getPlan("u"), "free");
 });
 
 test("月のキーは日本時間の年月(月末と月初の境界)", () => {

@@ -13,8 +13,8 @@ import { adminDb } from "@/lib/firebaseAdmin";
 import { verifyBearerIdToken } from "@/lib/verifyIdToken";
 import { notifyOperator } from "@/lib/operatorNotify";
 import { consumeCore, refundCore } from "@/lib/usageCore";
+import { firestoreLastKnownStore, readPlanWithIdToken } from "@/lib/plan-resolve";
 import {
-  getPlan,
   isPlanEnforced,
   jstDateString,
   jstMonthString,
@@ -75,11 +75,24 @@ async function loadAiBudget(): Promise<AiBudget> {
 // 確認と加算を1つのトランザクションで行うため、同じ利用者から同時に何度呼ばれても
 // 上限を超えない(サーバー側SDKのトランザクションは読んだドキュメントをロックする)。
 // Firestoreに問い合わせられない場合は例外を投げる。
-async function consumeAiRead(uid: string, feature: AiFeature): Promise<Consumed> {
+// その人のプラン(依頼287)。プランの記録を、その人の IDトークンで読む(ルールが効く)。
+// 強制がオフの間は、読まずに "free"。読めないときの控えは plan_last_known/{uid} の tamari の欄。
+async function planFor(uid: string, idToken: string) {
+  return readPlanWithIdToken({
+    uid,
+    idToken,
+    enforced: isPlanEnforced(),
+    fetchImpl: fetch,
+    store: firestoreLastKnownStore(adminDb, "tamari"),
+    now: new Date(),
+  });
+}
+
+async function consumeAiRead(uid: string, idToken: string, feature: AiFeature): Promise<Consumed> {
   const date = jstDateString();
   const month = jstMonthString();
   const ids = { daily: `${uid}_${date}`, monthly: `${uid}_${month}` };
-  const monthlyLimit = monthlyAiReadLimit(await getPlan(uid));
+  const monthlyLimit = monthlyAiReadLimit(await planFor(uid, idToken));
   const ref = (id: string) => adminDb.collection(COLLECTION).doc(id);
   const budgetRef = adminDb.collection(AI_BUDGET_COLLECTION).doc(date);
   const points = AI_POINTS[feature];
@@ -181,7 +194,8 @@ export async function guardAiRead(
   }
   let consumed: Consumed;
   try {
-    consumed = await consumeAiRead(uid, feature);
+    const idToken = (authorization ?? "").replace(/^Bearers+/i, "").trim();
+    consumed = await consumeAiRead(uid, idToken, feature);
   } catch (error) {
     console.error("usage count error", error);
     return {

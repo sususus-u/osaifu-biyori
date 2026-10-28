@@ -1,7 +1,9 @@
 // プランごとの上限を、このファイルだけに書く(他の場所に数字を直書きしない)。
 // 暫定の数字で、将来変更する可能性がある。変えるときはここだけを書き換える。
 
-export type Plan = "free" | "paid1" | "paid2";
+import type { Plan } from "./plan-resolve.ts";
+
+export type { Plan };
 
 export const PLAN_LIMITS: Record<Plan, { maxRecords: number; monthlyAiReads: number }> = {
   free: { maxRecords: 30, monthlyAiReads: 10 },
@@ -12,16 +14,9 @@ export const PLAN_LIMITS: Record<Plan, { maxRecords: number; monthlyAiReads: num
 // グループ数の上限(無料のみ。暫定)。
 export const FREE_MAX_GROUPS = 3;
 
-// プランを返す。段階3で、ハブから取得する形に差し替える。
-// 取得に失敗したときや、分からないときは、安全側として "free" にする。
-export async function getPlan(uid: string): Promise<Plan> {
-  void uid;
-  try {
-    return "free";
-  } catch {
-    return "free";
-  }
-}
+// プランは、プランの記録(subscriptions/{uid})を、その人のログインで読んで決める(段階3の5番目、依頼287)。
+// 読む部品は lib/plan-resolve.ts(ハブの正本の写し)の readPlanWithIdToken。つなぐ所は lib/usageLimit.ts。
+// 上限の強制(ENFORCE_PLAN_LIMITS)がオフの間は、記録を読まずに "free"。読めないときも、決まりどおり。
 
 export function monthlyAiReadLimit(plan: Plan): number {
   return (PLAN_LIMITS[plan] ?? PLAN_LIMITS.free).monthlyAiReads;
