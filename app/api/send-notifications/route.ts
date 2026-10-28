@@ -1,12 +1,15 @@
 // 毎日1回、Vercel Cronから呼び出される通知送信バッチ。
 // 全ユーザーの全口座を確認し、通知タイミング(1段階目/2段階目)に該当する口座があれば
 // プッシュ通知を送る。同じ期限日に対して二重送信しないよう、送信済みフラグを記録する。
+// 期限の7日前から当日までは、毎朝送る(lib/notificationSchedule.ts。依頼289)。
 
 import { NextRequest, NextResponse } from "next/server";
 import { Timestamp } from "firebase-admin/firestore";
 import { adminDb, adminMessaging } from "@/lib/firebaseAdmin";
 import { isCronAuthorized } from "@/lib/cronAuth";
 import type { AccountDoc, UserDoc } from "@/types/firestore";
+import { jstDateString } from "@/lib/planLimits";
+import { inDailyWindow, notifyBody, pickNotifyStage } from "@/lib/notificationSchedule";
 
 function toIsoDate(date: Date): string {
   return date.toISOString().slice(0, 10);
@@ -27,6 +30,7 @@ export async function GET(req: NextRequest) {
   }
 
   const today = new Date();
+  const todayIso = jstDateString(today.getTime());
   const accountsSnap = await adminDb.collection("accounts").get();
 
   let sentCount = 0;
@@ -47,12 +51,16 @@ export async function GET(req: NextRequest) {
 
     const { firstStageDays, secondStageDays } = account.notificationTiming;
 
-    let stage: "first" | "second" | null = null;
-    if (daysUntilExpiry === secondStageDays && account.notifiedSecondStageForDate !== expiryIso) {
-      stage = "second";
-    } else if (daysUntilExpiry === firstStageDays && account.notifiedFirstStageForDate !== expiryIso) {
-      stage = "first";
-    }
+    const stage = pickNotifyStage({
+      daysUntilExpiry,
+      firstStageDays,
+      secondStageDays,
+      expiryIso,
+      todayIso,
+      notifiedFirstStageForDate: account.notifiedFirstStageForDate,
+      notifiedSecondStageForDate: account.notifiedSecondStageForDate,
+      notifiedDailyOn: account.notifiedDailyOn,
+    });
 
     if (!stage) {
       skippedCount++;
@@ -67,10 +75,7 @@ export async function GET(req: NextRequest) {
       continue;
     }
 
-    const body =
-      stage === "first"
-        ? `${account.name}、そろそろ確認のタイミングです`
-        : `${account.name}、期限まであと${daysUntilExpiry}日です`;
+    const body = notifyBody(stage, account.name, daysUntilExpiry);
 
     try {
       const result = await adminMessaging.sendEachForMulticast({
@@ -93,11 +98,12 @@ export async function GET(req: NextRequest) {
         failureCodes[code] = (failureCodes[code] ?? 0) + 1;
       }
 
-      await accountDoc.ref.update(
-        stage === "first"
-          ? { notifiedFirstStageForDate: expiryIso }
-          : { notifiedSecondStageForDate: expiryIso }
-      );
+      // 7日前からの毎朝の分も、同じ日に2回送らないよう、送った日を残す
+      await accountDoc.ref.update({
+        ...(stage === "first" ? { notifiedFirstStageForDate: expiryIso } : {}),
+        ...(stage === "second" ? { notifiedSecondStageForDate: expiryIso } : {}),
+        ...(inDailyWindow(daysUntilExpiry) ? { notifiedDailyOn: todayIso } : {}),
+      });
     } catch (error) {
       console.error(`通知送信に失敗しました(accountId: ${accountDoc.id})`, error);
     }

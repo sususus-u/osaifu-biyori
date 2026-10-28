@@ -166,6 +166,8 @@ export interface AccountDoc {
    */
   notifiedFirstStageForDate?: string | null;
   notifiedSecondStageForDate?: string | null;
+  // 期限の7日前からの毎朝のお知らせを、最後に送った日(日本時間の YYYY-MM-DD。依頼289)
+  notifiedDailyOn?: string | null;
 
   createdAt: Timestamp;
   updatedAt: Timestamp;

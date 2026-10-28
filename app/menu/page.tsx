@@ -52,23 +52,7 @@ export default function MenuPage() {
           </div>
         </div>
 
-        <a
-          href={HUB_NOTIFICATION_RULES_URL}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            padding: "14px",
-            textDecoration: "none",
-            color: "inherit",
-            borderTop: "0.5px solid #eee",
-          }}
-        >
-          <Bell size={18} color="var(--brand)" />
-          <span style={{ flex: 1, fontSize: 14, fontWeight: 500 }}>通知と表示の決まり</span>
-          <ExternalLink size={16} color="#ccc" />
-        </a>
-
+        {/* 規約などへのつなぎ: 利用規約・プライバシーポリシー・通知と表示の決まりの順に、同じ形で縦に並べる(ハブの BRAND.md 5章。依頼289) */}
         <a
           href={HUB_TERMS_URL}
           style={{
@@ -102,6 +86,23 @@ export default function MenuPage() {
           <span style={{ flex: 1, fontSize: 14, fontWeight: 500 }}>プライバシーポリシー</span>
           <ExternalLink size={16} color="#ccc" />
         </a>
+        <a
+          href={HUB_NOTIFICATION_RULES_URL}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "14px",
+            textDecoration: "none",
+            color: "inherit",
+            borderTop: "0.5px solid #eee",
+          }}
+        >
+          <Bell size={18} color="var(--brand)" />
+          <span style={{ flex: 1, fontSize: 14, fontWeight: 500 }}>通知と表示の決まり</span>
+          <ExternalLink size={16} color="#ccc" />
+        </a>
+
       </div>
     </div>
   );

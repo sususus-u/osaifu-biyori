@@ -1,4 +1,5 @@
 import { CATEGORY_DEFAULTS } from "../types/firestore.ts";
+import { DAILY_NOTIFY_FROM_DAYS, DASHBOARD_OVERDUE_DAYS } from "./notificationSchedule.ts";
 
 // 通知と「期限が近いもの」の数(ホームの「通知と表示の決まり」のページが読む。依頼288)。
 // 数は、作りの中の設定から出す: 通知の日数は CATEGORY_DEFAULTS、時刻は vercel.json の送る時刻。
@@ -21,6 +22,8 @@ export function notificationRules(crons: { path: string; schedule: string }[]) {
         firstDays: c.notificationDaysBefore[0],
         secondDays: c.notificationDaysBefore[1],
       })),
+      dailyFromDays: DAILY_NOTIFY_FROM_DAYS,
     },
+    dashboard: { overdueDays: DASHBOARD_OVERDUE_DAYS, maxItems: 3 },
   };
 }

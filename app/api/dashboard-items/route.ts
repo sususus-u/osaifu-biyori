@@ -8,6 +8,7 @@ import type { Timestamp } from "firebase-admin/firestore";
 import { adminDb } from "@/lib/firebaseAdmin";
 import { verifyBearerIdToken } from "@/lib/verifyIdToken";
 import { CATEGORY_DEFAULTS, type AccountDoc } from "@/types/firestore";
+import { DASHBOARD_OVERDUE_DAYS } from "@/lib/notificationSchedule";
 
 const NO_STORE = { "Cache-Control": "private, no-store" };
 
@@ -43,7 +44,8 @@ export async function GET(req: NextRequest) {
       const level: "danger" | "warning" = daysRemaining <= secondStageDays ? "danger" : "warning";
       return { name: account.name, daysRemaining, level };
     })
-    .filter((item) => item.daysRemaining >= 0)
+    // 期限が過ぎたものは、過ぎてから7日だけ出す(依頼289)
+    .filter((item) => item.daysRemaining >= -DASHBOARD_OVERDUE_DAYS)
     .sort((a, b) => a.daysRemaining - b.daysRemaining)
     .slice(0, 3);
 
