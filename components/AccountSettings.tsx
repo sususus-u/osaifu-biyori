@@ -76,12 +76,17 @@ export default function AccountSettings() {
         表示名は、共有機能などであなたを示すために使う名前です（現在は未使用）。
         ログイン状態は「おきづきびより ホーム」と共通です。
       </p>
+      <p style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.6, marginBottom: 10 }}>
+        {/* 4つ共通の案内(ハブ BRAND.md 22章「表示名は本名でなくてよい」。依頼306)。本名を禁止はしない */}
+        個人の情報を少なくするため、本名ではなく、ニックネームや家族の中での呼び名がおすすめです。
+      </p>
       <div style={{ display: "flex", gap: 8 }}>
         <input
           type="text"
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
-          placeholder="表示名"
+          placeholder="例:すずちゃん、パパ"
+          aria-label="表示名"
           disabled={!uid || !loaded}
           style={{
             flex: 1,

@@ -58,6 +58,15 @@ import { displayAccountName } from "@/lib/stampMerge";
 import { getYenValue } from "@/lib/accountUtils";
 import { LOADING_TEXT, listCountText } from "@/lib/listCount";
 
+// 開け閉めの印「+」「−」の大きさ(4つ共通。ハブ BRAND.md 5章「開け閉めの印の大きさ」。依頼306)
+const TOGGLE_MARK_STYLE = {
+  color: "var(--text-muted)",
+  fontSize: 24,
+  fontWeight: 400,
+  lineHeight: 1,
+  flexShrink: 0,
+} as const;
+
 // 一覧の最後の「全○件」(依頼236。ゼロ件のときは出さない)
 function ListCount({ total }: { total: number }) {
   const text = listCountText(total);
@@ -645,6 +654,8 @@ export default function AccountList() {
                         <button
                           onClick={() => toggleMonth(key)}
                           style={{
+                            minHeight: 44,
+                            alignItems: "center",
                             flex: 1,
                             display: "flex",
                             justifyContent: "space-between",
@@ -656,13 +667,15 @@ export default function AccountList() {
                           }}
                         >
                           <span>{key}</span>
-                          <span style={{ color: "var(--text-muted)" }}>{expanded ? "−" : "+"}</span>
+                          <span aria-hidden="true" style={TOGGLE_MARK_STYLE}>{expanded ? "−" : "+"}</span>
                         </button>
                       </div>
                     ) : (
                       <button
                         onClick={() => toggleMonth(key)}
                         style={{
+                          minHeight: 44,
+                          alignItems: "center",
                           width: "100%",
                           display: "flex",
                           justifyContent: "space-between",
@@ -674,7 +687,7 @@ export default function AccountList() {
                         }}
                       >
                         <span>{key}</span>
-                        <span style={{ color: "var(--text-muted)" }}>{expanded ? "−" : "+"}</span>
+                        <span aria-hidden="true" style={TOGGLE_MARK_STYLE}>{expanded ? "−" : "+"}</span>
                       </button>
                     )}
                     {expanded && (
