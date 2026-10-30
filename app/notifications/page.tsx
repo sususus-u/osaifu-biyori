@@ -4,8 +4,9 @@
 // - 一番上: ハブ通知のON/OFFを、この場で切り替えられるスイッチ
 // - その下: 「あなたへのお知らせ」「運営からのお知らせ」の2タブ
 //
-// 「あなたへのお知らせ」は、このアプリにまだ個人向けお知らせ機能自体が
-// ないため、当面は固定文言のみを表示する。
+// 「あなたへのお知らせ」は、期限が近い自分のポイント・残高を、期限の近い順に出す(依頼318。lib/dueSoon.ts)。
+// 新しいデータは作らず、一覧と同じ accounts を読む。行を押すと「ポイント・残高を編集」(通知を押したときと同じ)。
+// 送ったお知らせを残して見返す仕組みは、まだない。
 // 「運営からのお知らせ」は、ハブの GET /api/announcements を
 // /api/announcements 経由(サーバー中継)で問い合わせて表示する。
 // 利用者は選んだお知らせを、この一覧で非表示にできる(端末にだけ記録し、サーバーは変えない。依頼253で「削除」から「非表示にする」に)。
@@ -16,13 +17,16 @@ import BottomToast from "@/components/BottomToast";
 import { STAMP_TOAST_MS } from "@/lib/stampToast";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { collection, doc, onSnapshot, query, serverTimestamp, setDoc, where, type Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthProvider";
 import { authFetch } from "@/lib/authFetch";
 import { useHasNewAnnouncement } from "@/components/AppShell";
 import { ANNOUNCEMENT_EMPTY_TEXT, timeLabel, useAnnouncements } from "@/lib/announcements";
-import { listCountText } from "@/lib/listCount";
+import { LOADING_TEXT, listCountText } from "@/lib/listCount";
+import { jstDateString } from "@/lib/planLimits";
+import { dueSoonText, pickDueSoon } from "@/lib/dueSoon";
+import AccountRow, { type AccountWithId } from "@/components/AccountRow";
 import { dismissAnnouncements, useDismissedAnnouncementIds } from "@/lib/dismissedAnnouncements";
 
 function PushToggle() {
@@ -108,10 +112,51 @@ function PushToggle() {
 }
 
 function PersonalNotifications() {
+  const { uid } = useAuth();
+  // null は読み込み中
+  const [accounts, setAccounts] = useState<AccountWithId[] | null>(null);
+
+  useEffect(() => {
+    if (!uid) return;
+    const q = query(collection(db, "accounts"), where("ownerId", "==", uid));
+    return onSnapshot(
+      q,
+      (snapshot) => setAccounts(snapshot.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<AccountWithId, "id">) }))),
+      () => setAccounts([]),
+    );
+  }, [uid]);
+
+  if (uid && accounts === null) {
+    return <div className="loading-state">{LOADING_TEXT}</div>;
+  }
+
+  // 期限は、保存した日付(UTC の日付)で比べる(お知らせの送り方と同じ。lib/dueSoon.ts)
+  const due = pickDueSoon(
+    (accounts ?? []).map((account) => ({
+      account,
+      expiryIso: account.expiryDate ? (account.expiryDate as Timestamp).toDate().toISOString().slice(0, 10) : null,
+    })),
+    jstDateString(),
+  );
+
+  if (due.length === 0) {
+    return (
+      <div className="list-empty">
+        <p>{ANNOUNCEMENT_EMPTY_TEXT}</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="list-empty">
-      <p>{ANNOUNCEMENT_EMPTY_TEXT}</p>
-    </div>
+    <>
+      <p className="due-soon-lead">期限が7日以内のポイント・残高です（期限の近い順）。</p>
+      <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+        {due.map(({ account, expiryIso, days }) => (
+          <AccountRow key={account.id} account={account} subText={dueSoonText(days, expiryIso ?? "")} />
+        ))}
+      </div>
+      <p className="list-count">{listCountText(due.length)}</p>
+    </>
   );
 }
 

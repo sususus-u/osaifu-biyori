@@ -236,6 +236,13 @@ textarea::placeholder {
   color: var(--text-muted);
 }
 
+/* 「あなたへのお知らせ」の一覧の上のひとこと(依頼318。12px 以上・地との比 4.5:1 以上) */
+.due-soon-lead {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
 .push-toggle {
   margin-bottom: 20px;
 }
