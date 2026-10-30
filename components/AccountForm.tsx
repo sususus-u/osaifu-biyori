@@ -8,6 +8,7 @@
 // 選べる数はプランで決まる(無料は1つ。プランは GET /api/plan。読めないときは無料)。決まりは lib/reminderTiming.ts。
 
 import ConfirmSheet from "@/components/ConfirmSheet";
+import MoreDetails from "@/components/MoreDetails";
 import { useState, useEffect, useRef, type FormEvent, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -1059,8 +1060,12 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
             ))}
           </datalist>
           <p style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 6 }}>
-            サービス名だけを入れてください（例:PayPay）。「残高」「ポイント」などの区別は、下の「名前」欄の方に入れます。同じグループ名を付けておくと、一覧の「発行元別」タブでまとめて表示されます
+            サービス名だけを入れます（例:PayPay）。
           </p>
+          <MoreDetails>
+            <p>「残高」「ポイント」の区別は、下の「名前」に入れます。</p>
+            <p style={{ marginTop: 4 }}>同じグループ名にすると、一覧の「発行元別」で、まとめて見られます。</p>
+          </MoreDetails>
         </div>
 
         <div className="field">
@@ -1338,8 +1343,11 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
               円
             </div>
             <p style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 6 }}>
-              例:200ポイント=1000円の場合、200と1000を入力してください。設定すると、円換算した金額の目安が一覧に表示されます。未入力の場合は1pt=1円として表示されます
+              例:200ポイント=1000円なら、200と1000を入れます。
             </p>
+            <MoreDetails>
+              <p>入れると、一覧に円の目安が出ます。入れないときは、1pt=1円として出します。</p>
+            </MoreDetails>
           </div>
         )}
 
@@ -1441,12 +1449,12 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
                 読み取りに自信が持てませんでした。画像と見比べて、期限を確認してください。
               </p>
             )}
-            <p style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 6 }}>
-              空欄の場合は「期限なし」タブに表示されます
-            </p>
-            <p style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 6 }}>
-              名前に「期間限定」が含まれる場合は、期限が分からなくても「期間限定」タブに表示されます。期限が分かり次第、入力してください。
-            </p>
+            <MoreDetails>
+              <p>空欄のときは、「期限なし」のタブに出ます。</p>
+              <p style={{ marginTop: 4 }}>
+                名前に「期間限定」があれば、空欄でも「期間限定」のタブに出ます。期限が分かったら、入れてください。
+              </p>
+            </MoreDetails>
           </div>
         )}
 

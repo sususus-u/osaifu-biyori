@@ -54,6 +54,7 @@ import {
 import BusyIndicator from "@/components/BusyIndicator";
 import ConfirmSheet from "@/components/ConfirmSheet";
 import BottomToast from "@/components/BottomToast";
+import MoreDetails from "@/components/MoreDetails";
 import { replaceChanges, REPLACE_NO_CHANGE, REPLACE_WARNING } from "@/lib/replaceConfirm";
 import { scanStampSummary } from "@/lib/stampAuto";
 import { REMINDER_DEFAULT_DAYS } from "@/lib/reminderTiming";
@@ -397,15 +398,16 @@ export default function ScanPhysicalUpload() {
 
   return (
     <div>
+      {/* 文字を減らす(依頼317 仕事2): 間違いを防ぐ「登録の前に確かめる」は出したまま、撮り方の補足は「くわしく見る」へ */}
       <p style={{ fontSize: 13, color: "#666", marginBottom: 4 }}>
-        切手や紙の商品券など、現物を並べて撮影してください。枚数・額面をAIが数えて合計金額を算出します。
+        切手や紙の商品券を並べて撮ると、AI が額面と枚数を数えます。
       </p>
-      <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 16 }}>
-        読み取り精度が写真の状態に左右されやすいため、保存前に必ず内容を確認してください。
+      <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 4 }}>
+        読み違えることがあります。登録の前に、内容を確かめてください。
       </p>
-      <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 16 }}>
-        明るい場所で、正面からピントを合わせて撮ると読み取り精度が上がります。
-      </p>
+      <MoreDetails style={{ marginBottom: 16 }}>
+        <p>明るい場所で、正面からピントを合わせて撮ると、読み取りやすくなります。</p>
+      </MoreDetails>
 
       <input
         type="file"
@@ -477,7 +479,7 @@ export default function ScanPhysicalUpload() {
           {overLimit && <p style={{ fontSize: 12, color: "#b3261e", marginBottom: 8 }}>{MSG_TOO_MANY}</p>}
           {unreadable > 0 && (
             <p style={{ fontSize: 12, color: "#b3261e", marginBottom: 8 }}>
-              額面が読めなかった切手が{unreadable}枚あります。この枚数と金額には含まれていません。必要なら、枚数と合計を直してください
+              額面が読めなかった切手が{unreadable}枚あります。枚数と合計に入っていないので、必要なら直してください。
             </p>
           )}
           {suspect && <p style={{ fontSize: 12, color: "#b3261e", marginBottom: 8 }}>{MSG_BREAKDOWN_SUSPECT}</p>}
@@ -592,22 +594,23 @@ export default function ScanPhysicalUpload() {
             >
               行を追加
             </button>
-            <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>
-              額面ごとに行を分けて入力できます。合計は行から自動で計算します
-            </p>
-            {stampMode && (
-              <p style={{ fontSize: 12, color: "var(--brand)", marginTop: 4 }}>
-                額面ごとに別のポイント・残高として登録します。同じ名前・額面のものがあれば、枚数と合計金額を足します
-              </p>
-            )}
-            <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>
-              切手など重なって見えるものは、枚数を多く数えてしまうことがあります。実際の枚数に修正してください。
+            {/* 間違いを防ぐ注意(重なり・1枚だけ)は出したまま。行の分け方と、額面ごとの登録の説明は「くわしく見る」へ(依頼317 仕事2) */}
+            <p style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 6 }}>
+              重なった切手は、多く数えることがあります。実際の枚数に直してください。
             </p>
             {itemCount === 1 && (
-              <p style={{ fontSize: 12, color: "var(--brand)", marginTop: 4 }}>
-                1枚だけ撮影した場合の初期値です。実際にお持ちの枚数に変更すると合計金額を計算できます
+              <p style={{ fontSize: 13, color: "var(--brand)", marginTop: 4 }}>
+                1枚だけ撮ったときの枚数です。持っている枚数に直すと、合計を計算します。
               </p>
             )}
+            <MoreDetails>
+              <p>額面ごとに行を分けて入れられます。合計は、行から自動で計算します。</p>
+              {stampMode && (
+                <p style={{ marginTop: 4 }}>
+                  額面ごとに、別のポイント・残高として登録します。同じ名前・額面のものがあれば、枚数と合計金額を足します。
+                </p>
+              )}
+            </MoreDetails>
           </div>
 
           {stampMode ? (

@@ -18,6 +18,7 @@ const SCREENS = [
   "../components/AccountSettings.tsx",
   "../components/AppShell.tsx",
   "../components/LoginGuide.tsx",
+  "../components/MoreDetails.tsx",
   "../components/LogoutButton.tsx",
   "../components/NotificationSetup.tsx",
   "../components/QuickUpdate.tsx",
