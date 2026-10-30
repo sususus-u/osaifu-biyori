@@ -237,3 +237,10 @@ test("切手の額面ごとの保存の失敗は「登録・更新に失敗し�
   assert.ok(src.includes('setErrorMessage("登録・更新に失敗しました。何も保存されていません。もう一度お試しください。");'));
   assert.ok(!src.includes("保存に失敗"));
 });
+
+test("ホームは「ホーム」と呼ぶ(「おきづきびより ホーム」とは書かない。依頼340の決定8)", () => {
+  for (const f of SCREENS) {
+    assert.ok(!read(f).includes("おきづきびより ホーム"), f);
+  }
+  assert.ok(read("../components/AccountSettings.tsx").includes("ログイン状態は「ホーム」と共通です。"));
+});

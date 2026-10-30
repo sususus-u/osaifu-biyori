@@ -107,7 +107,7 @@ export default function AccountSettings() {
   return (
     <div>
       <p style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.6, marginBottom: 10 }}>
-        ログイン状態は「おきづきびより ホーム」と共通です。
+        ログイン状態は「ホーム」と共通です。
       </p>
       {!showForm ? (
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
