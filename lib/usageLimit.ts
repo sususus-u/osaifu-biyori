@@ -77,7 +77,8 @@ async function loadAiBudget(): Promise<AiBudget> {
 // Firestoreに問い合わせられない場合は例外を投げる。
 // その人のプラン(依頼287)。プランの記録を、その人の IDトークンで読む(ルールが効く)。
 // 強制がオフの間は、読まずに "free"。読めないときの控えは plan_last_known/{uid} の tamari の欄。
-async function planFor(uid: string, idToken: string) {
+// 「お知らせの時期」の画面も、GET /api/plan からこれを使う(依頼317)。
+export async function planFor(uid: string, idToken: string) {
   return readPlanWithIdToken({
     uid,
     idToken,

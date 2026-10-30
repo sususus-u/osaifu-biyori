@@ -1,7 +1,8 @@
 // 毎日1回、Vercel Cronから呼び出される通知送信バッチ。
-// 全ユーザーの全口座を確認し、通知タイミング(1段階目/2段階目)に該当する口座があれば
-// プッシュ通知を送る。同じ期限日に対して二重送信しないよう、送信済みフラグを記録する。
-// 期限の7日前から当日までは、毎朝送る(lib/notificationSchedule.ts。依頼289)。
+// 全ユーザーの全口座を確認し、その日に送るお知らせ(気づきのお知らせ・直前のお知らせ)があれば
+// プッシュ通知を送る。同じ日に2通送らないよう、送った日(notifiedOn)を記録する(lib/notificationSchedule.ts)。
+// 気づきのお知らせは、選んだ日に1回ずつ。無料のプランは、いちばん早い日だけ(lib/reminderTiming.ts。依頼317)。
+// 期限の7日前から当日までは、直前のお知らせを毎朝送る(依頼289)。2回目のお知らせは、やめた(依頼317)。
 // 合言葉 PUSH_RELAY_KEY があれば、ホームの通知で送る(lib/servicePush.ts。依頼290)。
 
 import { NextRequest, NextResponse } from "next/server";
@@ -9,9 +10,12 @@ import { Timestamp } from "firebase-admin/firestore";
 import { adminDb, adminMessaging } from "@/lib/firebaseAdmin";
 import { isCronAuthorized } from "@/lib/cronAuth";
 import type { AccountDoc, UserDoc } from "@/types/firestore";
-import { jstDateString } from "@/lib/planLimits";
+import { isPlanEnforced, jstDateString } from "@/lib/planLimits";
 import { inDailyWindow, notifyBody, pickNotifyStage, type NotifyStage } from "@/lib/notificationSchedule";
 import { needsOwnSend, relayItem, relayViaHome } from "@/lib/servicePush";
+import { effectiveReminderDays, selectedReminderDays } from "@/lib/reminderTiming";
+import { firestoreLastKnownStore, type Plan } from "@/lib/plan-resolve";
+import { planForNotify } from "@/lib/notifyPlan";
 
 function toIsoDate(date: Date): string {
   return date.toISOString().slice(0, 10);
@@ -52,6 +56,24 @@ export async function GET(req: NextRequest) {
     expiryIso: string;
   };
   const due: Due[] = [];
+  // 持ち主ごとのプラン(1回の実行で1人1回だけ読む。lib/notifyPlan.ts)
+  const enforced = isPlanEnforced();
+  const lastKnownStore = firestoreLastKnownStore(adminDb, "tamari");
+  const plans = new Map<string, Promise<Plan>>();
+  const planOf = (uid: string) => {
+    let p = plans.get(uid);
+    if (!p) {
+      p = planForNotify({
+        uid,
+        enforced,
+        read: (id) => adminDb.collection("subscriptions").doc(id).get(),
+        store: lastKnownStore,
+        now: today,
+      });
+      plans.set(uid, p);
+    }
+    return p;
+  };
   for (const accountDoc of accountsSnap.docs) {
     const account = accountDoc.data() as AccountDoc;
     if (!account.expiryDate) continue;
@@ -60,18 +82,20 @@ export async function GET(req: NextRequest) {
     const daysUntilExpiry = daysBetween(today, expiry);
     const expiryIso = toIsoDate(expiry);
 
-    const { firstStageDays, secondStageDays } = account.notificationTiming;
-
-    const stage = pickNotifyStage({
-      daysUntilExpiry,
-      firstStageDays,
-      secondStageDays,
-      expiryIso,
-      todayIso,
-      notifiedFirstStageForDate: account.notifiedFirstStageForDate,
-      notifiedSecondStageForDate: account.notifiedSecondStageForDate,
-      notifiedDailyOn: account.notifiedDailyOn,
-    });
+    // 期限が過ぎたもの、まだ気づきの日より前のものは、プランを読まずに飛ばす
+    const selected = selectedReminderDays(account.notificationTiming);
+    const mayNotify = daysUntilExpiry >= 0 && (inDailyWindow(daysUntilExpiry) || selected.includes(daysUntilExpiry));
+    const stage = mayNotify
+      ? pickNotifyStage({
+          daysUntilExpiry,
+          reminderDays: inDailyWindow(daysUntilExpiry)
+            ? []
+            : effectiveReminderDays(selected, await planOf(account.ownerId)),
+          todayIso,
+          notifiedOn: account.notifiedOn,
+          notifiedDailyOn: account.notifiedDailyOn,
+        })
+      : null;
 
     if (!stage) {
       skippedCount++;
@@ -97,11 +121,12 @@ export async function GET(req: NextRequest) {
   let relayedCount = 0;
 
   for (const [index, { accountDoc, account, stage, daysUntilExpiry, expiryIso }] of due.entries()) {
-    // 7日前からの毎朝の分も、同じ日に2回送らないよう、送った日を残す
+    // 同じ日に2通送らないよう、送った日を残す(気づき・直前のどちらでも notifiedOn。
+    // 前の形の欄も、今までどおり書く: 気づきは notifiedFirstStageForDate、直前は notifiedDailyOn)
     const markNotified = () =>
       accountDoc.ref.update({
-        ...(stage === "first" ? { notifiedFirstStageForDate: expiryIso } : {}),
-        ...(stage === "second" ? { notifiedSecondStageForDate: expiryIso } : {}),
+        notifiedOn: todayIso,
+        ...(stage === "reminder" ? { notifiedFirstStageForDate: expiryIso } : {}),
         ...(inDailyWindow(daysUntilExpiry) ? { notifiedDailyOn: todayIso } : {}),
       });
 

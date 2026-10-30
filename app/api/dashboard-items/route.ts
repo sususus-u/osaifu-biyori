@@ -7,8 +7,20 @@ import { NextRequest, NextResponse } from "next/server";
 import type { Timestamp } from "firebase-admin/firestore";
 import { adminDb } from "@/lib/firebaseAdmin";
 import { verifyBearerIdToken } from "@/lib/verifyIdToken";
-import { CATEGORY_DEFAULTS, type AccountDoc } from "@/types/firestore";
+import type { AccountCategory, AccountDoc } from "@/types/firestore";
 import { DASHBOARD_OVERDUE_DAYS } from "@/lib/notificationSchedule";
+
+// ホームの「期限が近いもの」の色(danger)にする日数。前の種類ごとの「2回目」の日数のまま(依頼317で
+// お知らせの2回目はやめたが、ホームの表示は変えないため、ここに残す。そろえるかは、まだ決めていない)
+const DANGER_DAYS: Record<AccountCategory, number> = {
+  electronic_money: 21,
+  points: 21,
+  gift_certificate: 21,
+  miles: 182,
+  coupon: 21,
+  stamp_card: 30,
+  other: 30,
+};
 
 const NO_STORE = { "Cache-Control": "private, no-store" };
 
@@ -40,8 +52,8 @@ export async function GET(req: NextRequest) {
     .map((account) => {
       const expiry = (account.expiryDate as unknown as Timestamp).toDate();
       const daysRemaining = daysBetween(today, expiry);
-      const [, secondStageDays] = CATEGORY_DEFAULTS[account.category].notificationDaysBefore;
-      const level: "danger" | "warning" = daysRemaining <= secondStageDays ? "danger" : "warning";
+      const dangerDays = DANGER_DAYS[account.category] ?? 21;
+      const level: "danger" | "warning" = daysRemaining <= dangerDays ? "danger" : "warning";
       return { name: account.name, daysRemaining, level };
     })
     // 期限が過ぎたものは、過ぎてから7日だけ出す(依頼289)

@@ -647,7 +647,7 @@ test("読み取りの一言: 期限なし/期限ありの文。期限を手で�
   );
   assert.equal(
     scanStampSummary({ expiryDate: "2027-03-31", expiryTouched: false }),
-    "自動で設定しました: 種類=商品券・切手、単位=円、期限=2027-03-31、通知=90日前・21日前（変更できます）"
+    "自動で設定しました: 種類=商品券・切手、単位=円、期限=2027-03-31、通知=60日前（変更できます）"
   );
   assert.equal(
     scanStampSummary({ expiryDate: "2027-03-31", expiryTouched: true }),

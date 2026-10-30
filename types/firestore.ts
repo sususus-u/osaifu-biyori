@@ -25,56 +25,51 @@ export type AccountCategory =
 /** 完結型(使いきる/失効するの二択が成立) or 継続型(残高が増減し続ける) */
 export type AccountType = "finite" | "continuous";
 
-/** 種類ごとのデフォルト設定(円建てフラグ・タイプ・通知タイミング初期値) */
+/**
+ * 種類ごとのデフォルト設定(円建てフラグ・タイプ)。
+ * お知らせの時期は、種類ごとの違いをやめ、どの種類も60日前(lib/reminderTiming.ts。依頼317)。
+ */
 export const CATEGORY_DEFAULTS: Record<
   AccountCategory,
   {
     isYenBased: boolean;
     type: AccountType;
-    notificationDaysBefore: [first: number, second: number];
     label: string;
   }
 > = {
   electronic_money: {
     isYenBased: true,
     type: "continuous",
-    notificationDaysBefore: [90, 21], // 3ヶ月前/3週間前
     label: "電子マネー",
   },
   points: {
     isYenBased: true, // 常に円建て扱い(ユーザーによる切り替えなし)
     type: "continuous",
-    notificationDaysBefore: [90, 21],
     label: "ポイント",
   },
   gift_certificate: {
     isYenBased: true,
     type: "finite",
-    notificationDaysBefore: [90, 21],
     label: "商品券・切手",
   },
   miles: {
     isYenBased: false,
     type: "continuous",
-    notificationDaysBefore: [365, 182], // 1年前/半年前
     label: "マイル",
   },
   coupon: {
     isYenBased: false,
     type: "finite",
-    notificationDaysBefore: [90, 21],
     label: "クーポン",
   },
   stamp_card: {
     isYenBased: false,
     type: "finite",
-    notificationDaysBefore: [120, 30], // 4ヶ月前/1ヶ月前
     label: "スタンプカード",
   },
   other: {
     isYenBased: true, // 必須選択(初期値なし相当。UI側で選択を強制する)
     type: "finite", // 必須選択(同上)
-    notificationDaysBefore: [120, 30], // スタンプカード系と同じデフォルト
     label: "その他",
   },
 };
@@ -152,9 +147,15 @@ export interface AccountDoc {
   /** 任意項目。実物が手元にあるタイプ全般で使用可(財布/車/引き出し 等) */
   storageLocationMemo?: string;
 
+  /**
+   * お知らせの時期(依頼317)。reminderDays = 気づきのお知らせを送る日(○日前。120・60・30 から。空は「なし」)。
+   * 前の形の firstStageDays(1回目)・secondStageDays(2回目)は、保存してあっても書き換えない。
+   * reminderDays がないときだけ、firstStageDays を読むときに置き換える(lib/reminderTiming.ts)。2回目は使わない。
+   */
   notificationTiming: {
-    firstStageDays: number;
-    secondStageDays: number;
+    reminderDays?: number[];
+    firstStageDays?: number;
+    secondStageDays?: number;
   };
 
   /** この口座を最後にスクショ/写真で更新した日時。期限切れ未更新の検知に使用 */
@@ -168,6 +169,9 @@ export interface AccountDoc {
   notifiedSecondStageForDate?: string | null;
   // 期限の7日前からの毎朝のお知らせを、最後に送った日(日本時間の YYYY-MM-DD。依頼289)
   notifiedDailyOn?: string | null;
+  // 期限のお知らせ(気づき・直前のどちらでも)を、最後に送った日(日本時間の YYYY-MM-DD。依頼317)。
+  // 同じ日に2通送らないために使う(lib/notificationSchedule.ts)
+  notifiedOn?: string | null;
 
   createdAt: Timestamp;
   updatedAt: Timestamp;

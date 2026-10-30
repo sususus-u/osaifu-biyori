@@ -4,7 +4,8 @@
 // - 一番上: ハブ通知のON/OFFを、この場で切り替えられるスイッチ
 // - その下: 「あなたへのお知らせ」「運営からのお知らせ」の2タブ
 //
-// 「あなたへのお知らせ」は、期限が近い自分のポイント・残高を、期限の近い順に出す(依頼318。lib/dueSoon.ts)。
+// 「あなたへのお知らせ」は、お知らせの時期に入った自分のポイント・残高を、期限の近い順に出す(依頼318。lib/dueSoon.ts)。
+// 気づきのお知らせ(いちばん早い気づきの日から)と、直前のお知らせ(7日前から)の両方(依頼317 仕事1の決定15)。
 // 新しいデータは作らず、一覧と同じ accounts を読む。行を押すと「ポイント・残高を編集」(通知を押したときと同じ)。
 // 送ったお知らせを残して見返す仕組みは、まだない。
 // 「運営からのお知らせ」は、ハブの GET /api/announcements を
@@ -25,7 +26,8 @@ import { useHasNewAnnouncement } from "@/components/AppShell";
 import { ANNOUNCEMENT_EMPTY_TEXT, timeLabel, useAnnouncements } from "@/lib/announcements";
 import { LOADING_TEXT, listCountText } from "@/lib/listCount";
 import { jstDateString } from "@/lib/planLimits";
-import { dueSoonText, pickDueSoon } from "@/lib/dueSoon";
+import { DUE_SOON_LEAD, dueSoonText, pickDueSoon } from "@/lib/dueSoon";
+import { earliestReminderDay, selectedReminderDays } from "@/lib/reminderTiming";
 import AccountRow, { type AccountWithId } from "@/components/AccountRow";
 import { dismissAnnouncements, useDismissedAnnouncementIds } from "@/lib/dismissedAnnouncements";
 
@@ -135,6 +137,7 @@ function PersonalNotifications() {
     (accounts ?? []).map((account) => ({
       account,
       expiryIso: account.expiryDate ? (account.expiryDate as Timestamp).toDate().toISOString().slice(0, 10) : null,
+      fromDays: earliestReminderDay(selectedReminderDays(account.notificationTiming)),
     })),
     jstDateString(),
   );
@@ -149,7 +152,7 @@ function PersonalNotifications() {
 
   return (
     <>
-      <p className="due-soon-lead">期限が7日以内のポイント・残高です（期限の近い順）。</p>
+      <p className="due-soon-lead">{DUE_SOON_LEAD}</p>
       <div className="card" style={{ padding: 0, overflow: "hidden" }}>
         {due.map(({ account, expiryIso, days }) => (
           <AccountRow key={account.id} account={account} subText={dueSoonText(days, expiryIso ?? "")} />

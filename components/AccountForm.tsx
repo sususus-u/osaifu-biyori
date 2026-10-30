@@ -2,8 +2,10 @@
 
 // 口座登録・編集フォーム。
 // accountId が渡されると編集モードになり、既存データを読み込んで更新・削除ができる。
-// 種類を選ぶと、CATEGORY_DEFAULTS から円建てフラグ・タイプ・通知タイミングの
+// 種類を選ぶと、CATEGORY_DEFAULTS から円建てフラグ・タイプの
 // 初期値が自動で入る。ポイント・その他は円建て/非円建てをユーザーが選び直せる。
+// 「お知らせの時期」(依頼317 仕事1): 気づきのお知らせの日を、120・60・30日前・なし から選ぶ(1件ごと)。
+// 選べる数はプランで決まる(無料は1つ。プランは GET /api/plan。読めないときは無料)。決まりは lib/reminderTiming.ts。
 
 import ConfirmSheet from "@/components/ConfirmSheet";
 import { useState, useEffect, useRef, type FormEvent, type ChangeEvent } from "react";
@@ -43,6 +45,24 @@ import { isStampLikeEntry, isStampGroupEntry, STAMP_DEFAULT_NAME, STAMP_MANUAL_P
 import { useAuth } from "@/contexts/AuthProvider";
 import { guardNewRecords } from "@/lib/recordLimitClient";
 import { prepareScanImage } from "@/lib/scanImage";
+import { authFetch } from "@/lib/authFetch";
+import { isPlan, type Plan } from "@/lib/plan-resolve";
+import {
+  DAILY_CAPTION,
+  DAILY_LABEL,
+  REMINDER_CAPTION,
+  REMINDER_CHOICES,
+  REMINDER_DEFAULT_DAYS,
+  REMINDER_LABEL,
+  REMINDER_NONE_LABEL,
+  REMINDER_PAID_GUIDE,
+  REMINDER_SECTION_LABEL,
+  earliestReminderDay,
+  freeOnlyEarliestNote,
+  reminderChipLabel,
+  selectedReminderDays,
+  toggleReminderDay,
+} from "@/lib/reminderTiming";
 import {
   CATEGORY_DEFAULTS,
   type AccountCategory,
@@ -170,12 +190,14 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
   // 有効期限を「期間限定」「期限なし」のどちらにするか。null は未選択(新規登録時は選択必須)
   const [hasExpiry, setHasExpiry] = useState<boolean | null>(null);
   const [storageLocationMemo, setStorageLocationMemo] = useState("");
-  const [firstStageDays, setFirstStageDays] = useState(
-    CATEGORY_DEFAULTS.electronic_money.notificationDaysBefore[0]
-  );
-  const [secondStageDays, setSecondStageDays] = useState(
-    CATEGORY_DEFAULTS.electronic_money.notificationDaysBefore[1]
-  );
+  // 気づきのお知らせの日(○日前。早い順。空は「なし」)。新しく登録するときはデフォルトの60日前
+  const [reminderDays, setReminderDays] = useState<number[]>([REMINDER_DEFAULT_DAYS]);
+  // 編集の画面で読んだ、前の形の日数(1回目・2回目)。書き換えず、更新のときもそのまま残す(依頼317)
+  const [legacyTiming, setLegacyTiming] = useState<{ firstStageDays?: number; secondStageDays?: number }>({});
+  // その人のプラン(GET /api/plan)。読めるまで・読めないときは無料として扱う
+  const [plan, setPlan] = useState<Plan>("free");
+  // 無料のプランで2つ目を選ぼうとしたときの案内(足さない)
+  const [showPaidGuide, setShowPaidGuide] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   // どのボタンで送ったか。押したボタンだけに待ちの文(「登録中…」「更新中…」)を出す(依頼257)
   const [submitAction, setSubmitAction] = useState<"submit" | "replace" | "add">("submit");
@@ -291,8 +313,6 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
     setCategory(d.category);
     setIsYenBased(d.isYenBased);
     setAccountType(d.type);
-    setFirstStageDays(d.firstStageDays);
-    setSecondStageDays(d.secondStageDays);
     if (d.unit) {
       setBalanceUnitFromValue(d.unit);
     }
@@ -350,8 +370,13 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
           setHasExpiry((data.name ?? "").includes("期間"));
         }
         setStorageLocationMemo(data.storageLocationMemo ?? "");
-        setFirstStageDays(data.notificationTiming?.firstStageDays ?? 90);
-        setSecondStageDays(data.notificationTiming?.secondStageDays ?? 21);
+        // 前の形(自由な日数)は、読むときに選択肢へ置き換える。保存してある値は、そのまま残す
+        setReminderDays(selectedReminderDays(data.notificationTiming));
+        const timing = data.notificationTiming ?? {};
+        setLegacyTiming({
+          ...(typeof timing.firstStageDays === "number" ? { firstStageDays: timing.firstStageDays } : {}),
+          ...(typeof timing.secondStageDays === "number" ? { secondStageDays: timing.secondStageDays } : {}),
+        });
       } catch (error) {
         console.error(error);
         setErrorMessage("データの読み込みに失敗しました。");
@@ -365,6 +390,29 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
       isCancelled = true;
     };
   }, [accountId]);
+
+  // その人のプラン(気づきのお知らせを、いくつ選べるか)。読めないときは無料のまま
+  useEffect(() => {
+    if (!uid) return;
+    let cancelled = false;
+    authFetch("/api/plan")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { plan?: unknown } | null) => {
+        if (!cancelled && data && isPlan(data.plan)) setPlan(data.plan);
+      })
+      .catch(() => {
+        // 無料のまま
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [uid]);
+
+  function handleReminderChip(day: number) {
+    const r = toggleReminderDay(reminderDays, day, plan);
+    setShowPaidGuide(r.blocked);
+    if (!r.blocked) setReminderDays(r.selected);
+  }
 
   // 新規登録時のみ、スクショ読み取り結果(sessionStorageのキュー)があれば事前入力する。
   // 内訳分割(通常/期間限定など)で複数口座がある場合、1件登録するたびに次の項目へ進む。
@@ -398,8 +446,6 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
         setCategory(data.category);
         const defaults = CATEGORY_DEFAULTS[data.category];
         setAccountType(defaults.type);
-        setFirstStageDays(defaults.notificationDaysBefore[0]);
-        setSecondStageDays(defaults.notificationDaysBefore[1]);
       }
       if (typeof data.isYenBased === "boolean") setIsYenBased(data.isYenBased);
       if (data.balance !== undefined && data.balance !== "") setBalance(String(data.balance));
@@ -513,8 +559,6 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
     const defaults = CATEGORY_DEFAULTS[newCategory];
     setIsYenBased(defaults.isYenBased);
     setAccountType(defaults.type);
-    setFirstStageDays(defaults.notificationDaysBefore[0]);
-    setSecondStageDays(defaults.notificationDaysBefore[1]);
     const unitDefault = CATEGORY_UNIT_DEFAULTS[newCategory];
     if (unitDefault) {
       setBalanceUnitFromValue(unitDefault);
@@ -581,9 +625,10 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
           }),
       expiryDate: expiryDate ? Timestamp.fromDate(new Date(expiryDate)) : null,
       storageLocationMemo: storageLocationMemo.trim() || null,
+      // 選んだ日は全部残す(無料のプランでは、送るときに、いちばん早い日だけが効く)。前の形の日数は書き換えない
       notificationTiming: {
-        firstStageDays: Number(firstStageDays),
-        secondStageDays: Number(secondStageDays),
+        ...(isEditMode ? legacyTiming : {}),
+        reminderDays,
       },
       lastUpdatedAt: now,
       updatedAt: now,
@@ -1415,23 +1460,62 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
           />
         </div>
 
+        {/* お知らせの時期(依頼317 仕事1。ハブの BRAND.md「お知らせと通知」の決定8)。1件ごと */}
         <div className="field">
-          <label>通知タイミング</label>
-          <div style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 14 }}>
-            <input
-              type="number"
-              value={firstStageDays}
-              onChange={(e) => setFirstStageDays(Number(e.target.value))}
-              style={{ width: 72 }}
-            />
-            日前 /
-            <input
-              type="number"
-              value={secondStageDays}
-              onChange={(e) => setSecondStageDays(Number(e.target.value))}
-              style={{ width: 72 }}
-            />
-            日前
+          <label>{REMINDER_SECTION_LABEL}</label>
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "#333" }}>{REMINDER_LABEL}</div>
+            <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>{REMINDER_CAPTION}</div>
+            <div role="group" aria-label={REMINDER_LABEL} style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {[...REMINDER_CHOICES.map((d) => ({ key: String(d), day: d as number | null })), { key: "none", day: null }].map(
+                ({ key, day }) => {
+                  const pressed = day === null ? reminderDays.length === 0 : reminderDays.includes(day);
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      aria-pressed={pressed}
+                      onClick={() => {
+                        if (day === null) {
+                          setShowPaidGuide(false);
+                          setReminderDays([]);
+                        } else {
+                          handleReminderChip(day);
+                        }
+                      }}
+                      style={{
+                        minHeight: 44,
+                        minWidth: 44,
+                        padding: "8px 12px",
+                        fontSize: 13,
+                        borderRadius: 8,
+                        border: "1.5px solid var(--brand)",
+                        background: pressed ? "var(--brand)" : "#fff",
+                        color: pressed ? "#fff" : "var(--brand)",
+                        fontWeight: pressed ? 600 : 400,
+                      }}
+                    >
+                      {pressed ? "✓ " : ""}
+                      {day === null ? REMINDER_NONE_LABEL : reminderChipLabel(day)}
+                    </button>
+                  );
+                },
+              )}
+            </div>
+            {showPaidGuide && (
+              <p aria-live="polite" style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 6 }}>
+                {REMINDER_PAID_GUIDE}
+              </p>
+            )}
+            {plan === "free" && reminderDays.length > 1 && (
+              <p style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 6 }}>
+                {freeOnlyEarliestNote(earliestReminderDay(reminderDays) ?? REMINDER_DEFAULT_DAYS)}
+              </p>
+            )}
+          </div>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "#333" }}>{DAILY_LABEL}</div>
+            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{DAILY_CAPTION}</div>
           </div>
         </div>
 

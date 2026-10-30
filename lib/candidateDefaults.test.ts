@@ -16,21 +16,19 @@ const deps = {
         ? { category: "gift_certificate", isYenBased: true }
         : { category: "points", isYenBased: true },
   categoryDefaults: {
-    electronic_money: { type: "continuous", notificationDaysBefore: [90, 21] },
-    points: { type: "continuous", notificationDaysBefore: [90, 21] },
-    gift_certificate: { type: "finite", notificationDaysBefore: [90, 21] },
-    other: { type: "finite", notificationDaysBefore: [30, 7] },
-  } as Record<C, { type: T; notificationDaysBefore: [number, number] }>,
+    electronic_money: { type: "continuous" },
+    points: { type: "continuous" },
+    gift_certificate: { type: "finite" },
+    other: { type: "finite" },
+  } as Record<C, { type: T }>,
   unitDefaults: { electronic_money: "円", points: "pt", gift_certificate: "円" } as Partial<Record<C, string>>,
 };
 
-test("新しく登録するとき: 候補と同じ名前なら、候補の種類・タイプ・通知・単位を返す", () => {
+test("新しく登録するとき: 候補と同じ名前なら、候補の種類・タイプ・単位を返す(お知らせの時期は、種類で変えない。依頼317)", () => {
   assert.deepEqual(candidateDefaults("PayPay残高", false, deps), {
     category: "electronic_money",
     isYenBased: true,
     type: "continuous",
-    firstStageDays: 90,
-    secondStageDays: 21,
     unit: "円",
   });
   assert.equal(candidateDefaults("PayPayポイント(期間限定)", false, deps)?.unit, "pt");

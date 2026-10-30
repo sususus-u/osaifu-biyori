@@ -14,6 +14,7 @@ import { groupNameForNewItem, toExistingItem } from "./stampMerge.ts";
 import type { StampSaveDeps } from "./stampSave.ts";
 import { guardNewRecords } from "./recordLimitClient";
 import type { UndoCapture } from "./undoRestore.ts";
+import { REMINDER_DEFAULT_DAYS } from "./reminderTiming.ts";
 
 // 足すときに書く項目(「元に戻す」で、直す前の値に戻す項目。依頼232)
 export function stampAddKeys(expiry: Timestamp | null): string[] {
@@ -72,7 +73,8 @@ export function firestoreStampDeps(uid: string, expiry: Timestamp | null, captur
               faceValue: item.faceValue,
               itemQuantity: item.count,
               storageLocationMemo: null,
-              notificationTiming: { firstStageDays: 90, secondStageDays: 21 },
+              // 気づきのお知らせのデフォルト(60日前。依頼317)
+              notificationTiming: { reminderDays: [REMINDER_DEFAULT_DAYS] },
               lastUpdatedAt: now,
               createdAt: now,
               updatedAt: now,

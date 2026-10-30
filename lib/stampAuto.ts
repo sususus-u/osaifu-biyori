@@ -53,12 +53,12 @@ export function stampAutoSummary(o: {
 }
 
 // 読み取りの保存の前の画面で見せる一言。期限は、AI が読めた日付(なければ「なし」)。通知は、期限なしなら対象外、
-// 期限ありなら 90日前・21日前(種類の既定値)。期限を手で直したら、その分(期限・通知)は挙げない
+// 期限ありなら 60日前(気づきのお知らせのデフォルト。依頼317)。期限を手で直したら、その分(期限・通知)は挙げない
 export function scanStampSummary(o: { expiryDate: string; expiryTouched: boolean }): string {
   const parts = ["種類=商品券・切手", "単位=円"];
   if (!o.expiryTouched) {
     if (o.expiryDate === "") parts.push("期限=なし", "通知=なし");
-    else parts.push(`期限=${o.expiryDate}`, "通知=90日前・21日前");
+    else parts.push(`期限=${o.expiryDate}`, "通知=60日前");
   }
   return `自動で設定しました: ${parts.join("、")}（変更できます）`;
 }

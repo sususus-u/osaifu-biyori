@@ -56,6 +56,7 @@ import ConfirmSheet from "@/components/ConfirmSheet";
 import BottomToast from "@/components/BottomToast";
 import { replaceChanges, REPLACE_NO_CHANGE, REPLACE_WARNING } from "@/lib/replaceConfirm";
 import { scanStampSummary } from "@/lib/stampAuto";
+import { REMINDER_DEFAULT_DAYS } from "@/lib/reminderTiming";
 import { STAMP_NAME_BG } from "@/lib/stampNameView";
 import { busyViewForPhysical, waitForPaint } from "@/lib/busyView";
 import { saveStamps } from "@/lib/stampSave";
@@ -331,7 +332,8 @@ export default function ScanPhysicalUpload() {
           faceValue: newFaceValue,
           itemQuantity: newQuantity,
           storageLocationMemo: null,
-          notificationTiming: { firstStageDays: 90, secondStageDays: 21 },
+          // 気づきのお知らせのデフォルト(60日前。依頼317)
+          notificationTiming: { reminderDays: [REMINDER_DEFAULT_DAYS] },
           lastUpdatedAt: now,
           createdAt: now,
           updatedAt: now,

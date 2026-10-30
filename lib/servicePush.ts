@@ -24,7 +24,8 @@ type FetchLike = (
 export function relayItem(input: { uid: string; stage: NotifyStage; name: string; days: number; accountId: string }): RelayItem {
   return {
     uid: input.uid,
-    kind: input.stage === "first" ? "expiry-first" : "expiry",
+    // 気づきのお知らせは、前の「1回目」と同じ種類(ホームの窓口の名前は変えない。依頼317)
+    kind: input.stage === "reminder" ? "expiry-first" : "expiry",
     name: input.name,
     days: input.days,
     ref: input.accountId.replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 100) || "x",

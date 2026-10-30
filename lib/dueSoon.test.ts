@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { daysUntil, dueSoonText, pickDueSoon } from "./dueSoon.ts";
+import { DUE_SOON_LEAD, daysUntil, dueSoonText, pickDueSoon } from "./dueSoon.ts";
 
 test("日数は、期限の日付と、日本時間の今日の日付の差(依頼318)", () => {
   assert.equal(daysUntil("2026-11-05", "2026-10-30"), 6);
@@ -29,6 +29,33 @@ test("出すのは、当日から7日前まで(毎朝のお知らせと同じ)�
       ["a", 7],
     ],
   );
+});
+
+test("気づきのお知らせも出す: いちばん早い気づきの日から当日まで(依頼317 仕事1の決定15)", () => {
+  const items = [
+    { id: "a", expiryIso: "2026-12-29", fromDays: 60 }, // 60日(気づきの日。出す)
+    { id: "b", expiryIso: "2026-12-30", fromDays: 60 }, // 61日(まだ。出さない)
+    { id: "c", expiryIso: "2026-11-29", fromDays: 30 }, // 30日(出す)
+    { id: "d", expiryIso: "2026-11-29", fromDays: null }, // 30日、気づきなし(出さない)
+    { id: "e", expiryIso: "2026-11-03", fromDays: null }, // 4日、気づきなし(直前なので出す)
+    { id: "f", expiryIso: "2027-02-27", fromDays: 120 }, // 120日(出す)
+  ];
+  const picked = pickDueSoon(items, "2026-10-30");
+  assert.deepEqual(
+    picked.map((p) => [p.id, p.days]),
+    [
+      ["e", 4],
+      ["c", 30],
+      ["a", 60],
+      ["f", 120],
+    ],
+  );
+});
+
+test("一覧の上のひとこと", () => {
+  assert.equal(DUE_SOON_LEAD, "お知らせの時期に入ったポイント・残高です（期限の近い順）。");
+  const src = readFileSync(new URL("../app/notifications/page.tsx", import.meta.url), "utf8");
+  assert.match(src, /fromDays: earliestReminderDay\(selectedReminderDays\(account\.notificationTiming\)\)/);
 });
 
 test("名前の下の文字", () => {

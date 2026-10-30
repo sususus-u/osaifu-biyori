@@ -7,7 +7,7 @@ const ok = (results: unknown) => async () => ({ status: 200, json: async () => (
 
 test("形", () => {
   assert.deepEqual(item, { uid: "u1", kind: "expiry", name: "Tポイント", days: 3, ref: "acc_1" });
-  assert.equal(relayItem({ uid: "u1", stage: "first", name: "a", days: 90, accountId: "a" }).kind, "expiry-first");
+  assert.equal(relayItem({ uid: "u1", stage: "reminder", name: "a", days: 60, accountId: "a" }).kind, "expiry-first");
 });
 
 test("合言葉が無ければ、ホームに頼まない(今までどおり FCM)", async () => {
