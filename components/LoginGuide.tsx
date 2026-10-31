@@ -8,6 +8,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthProvider";
 import QuietWaiting from "@/components/QuietWaiting";
+import { SCENE_COLORS, SceneIllust } from "@/lib/scene-illust";
 import { handoffEnv } from "@/lib/firebase";
 import { goToHubLogin, handoffFailedMessage, LOGIN_HANDOFF_PRESETS } from "@/lib/login-handoff";
 
@@ -53,6 +54,9 @@ export default function LoginGuide() {
         <h1 className="appbar-title" style={{ color: "var(--brand)", fontSize: 26 }}>
           おさいふびより
         </h1>
+
+        {/* 場面の絵「ログインのお願い」(依頼366 仕事4)。飾り(読み上げは、下の文で伝える) */}
+        <SceneIllust scene="login" colors={SCENE_COLORS.osaifu} size={64} />
 
         <p role="alert" style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.7 }}>
           {handoffFailedMessage(LOGIN_HANDOFF_PRESETS.osaifu.serviceName)}

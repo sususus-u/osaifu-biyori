@@ -26,7 +26,7 @@ class MemStorage {
   removeItem(k: string) { this.m.delete(k); }
 }
 
-test("知らせは画面の下(下のメニューのすぐ上)。地をサービスの色で塗り、文字は白、左に ✓。見やすさ 4.5:1 以上(依頼229・依頼231)", () => {
+test("知らせは画面の下(下のメニューのすぐ上)。地をサービスの色で塗り、文字は白、左に済んだしるし。見やすさ 4.5:1 以上(依頼229・依頼231)", () => {
   const toast = read("../components/BottomToast.tsx");
   const css = read("../app/globals.css").replace(/\r\n/g, "\n");
   const tabbar = Number(css.match(/\.tabbar \{[^}]*height: (\d+)px;/)?.[1]);
@@ -38,7 +38,9 @@ test("知らせは画面の下(下のメニューのすぐ上)。地をサービ
   for (const look of ['color: "#fff"', 'background: "var(--brand)"', 'border: "1px solid var(--brand)"', 'borderRadius: "var(--radius-card)"', 'boxShadow: "0 4px 14px rgba(0, 0, 0, 0.15)"', "fontSize: 14", "lineHeight: 1.6"]) {
     assert.ok(toast.includes(look), look);
   }
-  assert.match(toast, /\{done && \(\s+<span aria-hidden="true"[^>]*>\s+✓/);
+  // 済んだしるしは、白い小さな丸に入れた場面の絵「登録・保存できた」(依頼366 仕事4。前は ✓ の文字)
+  assert.match(toast, /\{done && \([\s\S]{0,200}<span aria-hidden="true" className="toast-saved-mark">\s+<SceneIllust scene="saved" colors=\{SCENE_COLORS\.osaifu\} size=\{22\} \/>/);
+  assert.match(css, /\.toast-saved-mark \{[^}]*width: 24px;[^}]*height: 24px;[^}]*border-radius: 50%;[^}]*background: #fff;/);
   // 「元に戻す」は白い線と白い文字、✕ は白い文字。「元に戻す」付きは時間で消さず、次の操作(外を押す、Esc)で閉じる
   assert.match(toast, /background: "transparent",\s+color: "#fff",\s+border: "1\.5px solid #fff",/);
   assert.match(toast, /aria-label="閉じる"[\s\S]{0,300}color: "#fff",/);

@@ -52,6 +52,7 @@ import {
   type SaveRow,
 } from "@/lib/stampMerge";
 import BusyIndicator from "@/components/BusyIndicator";
+import SceneNotice from "@/components/SceneNotice";
 import ConfirmSheet from "@/components/ConfirmSheet";
 import BottomToast from "@/components/BottomToast";
 import MoreDetails from "@/components/MoreDetails";
@@ -466,7 +467,7 @@ export default function ScanPhysicalUpload() {
           onClose={() => setShowReplaceConfirm(false)}
         />
       )}
-      {errorMessage && <p style={{ fontSize: 13, color: "#b3261e" }}>{errorMessage}</p>}
+      {errorMessage && <SceneNotice message={errorMessage} textStyle={{ fontSize: 13, color: "#b3261e" }} />}
       {savedMessage && <BottomToast message={savedMessage} onClose={() => setSavedMessage("")} />}
 
       {!isProcessing && (name || totalAmount) && (

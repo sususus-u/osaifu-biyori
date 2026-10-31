@@ -18,7 +18,8 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { displayAccountName } from "@/lib/stampMerge";
 import { useAuth } from "@/contexts/AuthProvider";
-import { LOADING_TEXT } from "@/lib/listCount";
+import QuietWaiting from "@/components/QuietWaiting";
+import { SCENE_COLORS, SceneMessage } from "@/lib/scene-illust";
 import type { AccountDoc, OutcomeEventDoc } from "@/types/firestore";
 
 interface OutcomeEventWithId extends OutcomeEventDoc {
@@ -183,8 +184,13 @@ export default function ReportsPage() {
   const withExpiryRows = continuousRows.filter((r) => r.account.expiryDate);
   const noExpiryRows = continuousRows.filter((r) => !r.account.expiryDate);
 
+  // この月に、使いきった・失効した・残高の記録が1つもない(依頼366 仕事4: からっぽの絵と短い文を、上に添える)
+  const monthEmpty =
+    usedUpEvents.length === 0 && expiredEvents.length === 0 && continuousRows.every((r) => !r.hasData);
+
+  // 読み込み中: 文字は出さず、長引いたときだけ待ちの絵(依頼366 仕事4)
   if (isLoading) {
-    return <p style={{ fontSize: 14, color: "var(--text-muted)" }}>{LOADING_TEXT}</p>;
+    return <QuietWaiting />;
   }
 
   return (
@@ -209,10 +215,16 @@ export default function ReportsPage() {
         </button>
       </div>
 
-      {isFetching && <p style={{ fontSize: 13, color: "var(--text-muted)" }}>{LOADING_TEXT}</p>}
+      {isFetching && <QuietWaiting />}
 
       {!isFetching && (
         <>
+          {monthEmpty && (
+            <div style={{ fontSize: 14, color: "var(--text-muted)" }}>
+              <SceneMessage scene="empty" colors={SCENE_COLORS.osaifu} size={56} text="この月の記録はありません" />
+            </div>
+          )}
+
           {/* 完結型:使いきった実績(ポジティブ枠) */}
           <div className="card" style={{ marginBottom: 12 }}>
             <p style={{ fontSize: 13, color: "#555", margin: "0 0 4px" }}>今月使いきった</p>

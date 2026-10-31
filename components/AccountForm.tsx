@@ -30,6 +30,8 @@ import { guessServiceInfo } from "@/lib/knownServices";
 import { candidateDefaults } from "@/lib/candidateDefaults";
 import { getYenValue } from "@/lib/accountUtils";
 import BusyIndicator from "@/components/BusyIndicator";
+import SceneNotice from "@/components/SceneNotice";
+import QuietWaiting from "@/components/QuietWaiting";
 import { manualAdd, MANUAL_ADD_CHANGED_MESSAGE } from "@/lib/manualAdd";
 import { firestoreManualAddDeps } from "@/lib/manualAddFirestore";
 import { deleteAccounts } from "@/lib/deleteAccount";
@@ -945,8 +947,9 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
     }
   }
 
+  // 読み込み中: 文字は出さず、長引いたときだけ待ちの絵(依頼366 仕事4)
   if (isLoading || isFetchingExisting) {
-    return <p style={{ fontSize: 14, color: "var(--text-muted)" }}>読み込み中…</p>;
+    return <QuietWaiting />;
   }
 
   return (
@@ -1520,7 +1523,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
           </div>
         </div>
 
-        {errorMessage && <p style={{ fontSize: 13, color: "#b3261e", marginBottom: 20 }}>{errorMessage}</p>}
+        {errorMessage && <SceneNotice message={errorMessage} textStyle={{ fontSize: 13, color: "#b3261e" }} style={{ marginBottom: 20 }} />}
 
         {scanProgress && scanProgress.total > 1 && (
           <div style={{ display: "flex", flexDirection: "column", marginTop: 16, marginBottom: 20 }}>

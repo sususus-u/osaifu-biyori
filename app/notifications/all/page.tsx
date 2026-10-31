@@ -6,6 +6,7 @@
 import Link from "next/link";
 import { ANNOUNCEMENT_EMPTY_TEXT, timeLabel, useAnnouncements } from "@/lib/announcements";
 import { listCountText } from "@/lib/listCount";
+import QuietWaiting from "@/components/QuietWaiting";
 
 export default function PastAnnouncementsPage() {
   const announcements = useAnnouncements();
@@ -17,7 +18,7 @@ export default function PastAnnouncementsPage() {
       </Link>
 
       {announcements === null ? (
-        <div className="loading-state">読み込み中…</div>
+        <QuietWaiting />
       ) : announcements.length === 0 ? (
         <div className="list-empty">
           <p>{ANNOUNCEMENT_EMPTY_TEXT}</p>

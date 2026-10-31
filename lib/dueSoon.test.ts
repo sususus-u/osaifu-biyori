@@ -73,5 +73,6 @@ test("「あなたへのお知らせ」は、自分のポイント・残高か�
   assert.match(src, /className="card"/);
   assert.match(src, /listCountText\(due\.length\)/);
   assert.match(src, /ANNOUNCEMENT_EMPTY_TEXT/);
-  assert.match(src, /LOADING_TEXT/);
+  // 読み込み中は、文字を出さない待ちの絵(依頼366 仕事4)
+  assert.match(src, /<QuietWaiting \/>/);
 });

@@ -50,15 +50,17 @@ test("主な一覧以外の一覧(依頼268): クイック更新の一覧は白�
   has('<Link href="/accounts/new" className="btn-primary list-empty-btn">');
   has("+ ポイント・残高を登録する");
   assert.ok(!qu.includes("＋"));
-  // 読み込みが済むまでは「読み込み中…」(ゼロ件の枠を先に出さない)
+  // 読み込みが済むまでは待ちの絵(ゼロ件の枠を先に出さない。依頼366 仕事4 で「読み込み中…」の文字から)
   assert.ok(qu.indexOf("{!loaded ? (") < qu.indexOf('<div className="list-empty">'));
+  assert.ok(/\{!loaded \? \(\s*<QuietWaiting \/>/.test(qu));
   has("setLoaded(true);");
 });
 
-test("主な一覧以外の一覧(依頼268): 実績の画面の待ちの文も「読み込み中…」", () => {
+test("主な一覧以外の一覧(依頼268): 実績の画面の待ちも、ほかと同じ(依頼366 仕事4 から、文字を出さない待ちの絵)", () => {
   const rep = read("../app/reports/page.tsx");
   assert.ok(!rep.includes("集計しています"));
-  assert.ok(rep.includes("{isFetching && <p style={{ fontSize: 13, color: \"var(--text-muted)\" }}>{LOADING_TEXT}</p>}"));
+  assert.ok(rep.includes("{isFetching && <QuietWaiting />}"));
+  assert.ok(!rep.includes("LOADING_TEXT"));
 });
 
 test("お知らせの一覧(依頼270): 1件ずつの枠のまま、最後に「全○件」。ゼロ件は3つとも「お知らせは、まだありません。」", () => {

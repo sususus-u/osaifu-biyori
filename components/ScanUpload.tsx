@@ -15,6 +15,7 @@ import { captureBefore } from "@/lib/undoRestoreFirestore";
 import type { RestoreChange } from "@/lib/undoRestore";
 import { authFetch } from "@/lib/authFetch";
 import BusyIndicator from "@/components/BusyIndicator";
+import SceneNotice from "@/components/SceneNotice";
 import { busyViewForScan, waitForPaint } from "@/lib/busyView";
 import { prepareScanImage, readScanJson } from "@/lib/scanImage";
 import {
@@ -474,7 +475,7 @@ export default function ScanUpload() {
           </div>
         ))}
 
-        {errorMessage && <p className="text-sm text-red-600">{errorMessage}</p>}
+        {errorMessage && <SceneNotice message={errorMessage} textClassName="text-sm text-red-600" />}
 
         <button
           type="button"
@@ -545,7 +546,7 @@ export default function ScanUpload() {
       {!isProcessing && statusMessage && <BottomToast message={statusMessage} onClose={() => setStatusMessage("")} />}
       {errorMessage && (
         <div>
-          <p style={{ fontSize: 13, color: "#b3261e" }}>{errorMessage}</p>
+          <SceneNotice message={errorMessage} textStyle={{ fontSize: 13, color: "#b3261e" }} />
           <div className="action-row" style={{ marginTop: 8 }}>
             <Link
               href="/accounts/quick-update"

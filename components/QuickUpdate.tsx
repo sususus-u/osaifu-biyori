@@ -25,7 +25,10 @@ import {
 import { db } from "@/lib/firebase";
 import { displayAccountName } from "@/lib/stampMerge";
 import { useAuth } from "@/contexts/AuthProvider";
-import { LOADING_TEXT, listCountText } from "@/lib/listCount";
+import { listCountText } from "@/lib/listCount";
+import QuietWaiting from "@/components/QuietWaiting";
+import EmptyIllust from "@/components/EmptyIllust";
+import SceneNotice from "@/components/SceneNotice";
 import type { AccountDoc } from "@/types/firestore";
 
 interface AccountWithId extends AccountDoc {
@@ -67,7 +70,7 @@ export default function QuickUpdate() {
   const [undoFailed, setUndoFailed] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [pendingScan, setPendingScan] = useState<PendingScan | null>(null);
-  // 最初の読み込みが済んだか(済むまでは「読み込み中…」。ゼロ件の枠を先に出さない。依頼268)
+  // 最初の読み込みが済んだか(済むまでは待ちの絵。ゼロ件の枠を先に出さない。依頼268)
   const [loaded, setLoaded] = useState(false);
 
   // スクショでサービス名が読み取れなかった場合、ScanUpload側から引き継がれた数値がないか確認する
@@ -196,8 +199,9 @@ export default function QuickUpdate() {
     setUndoFailed(false);
   }
 
+  // 読み込み中: 文字は出さず、長引いたときだけ待ちの絵(依頼366 仕事4)
   if (isLoading) {
-    return <p className="p-6 text-sm text-gray-500">{LOADING_TEXT}</p>;
+    return <QuietWaiting />;
   }
 
   // グループ選択画面
@@ -240,9 +244,10 @@ export default function QuickUpdate() {
             枠のすぐ下の真ん中に「全○件」(1行=1つのまとまり。「○件まとめて」の行も1件と数える)。
             ゼロ件は点線の枠に「まだ○○が登録されていません。」と、登録のボタン(半角の「+」)。「全0件」は出さない */}
         {!loaded ? (
-          <p className="text-sm text-gray-500">{LOADING_TEXT}</p>
+          <QuietWaiting />
         ) : groupKeys.length === 0 ? (
           <div className="list-empty">
+            <EmptyIllust />
             <p>まだ継続型のポイント・残高が登録されていません。</p>
             <Link href="/accounts/new" className="btn-primary list-empty-btn">
               + ポイント・残高を登録する
@@ -314,7 +319,7 @@ export default function QuickUpdate() {
         </div>
       ))}
 
-      {saveError && <p className="text-sm text-red-700">{saveError}</p>}
+      {saveError && <SceneNotice message={saveError} textClassName="text-sm text-red-700" />}
       <button
         onClick={handleSaveAll}
         disabled={isSaving}

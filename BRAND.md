@@ -879,3 +879,11 @@
   - ログインの受け取り・確かめの間(components/AppShell.tsx)、ホームのログインへ移る間(components/LoginGuide.tsx)、開いた直後の一覧の読み込み(components/AccountList.tsx。前は「読み込み中…」): 文字を出さず、400ms たったら待ちの絵だけをそっと出す(components/QuietWaiting.tsx。読み上げには「読み込み中」。動きを減らす設定では止める)。うまくいかないときだけ、今の「…を閉じて、もう一度開いてください」の画面。
   - 場面の絵の部品の写し lib/scene-illust.jsx(正本はハブの src/lib/scene-illust.jsx。版 ea6aa7f56da2ea52。手で直さない。型を書かない JSX)。夜はハブの写す道具を動かせないため、手で写し、テストで正本と同じことを確かめた(lib/sceneIllust.test.ts)。
   - テスト lib/quietWaiting366.test.ts。
+- 仕事4(枝 night/2026-11-01-illust): 場面の絵(案A「しるしの点」。lib/scene-illust.jsx、色は SCENE_COLORS.osaifu。赤は使わない)を、各場面で使う。
+  - 待っている間: AI の読み取り中(components/BusyIndicator.tsx)は、回る輪(CSS)をやめて待ちの絵に(文はそのまま)。登録・編集、クイック更新、実績、お知らせの「読み込み中…」は、文字を出さない待ちの絵(QuietWaiting)に。
+  - 一覧がからっぽ: 主な一覧(4か所)とクイック更新の点線の枠の、文の上に、からっぽの絵(components/EmptyIllust.tsx。56px)。実績は、使いきった・失効した・残高の記録が1つもない月に、絵と「この月の記録はありません」を上に添える。
+  - 失敗・上限: 登録・編集、スクショの読み取り、現物の読み取り、クイック更新の知らせの文に、小さな絵(40px)を添える(components/SceneNotice.tsx)。上限(AI の回数・AI を休んでいる・ポイント・残高の数)は limit、読み取り・通信・保存の失敗は error、入力の確かめの文は絵なし(lib/sceneNotice.ts)。文の色は今のまま。一覧の複数削除の失敗(確かめの画面の中)は、文だけのまま。
+  - 登録・保存できた: 画面の下の知らせ(BottomToast)の ✓ を、白い小さな丸(24px)に入れた「登録・保存できた」の絵に。
+  - ログインのお願い: 引き継げなかったときの画面(components/LoginGuide.tsx)に、かぎ穴の絵。
+  - オフラインの画面は作っていない。
+  - テスト lib/sceneUse366.test.ts。

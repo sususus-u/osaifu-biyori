@@ -24,7 +24,8 @@ import { useAuth } from "@/contexts/AuthProvider";
 import { authFetch } from "@/lib/authFetch";
 import { useHasNewAnnouncement } from "@/components/AppShell";
 import { ANNOUNCEMENT_EMPTY_TEXT, timeLabel, useAnnouncements } from "@/lib/announcements";
-import { LOADING_TEXT, listCountText } from "@/lib/listCount";
+import { listCountText } from "@/lib/listCount";
+import QuietWaiting from "@/components/QuietWaiting";
 import { jstDateString } from "@/lib/planLimits";
 import { expiryIsoOf } from "@/lib/jstDate";
 import { DUE_SOON_LEAD, dueSoonText, pickDueSoon } from "@/lib/dueSoon";
@@ -129,8 +130,9 @@ function PersonalNotifications() {
     );
   }, [uid]);
 
+  // 読み込み中: 文字は出さず、長引いたときだけ待ちの絵(依頼366 仕事4)
   if (uid && accounts === null) {
-    return <div className="loading-state">{LOADING_TEXT}</div>;
+    return <QuietWaiting />;
   }
 
   // 期限は、保存した日付(UTC の日付)で比べる(お知らせの送り方と同じ。lib/dueSoon.ts)
@@ -204,7 +206,7 @@ function HubAnnouncements() {
   }, [uid, announcements]);
 
   if (announcements === null) {
-    return <div className="loading-state">読み込み中…</div>;
+    return <QuietWaiting />;
   }
 
   const visible = announcements.filter((a) => !dismissedIds.includes(a.id));

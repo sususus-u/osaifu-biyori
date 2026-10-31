@@ -58,6 +58,7 @@ import { displayAccountName } from "@/lib/stampMerge";
 import { getYenValue } from "@/lib/accountUtils";
 import { listCountText } from "@/lib/listCount";
 import QuietWaiting from "@/components/QuietWaiting";
+import EmptyIllust from "@/components/EmptyIllust";
 
 // 開け閉めの印「+」「−」の大きさ(4つ共通。ハブ BRAND.md 5章「開け閉めの印の大きさ」。依頼306)
 const TOGGLE_MARK_STYLE = {
@@ -595,6 +596,7 @@ export default function AccountList() {
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {monthKeys.length === 0 && withExpiryUndated.length === 0 && (
                 <div className="list-empty">
+                  <EmptyIllust />
                   <p>まだ期間限定のポイント・残高が登録されていません。</p>
                   <Link href="/accounts/new" className="btn-primary list-empty-btn">
                     + ポイント・残高を登録する
@@ -713,6 +715,7 @@ export default function AccountList() {
           ) : (
             withExpiry.length === 0 ? (
               <div className="list-empty">
+                  <EmptyIllust />
                   <p>まだ期間限定のポイント・残高が登録されていません。</p>
                   <Link href="/accounts/new" className="btn-primary list-empty-btn">
                     + ポイント・残高を登録する
@@ -765,6 +768,7 @@ export default function AccountList() {
           </div>
           {noExpiry.length === 0 ? (
             <div className="list-empty">
+                  <EmptyIllust />
                   <p>まだ期限なしのポイント・残高が登録されていません。</p>
                   <Link href="/accounts/new" className="btn-primary list-empty-btn">
                     + ポイント・残高を登録する
@@ -813,6 +817,7 @@ export default function AccountList() {
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {serviceGroupKeys.length === 0 && (
               <div className="list-empty">
+                  <EmptyIllust />
                   <p>まだポイント・残高が登録されていません。</p>
                   <Link href="/accounts/new" className="btn-primary list-empty-btn">
                     + ポイント・残高を登録する

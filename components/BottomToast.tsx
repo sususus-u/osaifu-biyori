@@ -1,7 +1,8 @@
 "use client";
 
 // 画面の下(下のメニューのすぐ上)に出す、短い知らせ(依頼229。3つのサービスで出す場所をそろえる)。
-// 見た目(依頼231。3つのサービスで同じ形): 地をこのサービスの色(--brand)で塗り、文字は白。済んだ知らせ(done)は左に ✓。
+// 見た目(依頼231。3つのサービスで同じ形): 地をこのサービスの色(--brand)で塗り、文字は白。済んだ知らせ(done)は左に、
+// 白い小さな丸に入れた場面の絵「登録・保存できた」(依頼366 仕事4。前は ✓ の文字)。
 // 角の丸み(--radius-card)、影、文字 14px・行の高さ 1.6。白い文字と --brand(#6e2a32)の見やすさは 10:1 ほど(目安 4.5:1 以上)。
 // 閉じ方:
 //   - 「元に戻す」が無い知らせは、durationMs(ふつうは STAMP_TOAST_MS、6秒)で消える。タップでも消える。
@@ -12,6 +13,7 @@
 //   - 出ている間は、知らせの高さの分を --bottom-toast-space に入れ、.scroll の下の余白に足す
 //     (いちばん下の行まで、知らせより上にスクロールできる)。
 import { useEffect, useLayoutEffect, useRef } from "react";
+import { SCENE_COLORS, SceneIllust } from "@/lib/scene-illust";
 
 export const TABBAR_HEIGHT = 78;
 export const TOAST_GAP = 8;
@@ -96,8 +98,9 @@ export default function BottomToast({
   const text = (
     <span style={{ display: "flex", alignItems: "flex-start", gap: 8, flex: 1, minWidth: 0 }}>
       {done && (
-        <span aria-hidden="true" style={{ fontWeight: 700, flexShrink: 0 }}>
-          ✓
+        // 済んだしるし: 場面の絵「登録・保存できた」を、白い小さな丸の中に(依頼366 仕事4。前は ✓ の文字。かさばらない大きさ)
+        <span aria-hidden="true" className="toast-saved-mark">
+          <SceneIllust scene="saved" colors={SCENE_COLORS.osaifu} size={22} />
         </span>
       )}
       <span style={{ whiteSpace: "pre-line" }}>{message}</span>
