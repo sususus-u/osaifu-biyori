@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { BarChart3, Bell, ChevronRight, ExternalLink, FileText } from "lucide-react";
-import AccountSettings from "@/components/AccountSettings";
 import RecordExport from "@/components/RecordExport";
+import { HUB_MENU_LINK_LABEL, HUB_MENU_URL } from "@/lib/login-handoff";
 
 const HUB_TERMS_URL = "https://okizukibiyori.com/terms#おさいふびより";
 const HUB_PRIVACY_URL = "https://okizukibiyori.com/privacy#おさいふびより";
@@ -11,7 +11,8 @@ const HUB_NOTIFICATION_RULES_URL = "https://okizukibiyori.com/guide/notification
 const SECTION_LABEL = { fontSize: 12, color: "var(--text-muted)", marginBottom: 8, paddingLeft: 2 } as const;
 
 // メニューの並び(依頼366 仕事2。3つのサービスで同じ形):
-// 「実績・データ」(実績、記録を書き出す)→「アカウント」(おきづきびよりのアカウントの1行)→「設定」(規約などへのつなぎ)
+// 「実績・データ」(実績、記録を書き出す)→「設定」(規約などへのつなぎ)→ いちばん下に、ホームの「メニュー」への小さな1行。
+// 「アカウント」の欄は、依頼372 でなくした(ログイン・ログアウト・呼び名・プランは、すべてホームでする)
 export default function MenuPage() {
   return (
     <div>
@@ -34,12 +35,6 @@ export default function MenuPage() {
         </Link>
         {/* 記録の書き出し(表の形。依頼369。無料)。押すと確かめを出す */}
         <RecordExport />
-      </div>
-
-      <p style={SECTION_LABEL}>アカウント</p>
-      <div className="card" style={{ padding: 0, overflow: "hidden", marginBottom: 24 }}>
-        {/* アカウントは「おきづきびよりのアカウント」の1行だけ(依頼366 仕事2)。呼び名・プラン・ログイン・ログアウトは、ホームでだけする(依頼345 の決定1・3) */}
-        <AccountSettings />
       </div>
 
       <p style={SECTION_LABEL}>設定</p>
@@ -95,6 +90,24 @@ export default function MenuPage() {
         </a>
 
       </div>
+
+      {/* ホームの「メニュー」への目立たない1行(ログアウトなどを探す人のための入口。依頼372)。押せる高さは44px */}
+      <a
+        href={HUB_MENU_URL}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          minHeight: 44,
+          marginTop: 16,
+          fontSize: 12,
+          color: "var(--text-muted)",
+          textDecoration: "underline",
+          textUnderlineOffset: 3,
+        }}
+      >
+        {HUB_MENU_LINK_LABEL}
+      </a>
     </div>
   );
 }

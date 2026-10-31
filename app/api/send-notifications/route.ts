@@ -10,12 +10,10 @@ import { Timestamp } from "firebase-admin/firestore";
 import { adminDb, adminMessaging } from "@/lib/firebaseAdmin";
 import { isCronAuthorized } from "@/lib/cronAuth";
 import type { AccountDoc, UserDoc } from "@/types/firestore";
-import { isPlanEnforced, jstDateString } from "@/lib/planLimits";
+import { jstDateString } from "@/lib/planLimits";
 import { inDailyWindow, notifyBody, pickNotifyStage, type NotifyStage } from "@/lib/notificationSchedule";
 import { needsOwnSend, relayItem, relayViaHome } from "@/lib/servicePush";
 import { effectiveReminderDays, selectedReminderDays } from "@/lib/reminderTiming";
-import { firestoreLastKnownStore, type Plan } from "@/lib/plan-resolve";
-import { planForNotify } from "@/lib/notifyPlan";
 // 期限までの日数は、日本時間の暦で数える(依頼365 決定7。サーバーは世界標準時)
 import { daysUntilExpiry as daysToExpiry, expiryIsoOf } from "@/lib/jstDate";
 
@@ -48,24 +46,6 @@ export async function GET(req: NextRequest) {
     expiryIso: string;
   };
   const due: Due[] = [];
-  // 持ち主ごとのプラン(1回の実行で1人1回だけ読む。lib/notifyPlan.ts)
-  const enforced = isPlanEnforced();
-  const lastKnownStore = firestoreLastKnownStore(adminDb, "tamari");
-  const plans = new Map<string, Promise<Plan>>();
-  const planOf = (uid: string) => {
-    let p = plans.get(uid);
-    if (!p) {
-      p = planForNotify({
-        uid,
-        enforced,
-        read: (id) => adminDb.collection("subscriptions").doc(id).get(),
-        store: lastKnownStore,
-        now: today,
-      });
-      plans.set(uid, p);
-    }
-    return p;
-  };
   for (const accountDoc of accountsSnap.docs) {
     const account = accountDoc.data() as AccountDoc;
     if (!account.expiryDate) continue;
@@ -75,7 +55,7 @@ export async function GET(req: NextRequest) {
     if (!Number.isFinite(daysUntilExpiry)) continue;
     const expiryIso = expiryIsoOf(expiry) ?? "";
 
-    // 期限が過ぎたもの、まだ気づきの日より前のものは、プランを読まずに飛ばす
+    // 期限が過ぎたもの、まだ気づきの日より前のものは、飛ばす(気づきの日は、選んだ日を全部使う。依頼372)
     const selected = selectedReminderDays(account.notificationTiming);
     const mayNotify = daysUntilExpiry >= 0 && (inDailyWindow(daysUntilExpiry) || selected.includes(daysUntilExpiry));
     const stage = mayNotify
@@ -83,7 +63,7 @@ export async function GET(req: NextRequest) {
           daysUntilExpiry,
           reminderDays: inDailyWindow(daysUntilExpiry)
             ? []
-            : effectiveReminderDays(selected, await planOf(account.ownerId)),
+            : effectiveReminderDays(selected),
           todayIso,
           notifiedOn: account.notifiedOn,
           notifiedDailyOn: account.notifiedDailyOn,

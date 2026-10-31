@@ -15,7 +15,6 @@ const SCREENS = [
   "../app/menu/page.tsx",
   "../components/AccountForm.tsx",
   "../components/AccountList.tsx",
-  "../components/AccountSettings.tsx",
   "../components/AppShell.tsx",
   "../components/LoginGuide.tsx",
   "../components/MoreDetails.tsx",
@@ -227,8 +226,6 @@ test("失敗の文: 直すときは「更新に失敗しました。」、新し
   assert.ok(read("../components/QuickUpdate.tsx").includes('"更新に失敗しました。もう一度お試しください。"'));
   assert.ok(read("../components/ScanUpload.tsx").includes('"更新に失敗しました。もう一度お試しください。"'));
   assert.ok(read("../components/ScanPhysicalUpload.tsx").includes('matchedAccountId ? "更新に失敗しました。もう一度お試しください。" : "登録に失敗しました。もう一度お試しください。"'));
-  // 呼び名の保存は、ホームへ移した(依頼366 仕事1)
-  assert.ok(!read("../components/AccountSettings.tsx").includes("保存に失敗"));
 });
 
 test("切手の額面ごとの保存の失敗は「登録・更新に失敗しました。何も保存されていません。もう一度お試しください。」(足す分と作る分が混ざるため。依頼260・依頼262)", () => {
@@ -243,14 +240,11 @@ test("ホームは「ホーム」と呼ぶ(「おきづきびより ホーム」
   }
 });
 
-test("ログイン・ログアウトはホームでだけ(依頼345 の決定1・3)。メニューは「おきづきびよりのアカウント」の1行だけ(依頼366)", () => {
+test("ログイン・ログアウトはホームでだけ(依頼345 の決定1・3)。メニューは、いちばん下にホームへの小さな1行だけ(依頼372)", () => {
   const menu = read("../app/menu/page.tsx");
-  const row = read("../components/AccountSettings.tsx");
-  assert.ok(menu.includes("<AccountSettings />"));
-  assert.ok(row.includes("href={HUB_ACCOUNT_URL}"));
-  assert.ok(row.includes("{HUB_ACCOUNT_MENU_LABEL}"));
+  assert.ok(menu.includes("href={HUB_MENU_URL}"));
+  assert.ok(menu.includes("{HUB_MENU_LINK_LABEL}"));
   assert.ok(!menu.includes("LogoutButton"));
-  assert.ok(!read("../components/AccountSettings.tsx").includes("ログイン状態は「ホーム」と共通です。"));
   // 案内の画面に「ログイン」のボタンを置かない。失敗の文は部品の handoffFailedMessage
   const guide = read("../components/LoginGuide.tsx");
   assert.ok(!guide.includes("<button"));

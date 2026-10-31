@@ -5,7 +5,7 @@
 // 種類を選ぶと、CATEGORY_DEFAULTS から円建てフラグ・タイプの
 // 初期値が自動で入る。ポイント・その他は円建て/非円建てをユーザーが選び直せる。
 // 「お知らせの時期」(依頼317 仕事1): 気づきのお知らせの日を、120・60・30日前・なし から選ぶ(1件ごと)。
-// 選べる数はプランで決まる(無料は1つ。プランは GET /api/plan。読めないときは無料)。決まりは lib/reminderTiming.ts。
+// 無料も有料も、いくつでも選べる(押すと付く、もう一度押すと外れる。「なし」で全部外れる。依頼372)。決まりは lib/reminderTiming.ts。
 
 import ConfirmSheet from "@/components/ConfirmSheet";
 import MoreDetails from "@/components/MoreDetails";
@@ -48,8 +48,6 @@ import { isStampLikeEntry, isStampGroupEntry, STAMP_DEFAULT_NAME, STAMP_MANUAL_P
 import { useAuth } from "@/contexts/AuthProvider";
 import { guardNewRecords } from "@/lib/recordLimitClient";
 import { prepareScanImage } from "@/lib/scanImage";
-import { authFetch } from "@/lib/authFetch";
-import { isPlan, type Plan } from "@/lib/plan-resolve";
 import {
   DAILY_CAPTION,
   DAILY_LABEL,
@@ -58,11 +56,9 @@ import {
   REMINDER_DEFAULT_DAYS,
   REMINDER_LABEL,
   REMINDER_NONE_LABEL,
-  REMINDER_PAID_GUIDE,
   REMINDER_SECTION_LABEL,
   reminderChipLabel,
   selectedReminderDays,
-  shownReminderDays,
   toggleReminderDay,
 } from "@/lib/reminderTiming";
 import {
@@ -196,8 +192,6 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
   const [reminderDays, setReminderDays] = useState<number[]>([REMINDER_DEFAULT_DAYS]);
   // 編集の画面で読んだ、前の形の日数(1回目・2回目)。書き換えず、更新のときもそのまま残す(依頼317)
   const [legacyTiming, setLegacyTiming] = useState<{ firstStageDays?: number; secondStageDays?: number }>({});
-  // その人のプラン(GET /api/plan)。読めるまで・読めないときは無料として扱う
-  const [plan, setPlan] = useState<Plan>("free");
   const [isSubmitting, setIsSubmitting] = useState(false);
   // どのボタンで送ったか。押したボタンだけに待ちの文(「登録中…」「更新中…」)を出す(依頼257)
   const [submitAction, setSubmitAction] = useState<"submit" | "replace" | "add">("submit");
@@ -391,28 +385,10 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
     };
   }, [accountId]);
 
-  // その人のプラン(気づきのお知らせを、いくつ選べるか)。読めないときは無料のまま
-  useEffect(() => {
-    if (!uid) return;
-    let cancelled = false;
-    authFetch("/api/plan")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data: { plan?: unknown } | null) => {
-        if (!cancelled && data && isPlan(data.plan)) setPlan(data.plan);
-      })
-      .catch(() => {
-        // 無料のまま
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [uid]);
-
-  // 無料は、効いている1つ(いちばん早い日)だけを選んだ形に見せる(依頼348)
-  const shownDays = shownReminderDays(reminderDays, plan);
+  const shownDays = reminderDays;
 
   function handleReminderChip(day: number) {
-    const next = toggleReminderDay(reminderDays, day, plan);
+    const next = toggleReminderDay(reminderDays, day);
     if (next) setReminderDays(next);
   }
 
@@ -1511,11 +1487,6 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
                 },
               )}
             </div>
-            {plan === "free" && (
-              <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>
-                {REMINDER_PAID_GUIDE}
-              </p>
-            )}
           </div>
           <div>
             <div style={{ fontSize: 14, fontWeight: 600, color: "#333" }}>{DAILY_LABEL}</div>

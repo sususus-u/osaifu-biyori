@@ -2,7 +2,7 @@
 // 正本はハブの BRAND.md 5章「文字を減らす決まりと「くわしく見る」」。
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 const read = (p: string) => readFileSync(new URL(p, import.meta.url), "utf8");
 const has = (src: string, s: string) => assert.ok(src.includes(s), s);
@@ -64,26 +64,16 @@ test("② 登録・編集: 補足は「くわしく見る」へ。読み取り�
   has(src, "{REMINDER_SECTION_LABEL}");
   has(src, "{REMINDER_CAPTION}");
   has(src, "{DAILY_CAPTION}");
-  has(src, "{REMINDER_PAID_GUIDE}");
   // 確認の画面の決まった文は、閉じない
   has(src, 'description="元に戻せません。履歴も一緒に消えます。"');
   // 「くわしく見る」は、お知らせの時期より前にだけ(お知らせの時期を隠さない)
   assert.ok(src.lastIndexOf("<MoreDetails>") < src.indexOf("{REMINDER_SECTION_LABEL}"));
 });
 
-test("呼び名は、ホームの1か所だけで変える(依頼366 仕事1): メニューは今の呼び名と、ホームの「アカウント」へのつなぎだけ", () => {
-  const src = read("../components/AccountSettings.tsx");
-  // 入力の欄・「変更する」・「保存」・「キャンセル」は無い。このアプリからは書かない
-  lacks(src, "<input");
-  lacks(src, "変更する");
-  lacks(src, '"保存"');
-  lacks(src, "キャンセル");
-  lacks(src, "setDoc");
-  lacks(src, "authFetch(");
-  // 今の呼び名(読むだけ)と、ホームの「アカウント」へのつなぎ
-  has(src, "ownNameText(");
-  has(src, "呼び名:");
-  has(src, "href={HUB_ACCOUNT_URL}");
-  // 「ログイン状態は「ホーム」と共通です。」は外した(依頼345 の決定3)
-  lacks(src, "ログイン状態は");
+test("呼び名は、ホームの1か所だけで変える(依頼366 仕事1)。メニューに呼び名の行は置かない(依頼372)", () => {
+  const menu = read("../app/menu/page.tsx");
+  lacks(menu, "呼び名:");
+  lacks(menu, "HUB_NAME_LINK_TEXT");
+  lacks(menu, "<input");
+  assert.equal(existsSync(new URL("../components/AccountSettings.tsx", import.meta.url)), false);
 });

@@ -38,7 +38,7 @@ test("notify.reminder を足した(選べる日数、デフォルト、なし、
     choices: [120, 60, 30],
     defaultDays: 60,
     allowNone: true,
-    freeMax: 1,
+    freeMax: null,
     paidMax: null,
   });
   // JSON にしても、paidMax は null のまま残る

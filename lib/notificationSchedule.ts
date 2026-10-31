@@ -18,7 +18,7 @@ export type NotifyStage = "reminder" | "daily";
 
 export function pickNotifyStage(input: {
   daysUntilExpiry: number;
-  // プランで効く気づきの日(lib/reminderTiming.ts の effectiveReminderDays)
+  // 選んだ気づきの日(lib/reminderTiming.ts の effectiveReminderDays。プランでは絞らない。依頼372)
   reminderDays: readonly number[];
   todayIso: string;
   notifiedOn?: string | null;

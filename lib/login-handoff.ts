@@ -1,5 +1,5 @@
 // 写し(手で書き換えない)。正本: ハブ(okizukibiyori-hub)の src/lib/login-handoff.ts
-// 正本の版: 7b12efcfeae1378f / 写しの中身の版: 7b12efcfeae1378f
+// 正本の版: b48e280d7b6672db / 写しの中身の版: b48e280d7b6672db
 // 正本を直したら、ハブで node scripts/login-handoff-copy.mjs を実行して写し直す(依頼347 仕事2)。
 // ホーム(おきづきびより)のログインを、サービスが受け取る部品(依頼347 仕事2。依頼345 の決定7)。ハブが正本。
 // 3つのサービスへ写す(scripts/login-handoff-copy.mjs。写しの頭に、正本の版を書く。plan-resolve と同じ仕組み)。
@@ -31,8 +31,11 @@ export const HUB_ORIGIN = "https://okizukibiyori.com";
 export const HUB_LOGIN_URL = `${HUB_ORIGIN}/login`;
 /** サービスのメニューの「おきづきびよりのアカウント」の行のつなぎ先(ホームのメニューの、アカウントの欄を開いた形) */
 export const HUB_ACCOUNT_URL = `${HUB_ORIGIN}/account?open=account`;
-/** サービスのメニューの「アカウント」の欄の、ただ1つの行(呼び名・プラン・ログアウトは、ここからホームへ。依頼366 仕事2) */
+/** 前の、サービスのメニューの「アカウント」の欄の行の名前(依頼366 仕事2)。依頼372 で、メニューから「アカウント」の欄をなくした */
 export const HUB_ACCOUNT_MENU_LABEL = "おきづきびよりのアカウント";
+/** サービスのメニューのいちばん下の、小さな1行(押すとホームの「メニュー」が開く。ログアウトなどを探す人のための入口。依頼372) */
+export const HUB_MENU_LINK_LABEL = "おきづきびより（ホーム）へ";
+export const HUB_MENU_URL = `${HUB_ORIGIN}/account`;
 /** サービスの中で、呼び名の代わりに置く、ホームへのつなぎの文(依頼366 仕事1) */
 export const HUB_NAME_LINK_TEXT = "呼び名は、ホームの「アカウント」で変えられます";
 export const STATE_MARK_URL = `${HUB_ORIGIN}/api/auth-state-mark`;

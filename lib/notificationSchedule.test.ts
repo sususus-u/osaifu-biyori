@@ -48,21 +48,18 @@ test("同じ日に2通は送らない: その日に送った印があれば、�
 test("2回目(前の形の secondStageDays)は使わない", () => {
   // 前の形: 1回目90日前・2回目21日前 → 気づきは120日前だけ。21日前には送らない
   const selected = selectedReminderDays({ firstStageDays: 90, secondStageDays: 21 });
-  const days = effectiveReminderDays(selected, "free");
+  const days = effectiveReminderDays(selected);
   assert.deepEqual(days, [120]);
   assert.equal(pickNotifyStage({ reminderDays: days, todayIso: "2026-11-25", daysUntilExpiry: 21 }), null);
   assert.equal(pickNotifyStage({ reminderDays: days, todayIso: "2026-11-25", daysUntilExpiry: 90 }), null);
   assert.equal(pickNotifyStage({ reminderDays: days, todayIso: "2026-11-25", daysUntilExpiry: 120 }), "reminder");
 });
 
-test("無料のプランは、いちばん早い日だけ。有料は全部", () => {
-  const selected = [120, 60, 30];
-  const free = effectiveReminderDays(selected, "free");
-  const paid = effectiveReminderDays(selected, "paid1");
-  assert.equal(pickNotifyStage({ reminderDays: free, todayIso: "2026-11-25", daysUntilExpiry: 120 }), "reminder");
-  assert.equal(pickNotifyStage({ reminderDays: free, todayIso: "2026-11-25", daysUntilExpiry: 60 }), null);
-  assert.equal(pickNotifyStage({ reminderDays: paid, todayIso: "2026-11-25", daysUntilExpiry: 60 }), "reminder");
-  assert.equal(pickNotifyStage({ reminderDays: paid, todayIso: "2026-11-25", daysUntilExpiry: 30 }), "reminder");
+test("選んだ日は、全部効く(無料も有料も。依頼372)", () => {
+  const days = effectiveReminderDays([120, 60, 30]);
+  assert.equal(pickNotifyStage({ reminderDays: days, todayIso: "2026-11-25", daysUntilExpiry: 120 }), "reminder");
+  assert.equal(pickNotifyStage({ reminderDays: days, todayIso: "2026-11-25", daysUntilExpiry: 60 }), "reminder");
+  assert.equal(pickNotifyStage({ reminderDays: days, todayIso: "2026-11-25", daysUntilExpiry: 30 }), "reminder");
 });
 
 test("文(「そろそろ」は使わない)", () => {

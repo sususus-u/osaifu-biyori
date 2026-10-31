@@ -5,7 +5,7 @@ import { existsSync, readFileSync } from "node:fs";
 const read = (p: string) => readFileSync(new URL(p, import.meta.url), "utf8");
 
 test("ニックネームをすすめる案内と例は、ホームの呼び名の欄にだけ(依頼366 仕事1。このアプリには入力の欄が無い)", () => {
-  const src = read("../components/AccountSettings.tsx");
+  const src = read("../app/menu/page.tsx");
   assert.ok(!src.includes("ニックネーム"));
   assert.ok(!src.includes("例:すずちゃん、パパ"));
   // 前の中継(/api/user-name)は、画面からは呼ばない。窓口も消した(依頼371)
