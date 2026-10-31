@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BarChart3, Bell, ChevronRight, ExternalLink, FileText, User } from "lucide-react";
 import AccountSettings from "@/components/AccountSettings";
+import RecordExport from "@/components/RecordExport";
 import { HUB_ACCOUNT_MENU_LABEL, HUB_ACCOUNT_URL } from "@/lib/login-handoff";
 
 const HUB_TERMS_URL = "https://okizukibiyori.com/terms#おさいふびより";
@@ -48,6 +49,8 @@ export default function MenuPage() {
           <div style={{ flex: 1 }}>
             <p style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>アカウント</p>
             <AccountSettings />
+            {/* 記録の書き出し(表の形。依頼369。無料) */}
+            <RecordExport />
           </div>
         </div>
 
