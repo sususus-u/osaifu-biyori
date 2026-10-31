@@ -13,6 +13,7 @@ import {
   mapLegacyDays,
   reminderChipLabel,
   selectedReminderDays,
+  shownReminderDays,
   toggleReminderDay,
 } from "./reminderTiming.ts";
 
@@ -63,18 +64,29 @@ test("有料から無料に戻っても、保存した選択は残り、有料�
   assert.deepEqual(effectiveReminderDays(saved, "paid1"), [120, 60, 30]);
 });
 
-test("選ぶ: 無料は1つまで(2つ目は足さず、案内)。外すのは、いつでもできる", () => {
-  assert.deepEqual(toggleReminderDay([60], 30, "free"), { selected: [60], blocked: true });
-  assert.deepEqual(toggleReminderDay([60], 60, "free"), { selected: [], blocked: false });
-  assert.deepEqual(toggleReminderDay([], 30, "free"), { selected: [30], blocked: false });
-  // 有料から戻った人は、外せる(足せない)
-  assert.deepEqual(toggleReminderDay([120, 60, 30], 60, "free"), { selected: [120, 30], blocked: false });
-  assert.deepEqual(toggleReminderDay([120, 30], 60, "free"), { selected: [120, 30], blocked: true });
-  // 有料は、いくつでも
-  assert.deepEqual(toggleReminderDay([60], 30, "paid1"), { selected: [60, 30], blocked: false });
-  assert.deepEqual(toggleReminderDay([60, 30], 120, "paid2"), { selected: [120, 60, 30], blocked: false });
-  // 選択肢にない数は足さない
-  assert.deepEqual(toggleReminderDay([60], 45, "paid1"), { selected: [60], blocked: false });
+test("選ぶ: 無料は押した日に切り替える(1つだけ)。有料は足す・外す(依頼348)", () => {
+  assert.deepEqual(toggleReminderDay([60], 30, "free"), [30]);
+  assert.deepEqual(toggleReminderDay([120], 60, "free"), [60]);
+  assert.equal(toggleReminderDay([60], 60, "free"), null, "今の日を押しても、外さない(外すのは「なし」)");
+  assert.deepEqual(toggleReminderDay([], 30, "free"), [30]);
+  // 有料のときに選んだ日が残る無料の人: 効いているのは120日前。ほかを押すと、その日だけになる
+  assert.deepEqual(shownReminderDays([120, 60, 30], "free"), [120]);
+  assert.equal(toggleReminderDay([120, 60, 30], 120, "free"), null);
+  assert.deepEqual(toggleReminderDay([120, 60, 30], 30, "free"), [30]);
+  // 有料は、いくつでも(足す・外す)
+  assert.deepEqual(shownReminderDays([120, 60, 30], "paid1"), [120, 60, 30]);
+  assert.deepEqual(toggleReminderDay([60], 30, "paid1"), [60, 30]);
+  assert.deepEqual(toggleReminderDay([60, 30], 120, "paid2"), [120, 60, 30]);
+  assert.deepEqual(toggleReminderDay([120, 30], 120, "paid1"), [30]);
+  // 選択肢にない数は、変えない
+  assert.equal(toggleReminderDay([60], 45, "paid1"), null);
+});
+
+test("画面: 押せないボタンを作らない。無料の人には、案内を出したまま(依頼348)", () => {
+  const src = readFileSync(new URL("../components/AccountForm.tsx", import.meta.url), "utf8");
+  assert.ok(!src.includes("showPaidGuide"));
+  assert.match(src, /\{plan === "free" && \(\s*<p style=\{\{ fontSize: 12[^>]*>\s*\{REMINDER_PAID_GUIDE\}/);
+  assert.ok(src.includes("shownDays.includes(day)"));
 });
 
 test("画面の言葉(カタカナの言い方を使わない。デフォルトは「デフォルト」と出す)", () => {
@@ -83,7 +95,7 @@ test("画面の言葉(カタカナの言い方を使わない。デフォルト�
   assert.equal(REMINDER_CAPTION, "選んだ日に1回ずつ");
   assert.equal(DAILY_LABEL, "直前のお知らせ");
   assert.equal(DAILY_CAPTION, "7日前から当日まで毎朝");
-  assert.equal(REMINDER_PAID_GUIDE, "有料のプランでは、いくつでも選べます");
+  assert.equal(REMINDER_PAID_GUIDE, "有料のプランでは、いくつでも選べます。");
   assert.equal(reminderChipLabel(60), "60日前（デフォルト）");
   assert.equal(reminderChipLabel(120), "120日前");
   const src = readFileSync(new URL("../components/AccountForm.tsx", import.meta.url), "utf8");

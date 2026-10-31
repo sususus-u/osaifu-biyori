@@ -25,8 +25,8 @@ export const DAILY_LABEL = "直前のお知らせ";
 export const DAILY_CAPTION = "7日前から当日まで毎朝";
 export const REMINDER_NONE_LABEL = "なし";
 export const REMINDER_DEFAULT_TAG = "デフォルト";
-// 無料のプランの人が2つ目を選ぼうとしたとき(足さない)
-export const REMINDER_PAID_GUIDE = "有料のプランでは、いくつでも選べます";
+// 無料のプランの人に、いつも小さく出す案内(押し付けない。依頼348)
+export const REMINDER_PAID_GUIDE = "有料のプランでは、いくつでも選べます。";
 
 export function reminderChipLabel(days: number): string {
   return days === REMINDER_DEFAULT_DAYS ? `${days}日前（${REMINDER_DEFAULT_TAG}）` : `${days}日前`;
@@ -80,16 +80,20 @@ export function earliestReminderDay(selected: number[]): number | null {
   return days.length > 0 ? days[0] : null;
 }
 
-// 選択肢を押したとき。外すのは、いつでもできる。足すのは、プランの数まで(超えるときは足さず、blocked)
-export function toggleReminderDay(
-  selected: number[],
-  day: number,
-  plan: Plan,
-): { selected: number[]; blocked: boolean } {
+// 画面で見せる選択(依頼348)。無料のプランは、効いている1つ(いちばん早い日)だけを選んだ形に見せる
+export function shownReminderDays(selected: number[], plan: Plan): number[] {
+  return effectiveReminderDays(selected, plan);
+}
+
+// 選択肢を押したとき(依頼348。まもりびより 依頼343 と同じ形)。null は、変えない。
+// 有料: 選んでいれば外す、選んでいなければ足す。
+// 無料: 押した日に切り替える(押せないボタンは作らない)。今効いている日を押したときは、変えない(外すのは「なし」)。
+// 有料のときに選んだ日は、無料の人が別の日に切り替えるまで残す(読むときに、いちばん早い日だけを使う)。
+export function toggleReminderDay(selected: number[], day: number, plan: Plan): number[] | null {
+  if (!isChoice(day)) return null;
   const days = normalize(selected);
-  if (days.includes(day)) return { selected: days.filter((d) => d !== day), blocked: false };
-  if (!isChoice(day)) return { selected: days, blocked: false };
   const max = maxSelectable(plan);
-  if (max !== null && days.length >= max) return { selected: days, blocked: true };
-  return { selected: normalize([...days, day]), blocked: false };
+  if (max === null) return days.includes(day) ? days.filter((d) => d !== day) : normalize([...days, day]);
+  if (effectiveReminderDays(days, plan).includes(day)) return null;
+  return [day];
 }

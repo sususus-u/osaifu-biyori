@@ -62,6 +62,7 @@ import {
   freeOnlyEarliestNote,
   reminderChipLabel,
   selectedReminderDays,
+  shownReminderDays,
   toggleReminderDay,
 } from "@/lib/reminderTiming";
 import {
@@ -197,8 +198,6 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
   const [legacyTiming, setLegacyTiming] = useState<{ firstStageDays?: number; secondStageDays?: number }>({});
   // その人のプラン(GET /api/plan)。読めるまで・読めないときは無料として扱う
   const [plan, setPlan] = useState<Plan>("free");
-  // 無料のプランで2つ目を選ぼうとしたときの案内(足さない)
-  const [showPaidGuide, setShowPaidGuide] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   // どのボタンで送ったか。押したボタンだけに待ちの文(「登録中…」「更新中…」)を出す(依頼257)
   const [submitAction, setSubmitAction] = useState<"submit" | "replace" | "add">("submit");
@@ -409,10 +408,12 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
     };
   }, [uid]);
 
+  // 無料は、効いている1つ(いちばん早い日)だけを選んだ形に見せる(依頼348)
+  const shownDays = shownReminderDays(reminderDays, plan);
+
   function handleReminderChip(day: number) {
-    const r = toggleReminderDay(reminderDays, day, plan);
-    setShowPaidGuide(r.blocked);
-    if (!r.blocked) setReminderDays(r.selected);
+    const next = toggleReminderDay(reminderDays, day, plan);
+    if (next) setReminderDays(next);
   }
 
   // 新規登録時のみ、スクショ読み取り結果(sessionStorageのキュー)があれば事前入力する。
@@ -1477,7 +1478,7 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
             <div role="group" aria-label={REMINDER_LABEL} style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
               {[...REMINDER_CHOICES.map((d) => ({ key: String(d), day: d as number | null })), { key: "none", day: null }].map(
                 ({ key, day }) => {
-                  const pressed = day === null ? reminderDays.length === 0 : reminderDays.includes(day);
+                  const pressed = day === null ? reminderDays.length === 0 : shownDays.includes(day);
                   return (
                     <button
                       key={key}
@@ -1485,7 +1486,6 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
                       aria-pressed={pressed}
                       onClick={() => {
                         if (day === null) {
-                          setShowPaidGuide(false);
                           setReminderDays([]);
                         } else {
                           handleReminderChip(day);
@@ -1510,8 +1510,8 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
                 },
               )}
             </div>
-            {showPaidGuide && (
-              <p aria-live="polite" style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 6 }}>
+            {plan === "free" && (
+              <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>
                 {REMINDER_PAID_GUIDE}
               </p>
             )}
