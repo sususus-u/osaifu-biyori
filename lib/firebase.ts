@@ -3,18 +3,16 @@
 
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import { getAuth, signInWithCustomToken, signOut, type User } from "firebase/auth";
-import { extractAuthToken } from "@/lib/authToken";
-import { consumeState, issueState } from "@/lib/handoffState";
-import {
-  buildHomeEntryLoginUrl,
-  decideHomeEntrySession,
-  planHomeEntry,
-  stripEntry,
-  type HomeEntrySessionCheck,
-} from "@/lib/hubEntry";
+import { getAuth, signInWithCustomToken, signOut } from "firebase/auth";
 import { clearUserLocalData } from "@/lib/clearUserData";
-import { sendStateMark } from "@/lib/stateMark";
+import {
+  LOGIN_HANDOFF_PRESETS,
+  readHandoff,
+  receiveLogin,
+  type HandoffEnv,
+  type KeyStore,
+  type ReceiveResult,
+} from "@/lib/login-handoff";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -29,159 +27,62 @@ export const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const auth = getAuth(app);
 
-// ハブ(okizukibiyori.com)からURLに ?authToken=xxx または #authToken=xxx(こちらを優先)が付与されて遷移してきた場合、
-// そのカスタムトークンでログインする。
-//
-// auth.currentUserの永続化復元(非同期)が先に終わってしまうと、既存の匿名ユーザーが
-// そのまま使われてカスタムトークンでのログインが素通りされる競合状態が起きるため、
-// モジュール読み込み時点(=このファイルがimportされた瞬間)で即座に処理を開始し、
-// 他の場所(AuthProviderのonAuthStateChanged購読)はこのPromiseを必ず待ってから動く。
-//
-// 引き継ぎに失敗しても、匿名ログインにはしない(アプリは案内の画面で止まる)。
-// 失敗の印はメモリ上だけに持つ(authToken はアドレスから消すので、再読み込みでは残らない)。
-let customTokenHandoffFailed = false;
+// ホーム(okizukibiyori.com)のログインの受け取り(依頼347 仕事2)。
+// 中身は、ハブが正本の部品の写し(lib/login-handoff.ts。手で直さない)。ここは、その部品に
+// このアプリの Firebase・window・storage を渡すだけ。
 
-export function hasCustomTokenHandoffFailed(): boolean {
-  return customTokenHandoffFailed;
-}
-
-// アドレスから authToken(クエリ・フラグメント)を消す。ほかの部分は残す。
-// Next.js が読み込み後にアドレスを書き戻すことがあるため、AuthProvider からも呼び直す。
-export function removeAuthTokenFromUrl(): void {
-  if (typeof window === "undefined") return;
-  const { cleanedPath } = extractAuthToken(window.location.href);
-  if (cleanedPath !== window.location.pathname + window.location.search + window.location.hash) {
-    window.history.replaceState(null, "", cleanedPath);
+function storageOf(pick: () => Storage): KeyStore | null {
+  try {
+    return pick();
+  } catch {
+    return null;
   }
 }
 
-// アドレスから entry(ハブのホームのカードの印)を消す。AuthProvider からも呼び直す
-export function removeEntryFromUrl(): void {
+/** 部品に渡す、このアプリの環境。呼ぶたびに作る(href は、その時のアドレス) */
+export function handoffEnv(): HandoffEnv {
+  return {
+    config: LOGIN_HANDOFF_PRESETS.osaifu,
+    href: window.location.href,
+    local: storageOf(() => window.localStorage),
+    session: storageOf(() => window.sessionStorage),
+    replaceAddress: (path) => window.history.replaceState(null, "", path),
+    navigate: (url, how) => (how === "replace" ? window.location.replace(url) : window.location.assign(url)),
+    authStateReady: () => auth.authStateReady(),
+    getUser: () => auth.currentUser,
+    signInWithToken: (token) => signInWithCustomToken(auth, token),
+    signOut: () => signOut(auth),
+    clearUserData: clearUserLocalData,
+    sendBeacon: typeof navigator !== "undefined" && navigator.sendBeacon ? (url, body) => navigator.sendBeacon(url, body) : undefined,
+  };
+}
+
+// アドレスから authToken・state・entry を消す。ほかの部分は残す。
+// Next.js が読み込み後にアドレスを書き戻すことがあるため、AuthProvider からも呼び直す。
+export function cleanHandoffFromUrl(): void {
   if (typeof window === "undefined") return;
   try {
-    if (planHomeEntry(window.location.href).action === "none") return;
-    const u = new URL(stripEntry(window.location.href));
-    window.history.replaceState(null, "", u.pathname + u.search + u.hash);
+    const { cleanedPath } = readHandoff(window.location.href);
+    if (cleanedPath !== window.location.pathname + window.location.search + window.location.hash) {
+      window.history.replaceState(null, "", cleanedPath);
+    }
   } catch {
     // 消せなくても、ログインには影響しない
   }
 }
 
-// ログインの有効さを、通信して確かめる(依頼272)。ハブでのログアウト(リフレッシュトークンの取り消し。10/09 の仕組み)に
-// 気づくため、保存済みの ID トークンではなく、必ず取り直す(getIdToken(true))。返ってこないときは、通信の失敗として扱う。
-const SESSION_CHECK_TIMEOUT_MS = 10_000;
-
-async function checkSession(user: User): Promise<HomeEntrySessionCheck> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  try {
-    await Promise.race([
-      user.getIdToken(true),
-      new Promise<never>((_, reject) => {
-        timer = setTimeout(() => reject({ code: "auth/network-request-failed" }), SESSION_CHECK_TIMEOUT_MS);
-      }),
-    ]);
-    return { ok: true };
-  } catch (error) {
-    const code = (error as { code?: string } | null)?.code ?? "unknown";
-    return { ok: false, code };
-  } finally {
-    if (timer !== undefined) clearTimeout(timer);
+// auth.currentUser の永続化復元(非同期)が先に終わってしまうと、トークンでのログインが素通りされる
+// 競合状態が起きるため、モジュール読み込み時点(=このファイルが import された瞬間)で即座に始め、
+// 他の場所(AuthProvider の onAuthStateChanged 購読)は、この Promise を必ず待ってから動く。
+// ホームのログインへ移るとき(navigating)は、移るまで終わらない(案内の画面がちらつかないように)。
+// 引き継げなかったとき(failed)は、匿名ログインにはしない。ログインしていなければ、失敗の画面を出す。
+export const handoffReady: Promise<ReceiveResult> = (async () => {
+  if (typeof window === "undefined") return { kind: "none" } as const;
+  const result = await receiveLogin(handoffEnv());
+  if (result.kind === "navigating") await new Promise<never>(() => {});
+  if (result.kind === "failed") {
+    // 値は出さず、理由の種類だけ残す
+    console.error("ホームのログインを引き継げませんでした:", result.reason);
   }
-}
-
-// ハブのホームのカード(?entry=home。authToken なし)から開かれたときの入口(依頼264、依頼272)。
-// 先に、このアプリのログイン状態を見る(保存済みのログインの復元を待ってから)。
-// - ログイン済みで、ログインが有効 → ハブへ出ない(false。呼び出し元が entry を外して、そのまま一覧を出す)。
-//   ハブとアカウントが違っていても、このアプリは自分のアカウントのまま。
-// - ログインしていない → state を作って控え、ハブのログイン画面へ移動し直す。
-// - ログインが取り消されていた → この端末でログアウトし、端末のユーザー固有のデータを消してから、同じく移動する。
-// 案0のボタンの「1回の起動で1回」の数えは使わない(return に entry を入れないので往復しない)。
-// 移動するときは true(ログイン状態の判定を始めない。案内の画面がちらつかないように)。
-// 決めている間は、AuthProvider が読み込み中のまま(案内の画面は出ない)。
-// state を控えられないときは、entry を外して、今までどおり進む。
-async function redirectFromHomeEntry(): Promise<boolean> {
-  let returnHref: string;
-  try {
-    const plan = planHomeEntry(window.location.href);
-    if (plan.action !== "redirect") return false;
-    returnHref = plan.returnHref;
-  } catch {
-    return false;
-  }
-
-  try {
-    await auth.authStateReady();
-  } catch {
-    // 復元に失敗しても、currentUser を見て進む
-  }
-  const user = auth.currentUser;
-  const check: HomeEntrySessionCheck = user && !user.isAnonymous ? await checkSession(user) : null;
-  const decision = decideHomeEntrySession(check);
-  if (decision === "skip") return false;
-  if (decision === "signOutThenRoundTrip") {
-    try {
-      await signOut(auth);
-    } catch {
-      // ログアウトに失敗しても、ハブから戻ったトークンでログインし直す
-    }
-    clearUserLocalData();
-  }
-
-  let state: string | null = null;
-  try {
-    state = issueState(window.localStorage);
-  } catch {
-    state = null;
-  }
-  // 控えられないときは、entry を外して(呼び出し元の removeEntryFromUrl)、今までどおり進む
-  if (state === null) return false;
-  window.location.replace(buildHomeEntryLoginUrl(returnHref, state));
-  return true;
-}
-
-export const customTokenSignInReady: Promise<void> = (async () => {
-  if (typeof window === "undefined") return;
-
-  if (await redirectFromHomeEntry()) {
-    // 移動するまで、ログイン状態の判定を始めない(終わらない Promise で止める)
-    await new Promise<never>(() => {});
-  }
-  removeEntryFromUrl();
-
-  // 読んだらすぐ、アドレスから消す(クエリもフラグメントも。成否を待たない)
-  const { token, rejected, state } = extractAuthToken(window.location.href);
-  removeAuthTokenFromUrl();
-  if (token !== null || rejected || state !== null) {
-    // state の照合(控えは必ず消える)。state なしは、段階1の間は通す
-    let stateOk = false;
-    try {
-      stateOk = consumeState(state, window.localStorage);
-    } catch {
-      stateOk = state === null;
-    }
-    if (!stateOk) {
-      sendStateMark("mismatch");
-      customTokenHandoffFailed = true;
-      console.error("照合用の値(state)が合わないため、ログインを行いませんでした");
-      return;
-    }
-  }
-  if (rejected) {
-    customTokenHandoffFailed = true;
-    console.error("カスタムトークンが長すぎるため、ログインを行いませんでした");
-    return;
-  }
-  if (!token) return;
-
-  // state なしで受け入れた(段階1の間は通す)。段階2へ進める判断のため、回数だけハブへ知らせる
-  if (state === null) sendStateMark("no-state");
-
-  try {
-    await signInWithCustomToken(auth, token);
-  } catch (error) {
-    customTokenHandoffFailed = true;
-    // トークンを含みうるため、エラーの中身は出さず、コードだけ残す
-    const code = (error as { code?: string } | null)?.code ?? "unknown";
-    console.error("カスタムトークンでのログインに失敗しました:", code);
-  }
+  return result;
 })();

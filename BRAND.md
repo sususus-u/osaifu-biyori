@@ -824,3 +824,14 @@
 - 有料から無料に戻った人への「いまのプランでは、いちばん早い○日前だけ、お知らせします。」を外した(freeOnlyEarliestNote を消した。選んだ形で分かるため。依頼348 で、いちばん早い日だけを選んだ形に見せている)。
 - 3つのサービスでそろえる(たべびより・まもりびよりは、別の依頼)。
 - テスト364件、型チェック・lint・ビルド。
+
+## ログインの整理(2026-10-31 夜の作業の下書き。依頼347 仕事2。依頼345 の決定。まだ本番に出していない)
+
+- ログイン・ログアウトは、ホームでだけする。このアプリは、ホームのログインを受け取るだけ。
+- 受け取りの部品は、ハブが正本の写し lib/login-handoff.ts(手で直さない。正本を直したら、ハブで node scripts/login-handoff-copy.mjs)。lib/firebase.ts は、部品にこのアプリの Firebase・window・storage を渡すだけ(handoffEnv、handoffReady = receiveLogin)。控えのキー(tamari:hubLoginState:、tamari:hubLoginRedirects)と印(tamari-biyori)は、今の値のまま。
+- ログインしていないときは、自動でホームのログインへ移る(goToHubLogin。1回の起動で1回まで)。うまくいかないときだけ「ログインを引き継げませんでした。おさいふびよりを閉じて、もう一度開いてください」(components/LoginGuide.tsx)。案内の画面の「ログイン」ボタンは外した。
+- ログインしている間は、開いたときと、30分以上たって画面に戻ったときに、ログインがまだ有効かを確かめる(startSessionWatch / recheckSession。contexts/AuthProvider.tsx)。取り消されていたら、この端末でログアウトし、端末のデータを消して、ホームのログインへ。
+- メニュー: ログアウトのボタンと確認の画面、「ログイン状態は「ホーム」と共通です。」を外し、「アカウント（ホーム）」の1行(https://okizukibiyori.com/account?open=account)を置いた。
+- 合言葉のないトークンは使わない(仕事1 の下書きと同じ動き。部品の receiveLogin に入っている)。
+- 古い部品(lib/authToken.ts・handoffState.ts・hubEntry.ts・hubLogin.ts・stateMark.ts と、そのテスト、components/LogoutButton.tsx)は、どこからも使っていない。夜の設定でファイルを消せなかったので、残した(本番に出すときに消す)。
+- テスト: lib/login-handoff.test.ts(写しの版の確かめと、このアプリでの使い方)。全部で375件。型チェック・lint・ビルド。

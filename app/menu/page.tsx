@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { BarChart3, Bell, ChevronRight, ExternalLink, FileText, User } from "lucide-react";
 import AccountSettings from "@/components/AccountSettings";
-import LogoutButton from "@/components/LogoutButton";
+import { HUB_ACCOUNT_MENU_LABEL, HUB_ACCOUNT_URL } from "@/lib/login-handoff";
 
 const HUB_TERMS_URL = "https://okizukibiyori.com/terms#おさいふびより";
 const HUB_PRIVACY_URL = "https://okizukibiyori.com/privacy#おさいふびより";
@@ -48,9 +48,26 @@ export default function MenuPage() {
           <div style={{ flex: 1 }}>
             <p style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>アカウント</p>
             <AccountSettings />
-            <LogoutButton />
           </div>
         </div>
+
+        {/* ログイン・ログアウトは、ホームでだけする(依頼345 の決定1・3)。ホームのメニューの、アカウントの欄へつなぐ */}
+        <a
+          href={HUB_ACCOUNT_URL}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "14px",
+            textDecoration: "none",
+            color: "inherit",
+            borderTop: "0.5px solid #eee",
+          }}
+        >
+          <User size={18} color="var(--brand)" />
+          <span style={{ flex: 1, fontSize: 14, fontWeight: 500 }}>{HUB_ACCOUNT_MENU_LABEL}</span>
+          <ExternalLink size={16} color="#ccc" />
+        </a>
 
         {/* 規約などへのつなぎ: 利用規約・プライバシーポリシー・通知と表示の決まりの順に、同じ形で縦に並べる(ハブの BRAND.md 5章。依頼289) */}
         <a
