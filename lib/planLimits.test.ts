@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { PLAN_FEATURES } from "./plan-resolve.ts";
 import {
-  FREE_MAX_GROUPS,
   PLAN_LIMITS,
   isPlanEnforced,
   jstMonthString,
@@ -14,11 +14,13 @@ test("プランごとの上限は PLAN_LIMITS から取れる", () => {
   assert.equal(monthlyAiReadLimit("free"), PLAN_LIMITS.free.monthlyAiReads);
   assert.equal(monthlyAiReadLimit("paid1"), PLAN_LIMITS.paid1.monthlyAiReads);
   assert.equal(monthlyAiReadLimit("paid2"), PLAN_LIMITS.paid2.monthlyAiReads);
+  // 件数は、プランごとにできることの表(PLAN_FEATURES の records。依頼374。前の 30・100・500 から変えた)
   assert.deepEqual(
-    [PLAN_LIMITS.free.maxRecords, PLAN_LIMITS.paid1.maxRecords, PLAN_LIMITS.paid2.maxRecords, FREE_MAX_GROUPS],
-    [30, 100, 500, 3],
+    [PLAN_LIMITS.free.maxRecords, PLAN_LIMITS.paid1.maxRecords, PLAN_LIMITS.paid2.maxRecords],
+    [PLAN_FEATURES.free.records, PLAN_FEATURES.paid1.records, PLAN_FEATURES.paid2.records],
   );
-  // 月の回数は、3つのサービスの合計の回数(ハブの正本の AI_READ_LIMITS。依頼293)
+  assert.deepEqual([PLAN_LIMITS.free.maxRecords, PLAN_LIMITS.paid1.maxRecords, PLAN_LIMITS.paid2.maxRecords], [80, 300, 1000]);
+  // 月の回数は、3つのサービスの合計の回数(ハブの正本の表。依頼293・依頼374)
   assert.deepEqual(
     [PLAN_LIMITS.free.monthlyAiReads, PLAN_LIMITS.paid1.monthlyAiReads, PLAN_LIMITS.paid2.monthlyAiReads],
     [20, 100, 300],

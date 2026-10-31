@@ -1,5 +1,5 @@
 // 写し(手で書き換えない)。正本: ハブ(okizukibiyori-hub)の src/lib/plan-resolve.ts
-// 正本の版: 44d49d21d370d167 / 写しの中身の版: 44d49d21d370d167
+// 正本の版: 219c9d62cdaeeec8 / 写しの中身の版: 219c9d62cdaeeec8
 // 正本を直したら、ハブで node scripts/plan-resolve-copy.mjs を実行して写し直す(BRAND.md 17章)。
 // プランを決める部品(BRAND.md 17章「段階3」、依頼280)。ハブが正本。
 // 3つのサービスへ写す(段階3の5番目、依頼287。写しの頭に、正本の版を書く。BRAND.md 17章)。
@@ -232,16 +232,130 @@ export async function readPlanWithIdToken(input: {
   return result.plan;
 }
 
+// --- プランごとにできることの表(依頼374。BRAND.md 17章「無料と有料の区別」) ---
+// プランで変わる数と、できることは、ここだけに書く。ホームの「プラン」の欄、申し込みの画面の比べる表、
+// 「通知と表示の決まり」、3つのサービスの上限(保管場所の数・共有の人数・写真の枚数など)は、この表から読む。
+// 数は仮の数(①②⑮)。上限の強制(ENFORCE_PLAN_LIMITS)がオフの間は、各サービスは無料(free)の列を使う。
+// 丸の番号は、BRAND.md 17章「無料と有料の区別」の軸の番号。
+export type PlanFeatures = {
+  // ① 登録の件数(3つのサービスの合計。特典 plan_bonuses は、別に足す)
+  records: number;
+  // ② AI の読み取りの回数(3つのサービスの合計)。月と1日
+  aiMonthly: number;
+  aiDaily: number;
+  // ⑮ 入れ物の数(たべびよりの保管場所など)。自分が作った入れ物と、参加した入れ物は別に数える。
+  //   おさいふびよりのグループは、並べ方の札なので数えない(18章)
+  ownedContainers: number;
+  joinedContainers: number;
+  // ③ 共有の人数(自分〈持ち主〉のほかに。招待中の人も数える。全プラン同じ)
+  shareGuests: number;
+  // ⑧ 写真の枚数(1件に。全プラン同じ)
+  photosPerItem: number;
+  // ④ 通知の細かさ: 気づきのお知らせの日を、選べる日数から選べる数(null はいくつでも。全プラン同じ。依頼372)
+  reminderPicks: number | null;
+  // ④ 「個別に決める」(選べる日数にない日を自分で決める、1件ごとに日を変える、など)。有料のみ。あとで作る
+  customReminder: boolean;
+  // ⑥ お得な情報や案内を止められる。有料のみ。止める設定は、まだ作っていない
+  stopPromotions: boolean;
+  // ⑤ 広げた機能(今は空。項目だけ用意)
+  extended: readonly string[];
+};
+
+export const PLAN_FEATURES: Record<Plan, PlanFeatures> = {
+  free: {
+    records: 80,
+    aiMonthly: 20,
+    aiDaily: 5,
+    ownedContainers: 3,
+    joinedContainers: 10,
+    shareGuests: 6,
+    photosPerItem: 5,
+    reminderPicks: null,
+    customReminder: false,
+    stopPromotions: false,
+    extended: [],
+  },
+  paid1: {
+    records: 300,
+    aiMonthly: 100,
+    aiDaily: 15,
+    ownedContainers: 10,
+    joinedContainers: 10,
+    shareGuests: 6,
+    photosPerItem: 5,
+    reminderPicks: null,
+    customReminder: true,
+    stopPromotions: true,
+    extended: [],
+  },
+  paid2: {
+    records: 1000,
+    aiMonthly: 300,
+    aiDaily: 30,
+    ownedContainers: 30,
+    joinedContainers: 10,
+    shareGuests: 6,
+    photosPerItem: 5,
+    reminderPicks: null,
+    customReminder: true,
+    stopPromotions: true,
+    extended: [],
+  },
+};
+
+// まだ作っていない「できること」(表では「準備中」と添える)
+export const PLAN_FEATURES_NOT_READY: readonly (keyof PlanFeatures)[] = ["customReminder", "stopPromotions"];
+
+export const PLAN_LABELS: Record<Plan, string> = { free: "無料", paid1: "ゆったり", paid2: "たっぷり" };
+export const PLAN_ORDER: readonly Plan[] = ["free", "paid1", "paid2"];
+
+// その人のプランの列(知らないプランは無料)
+export function planFeatures(plan: Plan): PlanFeatures {
+  return PLAN_FEATURES[plan] ?? PLAN_FEATURES.free;
+}
+
+const yen = (n: number) => n.toLocaleString("en-US");
+
+// 比べる表の行(ホームの申し込みの画面・「プラン」の欄の「くわしく見る」で使う)。⑤ は中身ができたら行を足す。
+export type PlanFeatureRow = { key: string; label: string; values: Record<Plan, string> };
+
+export function planFeatureRows(): PlanFeatureRow[] {
+  const row = (key: string, label: string, f: (p: PlanFeatures) => string): PlanFeatureRow => ({
+    key,
+    label,
+    values: { free: f(PLAN_FEATURES.free), paid1: f(PLAN_FEATURES.paid1), paid2: f(PLAN_FEATURES.paid2) },
+  });
+  const notReady = (k: keyof PlanFeatures) => (PLAN_FEATURES_NOT_READY.includes(k) ? "（準備中）" : "");
+  const rows: PlanFeatureRow[] = [
+    row("records", "登録の件数（3つのサービスの合計）", (p) => `${yen(p.records)}件まで`),
+    row("ai", "AI の読み取り（3つのサービスの合計）", (p) => `月${p.aiMonthly}回・1日${p.aiDaily}回まで`),
+    row("ownedContainers", "自分で作る保管場所などの数", (p) => `${p.ownedContainers}つまで`),
+    row("joinedContainers", "参加できる保管場所などの数", (p) => `${p.joinedContainers}つまで`),
+    row("shareGuests", "共有できる人数", (p) => `自分のほかに${p.shareGuests}人まで`),
+    row("photosPerItem", "写真の枚数", (p) => `1件に${p.photosPerItem}枚まで`),
+    row("reminderPicks", "気づきのお知らせの日", (p) =>
+      p.reminderPicks === null ? "いくつでも選べる" : `${p.reminderPicks}つまで選べる`,
+    ),
+    row("customReminder", "お知らせの日を個別に決める", (p) =>
+      p.customReminder ? `できる${notReady("customReminder")}` : "—",
+    ),
+    row("stopPromotions", "お得な情報や案内を止める", (p) =>
+      p.stopPromotions ? `できる${notReady("stopPromotions")}` : "—",
+    ),
+  ];
+  return rows;
+}
+
 // --- AI の読み取りの回数(3つのサービスの合計。段階3の6番目、依頼293。BRAND.md 17章) ---
-// 回数は、ここだけに書く(仮の数。無料の月20回だけ決定)。回数を見せる所(ホームのアカウントの画面など)も、ここから出す。
+// 回数は、上の表(PLAN_FEATURES の aiMonthly・aiDaily)から出す(仮の数。無料の月20回だけ決定)。
 // 3つのサービスのサーバーが、今の回数の数え(サービスごと・機能ごとの1日の上限と、全員の合計の1日の点数)が
 // 通ったあとに、この合計の記録を足す(ホームを通さない)。
 // - 上限の強制(enforced)がオフの間は、数えるだけで、断らない。オンのときだけ、プランの回数に届いたら断る。
 // - 数えの記録が書けなかったときは、読み取りそのものは止めない(not_counted を返す)。
 export const AI_READ_LIMITS: Record<Plan, { monthly: number; daily: number }> = {
-  free: { monthly: 20, daily: 5 },
-  paid1: { monthly: 100, daily: 15 },
-  paid2: { monthly: 300, daily: 30 },
+  free: { monthly: PLAN_FEATURES.free.aiMonthly, daily: PLAN_FEATURES.free.aiDaily },
+  paid1: { monthly: PLAN_FEATURES.paid1.aiMonthly, daily: PLAN_FEATURES.paid1.aiDaily },
+  paid2: { monthly: PLAN_FEATURES.paid2.aiMonthly, daily: PLAN_FEATURES.paid2.aiDaily },
 };
 
 // 上限に届いたときの文(BRAND.md 3章「言葉の決まり」)
