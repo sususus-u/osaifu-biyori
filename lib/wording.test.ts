@@ -19,7 +19,6 @@ const SCREENS = [
   "../components/AppShell.tsx",
   "../components/LoginGuide.tsx",
   "../components/MoreDetails.tsx",
-  "../components/LogoutButton.tsx",
   "../components/NotificationSetup.tsx",
   "../components/QuickUpdate.tsx",
   "../components/ScanPhysicalUpload.tsx",
@@ -242,5 +241,23 @@ test("ホームは「ホーム」と呼ぶ(「おきづきびより ホーム」
   for (const f of SCREENS) {
     assert.ok(!read(f).includes("おきづきびより ホーム"), f);
   }
-  assert.ok(read("../components/AccountSettings.tsx").includes("ログイン状態は「ホーム」と共通です。"));
+});
+
+test("ログイン・ログアウトはホームでだけ(依頼345 の決定1・3)。メニューは「アカウント（ホーム）」の1行だけ", () => {
+  const menu = read("../app/menu/page.tsx");
+  assert.ok(menu.includes("href={HUB_ACCOUNT_URL}"));
+  assert.ok(menu.includes("{HUB_ACCOUNT_MENU_LABEL}"));
+  assert.ok(!menu.includes("LogoutButton"));
+  assert.ok(!read("../components/AccountSettings.tsx").includes("ログイン状態は「ホーム」と共通です。"));
+  // 案内の画面に「ログイン」のボタンを置かない。失敗の文は部品の handoffFailedMessage
+  const guide = read("../components/LoginGuide.tsx");
+  assert.ok(!guide.includes("<button"));
+  assert.ok(guide.includes("handoffFailedMessage(LOGIN_HANDOFF_PRESETS.osaifu.serviceName)"));
+  assert.ok(guide.includes("goToHubLogin(handoffEnv())"));
+  // 画面に「ログアウト」のボタン・確認を出さない
+  for (const f of SCREENS) {
+    const ui = read(f).replace(/\/\/.*$/gm, "").replace(/\{\/\*[\s\S]*?\*\/\}/g, "");
+    assert.ok(!ui.includes("ログアウトする"), f);
+    assert.ok(!ui.includes(">\n          ログアウト\n"), f);
+  }
 });

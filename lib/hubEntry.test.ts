@@ -1,7 +1,6 @@
 // 実行: npm test(Node 標準のテスト機能。追加の部品は不要)
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import {
   buildHomeEntryLoginUrl,
   decideHomeEntrySession,
@@ -90,13 +89,5 @@ test("通信の失敗(時間切れも同じ扱い)や、そのほかのエラー
   assert.equal(decideHomeEntrySession({ ok: false, code: "auth/too-many-requests" }), "skip");
   assert.equal(decideHomeEntrySession({ ok: false, code: "unknown" }), "skip");
 });
-test("入口(lib/firebase.ts): 復元を待ってから、通信して確かめ、決まりに従う", () => {
-  const src = readFileSync(new URL("./firebase.ts", import.meta.url), "utf8");
-  assert.ok(src.includes("await auth.authStateReady();"));
-  assert.ok(src.includes("user.getIdToken(true)"));
-  assert.ok(src.includes('reject({ code: "auth/network-request-failed" })'));
-  assert.ok(src.includes("decideHomeEntrySession(check)"));
-  assert.ok(src.includes("if (await redirectFromHomeEntry()) {"));
-  // 取り消されていたときは、ログアウトして端末のデータを消してから往復する
-  assert.match(src, /"signOutThenRoundTrip"\) \{[\s\S]*?await signOut\(auth\);[\s\S]*?clearUserLocalData\(\);/);
-});
+// 入口の流れ(lib/firebase.ts)は、依頼347 仕事2 で、写した部品(lib/login-handoff.ts の receiveLogin)に置き換えた。
+// 確かめは lib/login-handoff.test.ts

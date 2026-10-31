@@ -1,6 +1,6 @@
 // ログアウトのとき、この端末に残るユーザー固有のデータ(このアプリのキー)を消す。
 // 使えない環境(プライベートモードなど)でも、ログアウト自体は止めない。
-// hubLogin.ts の往復の数え(tamari:hubLoginRedirects)は、ログインの無限往復を防ぐ印で
+// login-handoff.ts の往復の数え(tamari:hubLoginRedirects)は、ログインの無限往復を防ぐ印で
 // ユーザーのデータではないため、消さない。
 
 const LOCAL_STORAGE_KEYS = ["tamari:dismissed_announcements"];

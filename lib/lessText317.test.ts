@@ -88,6 +88,6 @@ test("見せる段階を分ける: 表示名を保存してあれば、名前と
   has(second, "<input");
   // 保存したら1段目に戻し、「保存しました」を出す
   assert.ok(/setSavedName\(trimmed\);\s*setEditing\(false\);\s*setDoneMessage\("保存しました"\);/.test(src));
-  // ログインの案内は、どちらの段階でも出す
-  assert.ok(src.indexOf("ログイン状態は") < src.indexOf("{!showForm ? ("));
+  // 「ログイン状態は「ホーム」と共通です。」は外した(依頼345 の決定3。メニューの「アカウント（ホーム）」の行へ)
+  lacks(src, "ログイン状態は");
 });
