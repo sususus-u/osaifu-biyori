@@ -45,3 +45,8 @@ test("「アカウント」は「おきづきびよりのアカウント」の1�
   // 補いの字は 12px 以上・補足の色
   assert.ok(row.includes('const CAPTION = { fontSize: 12, color: "var(--text-muted)"'));
 });
+
+test("「おきづきびよりのアカウント」の下に、小さく「呼び名:○○」(依頼371 の決定2。3つのサービスで同じ形。「:」は半角で、空白なし)", () => {
+  assert.ok(row.includes("呼び名:{name}"));
+  assert.equal(row.includes("呼び名: {"), false);
+});

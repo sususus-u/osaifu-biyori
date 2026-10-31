@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 const read = (p: string) => readFileSync(new URL(p, import.meta.url), "utf8");
 
@@ -8,8 +8,9 @@ test("ニックネームをすすめる案内と例は、ホームの呼び名�
   const src = read("../components/AccountSettings.tsx");
   assert.ok(!src.includes("ニックネーム"));
   assert.ok(!src.includes("例:すずちゃん、パパ"));
-  // 前の中継(/api/user-name)は、画面からは呼ばない(窓口は、本番に出すときに消す)
+  // 前の中継(/api/user-name)は、画面からは呼ばない。窓口も消した(依頼371)
   assert.ok(!src.includes('authFetch("/api/user-name")'));
+  assert.equal(existsSync(new URL("../app/api/user-name/route.ts", import.meta.url)), false);
 });
 
 test("開け閉めの印「+」「−」は 24px、押せる所は高さ44px以上(依頼306。4つ共通)", () => {

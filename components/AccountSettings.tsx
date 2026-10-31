@@ -4,7 +4,7 @@
 // 呼び名・プラン・ログアウトは、この行からホーム(HUB_ACCOUNT_URL)へ。このアプリには、呼び名の入力の欄・保存を置かない。
 // - 行の下に小さく、今の呼び名(読むだけ)と、呼び名はホームで変えられること(HUB_NAME_LINK_TEXT)を添える
 // - 自分の呼び名: users/{uid}.username(ホームが保存する)。無ければ、古い users/{uid}.displayName(lib/ownName.ts)
-// - Firestore の users/{uid} を直接読む(この画面が前に呼んでいた中継 app/api/user-name は、もう呼ばない)
+// - Firestore の users/{uid} を直接読む(前の中継 app/api/user-name は、依頼371 で消した)
 
 import { useEffect, useState } from "react";
 import { ExternalLink, User } from "lucide-react";
