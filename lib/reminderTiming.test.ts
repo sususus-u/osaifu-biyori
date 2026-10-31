@@ -89,17 +89,19 @@ test("画面: 押せないボタンを作らない。無料の人には、案内
   assert.ok(src.includes("shownDays.includes(day)"));
 });
 
-test("画面の言葉(カタカナの言い方を使わない。デフォルトは「デフォルト」と出す)", () => {
+test("画面の言葉(カタカナの言い方を使わない。「(デフォルト)」の印と「いちばん早い○日前だけ」の文は出さない。依頼353)", () => {
   assert.equal(REMINDER_SECTION_LABEL, "お知らせの時期");
   assert.equal(REMINDER_LABEL, "気づきのお知らせ");
   assert.equal(REMINDER_CAPTION, "選んだ日に1回ずつ");
   assert.equal(DAILY_LABEL, "直前のお知らせ");
   assert.equal(DAILY_CAPTION, "7日前から当日まで毎朝");
   assert.equal(REMINDER_PAID_GUIDE, "有料のプランでは、いくつでも選べます。");
-  assert.equal(reminderChipLabel(60), "60日前（デフォルト）");
+  assert.equal(reminderChipLabel(60), "60日前");
   assert.equal(reminderChipLabel(120), "120日前");
   const src = readFileSync(new URL("../components/AccountForm.tsx", import.meta.url), "utf8");
   assert.ok(!src.includes("通知タイミング"));
+  assert.ok(!src.includes("デフォルト）"));
+  assert.ok(!src.includes("freeOnlyEarliestNote"));
   assert.ok(!src.includes("アラート"));
   assert.ok(src.includes("{REMINDER_SECTION_LABEL}"));
   // 押せる所は44px以上、文字は12px以上

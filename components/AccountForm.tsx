@@ -58,8 +58,6 @@ import {
   REMINDER_NONE_LABEL,
   REMINDER_PAID_GUIDE,
   REMINDER_SECTION_LABEL,
-  earliestReminderDay,
-  freeOnlyEarliestNote,
   reminderChipLabel,
   selectedReminderDays,
   shownReminderDays,
@@ -1513,11 +1511,6 @@ export default function AccountForm({ accountId }: { accountId?: string }) {
             {plan === "free" && (
               <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>
                 {REMINDER_PAID_GUIDE}
-              </p>
-            )}
-            {plan === "free" && reminderDays.length > 1 && (
-              <p style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 6 }}>
-                {freeOnlyEarliestNote(earliestReminderDay(reminderDays) ?? REMINDER_DEFAULT_DAYS)}
               </p>
             )}
           </div>

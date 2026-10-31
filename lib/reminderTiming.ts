@@ -24,17 +24,12 @@ export const REMINDER_CAPTION = "選んだ日に1回ずつ";
 export const DAILY_LABEL = "直前のお知らせ";
 export const DAILY_CAPTION = "7日前から当日まで毎朝";
 export const REMINDER_NONE_LABEL = "なし";
-export const REMINDER_DEFAULT_TAG = "デフォルト";
 // 無料のプランの人に、いつも小さく出す案内(押し付けない。依頼348)
 export const REMINDER_PAID_GUIDE = "有料のプランでは、いくつでも選べます。";
 
+// 「(デフォルト)」の印は付けない(依頼353。初めに選ばれている日は REMINDER_DEFAULT_DAYS のまま)
 export function reminderChipLabel(days: number): string {
-  return days === REMINDER_DEFAULT_DAYS ? `${days}日前（${REMINDER_DEFAULT_TAG}）` : `${days}日前`;
-}
-
-// 無料のプランで、2つ以上を保存しているときの添え書き(いちばん早い日だけ効く)
-export function freeOnlyEarliestNote(earliest: number): string {
-  return `いまのプランでは、いちばん早い${earliest}日前だけ、お知らせします。`;
+  return `${days}日前`;
 }
 
 function isChoice(v: unknown): v is number {
