@@ -26,10 +26,9 @@ test("写しを手で直していない(頭の「写しの中身の版」と、�
   const text = readFileSync(COPY_PATH, "utf8").replace(/\r\n/g, "\n");
   const m = /^\/\/ 正本の版: ([0-9a-f]{16}) \/ 写しの中身の版: ([0-9a-f]{16})$/m.exec(text);
   assert.ok(m, "写しの頭に、版の行がない");
-  // 頭の3行と空行1行のあとが、正本そのまま
+  // 頭の3行のあとが、正本そのまま
   const lines = text.split("\n");
-  assert.equal(lines[3], "", "頭の3行のあとに空行がない");
-  const body = lines.slice(4).join("\n");
+  const body = lines.slice(3).join("\n");
   assert.equal(versionOf(body), m[2], "写しが正本と違う。ハブで node scripts/login-handoff-copy.mjs を実行して写し直す");
 });
 

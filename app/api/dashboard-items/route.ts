@@ -9,6 +9,8 @@ import { adminDb } from "@/lib/firebaseAdmin";
 import { verifyBearerIdToken } from "@/lib/verifyIdToken";
 import type { AccountCategory, AccountDoc } from "@/types/firestore";
 import { DASHBOARD_OVERDUE_DAYS } from "@/lib/notificationSchedule";
+// 残りの日数は、日本時間の暦で数える(サーバーは世界標準時なので、日本時間の0時〜9時に1日多く出ていた。依頼365 決定7)
+import { daysUntilExpiry } from "@/lib/jstDate";
 
 // ホームの「期限が近いもの」の色(danger)にする日数。前の種類ごとの「2回目」の日数のまま(依頼317で
 // お知らせの2回目はやめたが、ホームの表示は変えないため、ここに残す。そろえるかは、まだ決めていない)
@@ -24,12 +26,6 @@ const DANGER_DAYS: Record<AccountCategory, number> = {
 
 const NO_STORE = { "Cache-Control": "private, no-store" };
 
-function daysBetween(from: Date, to: Date): number {
-  const msPerDay = 1000 * 60 * 60 * 24;
-  const fromMidnight = new Date(from.getFullYear(), from.getMonth(), from.getDate());
-  const toMidnight = new Date(to.getFullYear(), to.getMonth(), to.getDate());
-  return Math.round((toMidnight.getTime() - fromMidnight.getTime()) / msPerDay);
-}
 
 export async function GET(req: NextRequest) {
   const startedAt = Date.now();
@@ -51,7 +47,7 @@ export async function GET(req: NextRequest) {
     .filter((account) => Boolean(account.expiryDate))
     .map((account) => {
       const expiry = (account.expiryDate as unknown as Timestamp).toDate();
-      const daysRemaining = daysBetween(today, expiry);
+      const daysRemaining = daysUntilExpiry(expiry, today);
       const dangerDays = DANGER_DAYS[account.category] ?? 21;
       const level: "danger" | "warning" = daysRemaining <= dangerDays ? "danger" : "warning";
       return { name: account.name, daysRemaining, level };

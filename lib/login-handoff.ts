@@ -1,7 +1,6 @@
 // 写し(手で書き換えない)。正本: ハブ(okizukibiyori-hub)の src/lib/login-handoff.ts
 // 正本の版: 1a2c03f6586bb9cd / 写しの中身の版: 1a2c03f6586bb9cd
 // 正本を直したら、ハブで node scripts/login-handoff-copy.mjs を実行して写し直す(依頼347 仕事2)。
-
 // ホーム(おきづきびより)のログインを、サービスが受け取る部品(依頼347 仕事2。依頼345 の決定7)。ハブが正本。
 // 3つのサービスへ写す(scripts/login-handoff-copy.mjs。写しの頭に、正本の版を書く。plan-resolve と同じ仕組み)。
 // そのため、この中では、ほかのファイルを import しない。Firebase・window・storage は、引数で受け取る。

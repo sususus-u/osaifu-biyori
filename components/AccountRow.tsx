@@ -10,6 +10,7 @@ import type { AccountDoc } from "@/types/firestore";
 import { displayAccountName } from "@/lib/stampMerge";
 import { getYenValue } from "@/lib/accountUtils";
 import { CheckMark } from "@/components/SelectCheck";
+import { isPastExpiry } from "@/lib/jstDate";
 
 export interface AccountWithId extends AccountDoc {
   id: string;
@@ -66,8 +67,8 @@ function balanceDisplay(acc: AccountWithId) {
 
 function isOverdueUnupdated(acc: AccountWithId) {
   if (!acc.expiryDate || acc.type !== "continuous") return false;
-  const expiry = (acc.expiryDate as Timestamp).toDate();
-  return expiry.getTime() < Date.now();
+  // 期限の次の日の、日本時間の0時から「過ぎた」(前は時刻で比べ、期限の当日の9時に切り替わっていた。依頼365 決定7)
+  return isPastExpiry((acc.expiryDate as Timestamp).toDate());
 }
 
 interface AccountRowProps {

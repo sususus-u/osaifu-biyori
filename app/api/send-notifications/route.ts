@@ -16,17 +16,9 @@ import { needsOwnSend, relayItem, relayViaHome } from "@/lib/servicePush";
 import { effectiveReminderDays, selectedReminderDays } from "@/lib/reminderTiming";
 import { firestoreLastKnownStore, type Plan } from "@/lib/plan-resolve";
 import { planForNotify } from "@/lib/notifyPlan";
+// 期限までの日数は、日本時間の暦で数える(依頼365 決定7。サーバーは世界標準時)
+import { daysUntilExpiry as daysToExpiry, expiryIsoOf } from "@/lib/jstDate";
 
-function toIsoDate(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
-
-function daysBetween(from: Date, to: Date): number {
-  const msPerDay = 1000 * 60 * 60 * 24;
-  const fromMidnight = new Date(from.getFullYear(), from.getMonth(), from.getDate());
-  const toMidnight = new Date(to.getFullYear(), to.getMonth(), to.getDate());
-  return Math.round((toMidnight.getTime() - fromMidnight.getTime()) / msPerDay);
-}
 
 export async function GET(req: NextRequest) {
   // Vercel Cronからの呼び出しであることを確認(手違いで誰でも叩けないようにする)
@@ -79,8 +71,9 @@ export async function GET(req: NextRequest) {
     if (!account.expiryDate) continue;
 
     const expiry = (account.expiryDate as unknown as Timestamp).toDate();
-    const daysUntilExpiry = daysBetween(today, expiry);
-    const expiryIso = toIsoDate(expiry);
+    const daysUntilExpiry = daysToExpiry(expiry, today);
+    if (!Number.isFinite(daysUntilExpiry)) continue;
+    const expiryIso = expiryIsoOf(expiry) ?? "";
 
     // 期限が過ぎたもの、まだ気づきの日より前のものは、プランを読まずに飛ばす
     const selected = selectedReminderDays(account.notificationTiming);

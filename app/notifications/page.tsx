@@ -26,6 +26,7 @@ import { useHasNewAnnouncement } from "@/components/AppShell";
 import { ANNOUNCEMENT_EMPTY_TEXT, timeLabel, useAnnouncements } from "@/lib/announcements";
 import { LOADING_TEXT, listCountText } from "@/lib/listCount";
 import { jstDateString } from "@/lib/planLimits";
+import { expiryIsoOf } from "@/lib/jstDate";
 import { DUE_SOON_LEAD, dueSoonText, pickDueSoon } from "@/lib/dueSoon";
 import { earliestReminderDay, selectedReminderDays } from "@/lib/reminderTiming";
 import AccountRow, { type AccountWithId } from "@/components/AccountRow";
@@ -136,7 +137,7 @@ function PersonalNotifications() {
   const due = pickDueSoon(
     (accounts ?? []).map((account) => ({
       account,
-      expiryIso: account.expiryDate ? (account.expiryDate as Timestamp).toDate().toISOString().slice(0, 10) : null,
+      expiryIso: account.expiryDate ? expiryIsoOf((account.expiryDate as Timestamp).toDate()) : null,
       fromDays: earliestReminderDay(selectedReminderDays(account.notificationTiming)),
     })),
     jstDateString(),

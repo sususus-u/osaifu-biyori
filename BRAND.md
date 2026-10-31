@@ -835,3 +835,17 @@
 - 合言葉のないトークンは使わない(仕事1 の下書きと同じ動き。部品の receiveLogin に入っている)。
 - 古い部品(lib/authToken.ts・handoffState.ts・hubEntry.ts・hubLogin.ts・stateMark.ts と、そのテスト、components/LogoutButton.tsx)は、どこからも使っていない。夜の設定でファイルを消せなかったので、残した(本番に出すときに消す)。
 - テスト: lib/login-handoff.test.ts(写しの版の確かめと、このアプリでの使い方)。全部で375件。型チェック・lint・ビルド。
+
+## ログインの整理を本番に出す、「今日」を日本時間に(2026-10-31、依頼365)
+
+- 上の「ログインの整理」(依頼347 仕事2)を main に入れた。夜の枝 night/2026-10-31-security(合言葉のないトークンを使わない)は、入れていない。同じ動きが、写しの部品 lib/login-handoff.ts の receiveLogin に入っているため(security の枝の lib/handoffDecision.ts などは、古い部品の上の直しだった)。
+- 写しは、ハブで node scripts/login-handoff-copy.mjs で作り直した(頭の空行1行がなくなっただけ)。--check で正本と同じ。写しのテストも、道具の形(頭の3行のすぐあとが中身)に合わせた。
+- 古い部品(lib/authToken.ts・handoffState.ts・hubEntry.ts・hubLogin.ts・stateMark.ts と、そのテスト、components/LogoutButton.tsx)を消した。
+- 「今日」を日本時間に(依頼365 決定7): lib/jstDate.ts(たべびよりの shared/jstDate.js、まもりびよりの src/lib/jst-date.ts と同じ考え)。
+  - 期限(expiryDate)は new Date("YYYY-MM-DD")(世界標準時の0時)で保存しているので、期限の暦の日付は、その時刻の世界標準時の日付(expiryIsoOf)。今日は日本時間の日付(jstToday)。暦の日付どうしで数える(daysUntilExpiry)。
+  - ホームの「期限が近いもの」の残りの日数(app/api/dashboard-items): 前はサーバーの時計(世界標準時)の日付で数え、日本時間の0時〜9時に1日多く出ていた。
+  - 通知の処理(app/api/send-notifications): 同じ部品で数える(毎朝の時刻は、変えていない)。
+  - 画面の「期限が過ぎた」の塗り(components/AccountRow.tsx): 前は時刻で比べ、期限の当日の9時に切り替わっていた。期限の次の日の、日本時間の0時から。
+  - 「あなたへのお知らせ」(app/notifications): 同じ部品を使う形にしただけ(前から日本時間)。
+  - 境目のテスト lib/jstDate.test.ts(日本時間の0時の前後、当日の9時、月・年またぎ)。
+- テスト342件、型チェック・lint・ビルド。戻す先: 58c818b。
