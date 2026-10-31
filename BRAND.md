@@ -874,3 +874,8 @@
   - 「おきづきびよりのアカウント」の行の下に小さく(12px・補足の色)、「呼び名:○○」と「呼び名は、ホームの「アカウント」で変えられます」を添えた(行の全体がホームへのつなぎ)。
   - 「記録を書き出す」は、ほかの行と同じ形(アイコン Download、14px・太さ500、高さ44px以上)。かっこを全角に。
   - テスト lib/menu366.test.ts。
+- 仕事3(枝 night/2026-11-01-handoff): ホームから移るときに、文字の画面を出さない。
+  - ?entry=home でこの端末にログインが残っていれば、通信の確かめを待たずに一覧を出す(写しの部品 receiveLogin。仕事2 で写した)。取り消されていたかは、開いたあとの確かめ(startSessionWatch → recheckSession)が見る。テストで確かめた(lib/login-handoff.test.ts)。
+  - ログインの受け取り・確かめの間(components/AppShell.tsx)、ホームのログインへ移る間(components/LoginGuide.tsx)、開いた直後の一覧の読み込み(components/AccountList.tsx。前は「読み込み中…」): 文字を出さず、400ms たったら待ちの絵だけをそっと出す(components/QuietWaiting.tsx。読み上げには「読み込み中」。動きを減らす設定では止める)。うまくいかないときだけ、今の「…を閉じて、もう一度開いてください」の画面。
+  - 場面の絵の部品の写し lib/scene-illust.jsx(正本はハブの src/lib/scene-illust.jsx。版 ea6aa7f56da2ea52。手で直さない。型を書かない JSX)。夜はハブの写す道具を動かせないため、手で写し、テストで正本と同じことを確かめた(lib/sceneIllust.test.ts)。
+  - テスト lib/quietWaiting366.test.ts。

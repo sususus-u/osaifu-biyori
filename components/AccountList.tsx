@@ -56,7 +56,8 @@ import {
 } from "@/lib/stampToast";
 import { displayAccountName } from "@/lib/stampMerge";
 import { getYenValue } from "@/lib/accountUtils";
-import { LOADING_TEXT, listCountText } from "@/lib/listCount";
+import { listCountText } from "@/lib/listCount";
+import QuietWaiting from "@/components/QuietWaiting";
 
 // 開け閉めの印「+」「−」の大きさ(4つ共通。ハブ BRAND.md 5章「開け閉めの印の大きさ」。依頼306)
 const TOGGLE_MARK_STYLE = {
@@ -423,8 +424,9 @@ export default function AccountList() {
     });
   }
 
+  // 開いた直後の読み込み: 文字は出さず、長引いたときだけ待ちの絵をそっと出す(依頼366 仕事3)
   if (isLoading) {
-    return <p style={{ fontSize: 14, color: "var(--text-muted)" }}>{LOADING_TEXT}</p>;
+    return <QuietWaiting />;
   }
 
   return (

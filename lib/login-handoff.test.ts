@@ -158,6 +158,34 @@ test("ホームのカード(?entry=home): ログイン済みで有効なら、�
   assert.deepEqual(env.addresses, ["/"]);
 });
 
+test("ホームのカード(?entry=home。依頼366 仕事3): この端末にログインが残っていれば、通信の確かめを待たずに一覧へ(ホームへ行かない)", async () => {
+  let asked = 0;
+  // 通信でトークンを確かめると取り消し済み、という人でも、開いたときは待たない(取り消しは開いたあとの確かめが見る)
+  const slowRevoked = {
+    isAnonymous: false,
+    getIdToken: async (): Promise<string> => {
+      asked++;
+      throw { code: "auth/user-token-expired" };
+    },
+  };
+  const env = fakeEnv(`${BASE}/?entry=home`, { user: slowRevoked });
+  assert.deepEqual(await receiveLogin(env), { kind: "none" });
+  assert.equal(asked, 0, "開いたときに通信で確かめない");
+  assert.equal(env.navigated.length, 0);
+  assert.deepEqual(env.log, []);
+  assert.deepEqual(env.addresses, ["/"]);
+  // 取り消しは、開いたあとの確かめ(startSessionWatch → recheckSession)で見つけて、ホームのログインへ
+  assert.equal(await recheckSession(env), "navigating");
+  assert.deepEqual(env.log, ["signOut", "clear"]);
+});
+
+test("ホームのカード(?entry=home): この端末でログインしていなければ、ホームのログインへ", async () => {
+  const env = fakeEnv(`${BASE}/?entry=home`);
+  assert.deepEqual(await receiveLogin(env), { kind: "navigating" });
+  assert.equal(env.navigated.length, 1);
+  assert.equal(new URL(env.navigated[0].url).pathname, "/login");
+});
+
 test("ログインが切れていたら、自動でホームのログインへ。1回の起動で1回まで(往復しない)", () => {
   const session = memoryStore();
   const env = fakeEnv(`${BASE}/`, { session });

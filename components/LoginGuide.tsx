@@ -7,6 +7,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthProvider";
+import QuietWaiting from "@/components/QuietWaiting";
 import { handoffEnv } from "@/lib/firebase";
 import { goToHubLogin, handoffFailedMessage, LOGIN_HANDOFF_PRESETS } from "@/lib/login-handoff";
 
@@ -26,8 +27,14 @@ export default function LoginGuide() {
     if (!goToHubLogin(handoffEnv())) setBlocked(true);
   }, [handoffFailed]);
 
-  // 移っている間は、何も出さない(一瞬の点滅を避ける)
-  if (!handoffFailed && !blocked) return <div className="app-shell" />;
+  // 移っている間は、文字を出さない(一瞬の点滅を避ける)。長引いたときだけ、待ちの絵をそっと出す(依頼366 仕事3)
+  if (!handoffFailed && !blocked) {
+    return (
+      <div className="app-shell">
+        <QuietWaiting fill />
+      </div>
+    );
+  }
 
   return (
     <div className="app-shell">

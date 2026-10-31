@@ -14,6 +14,7 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthProvider";
 import { authFetch } from "@/lib/authFetch";
 import LoginGuide from "@/components/LoginGuide";
+import QuietWaiting from "@/components/QuietWaiting";
 import type { Announcement } from "@/lib/announcements";
 import CardMark from "@/components/CardMark";
 import { useDismissedAnnouncementIds } from "@/lib/dismissedAnnouncements";
@@ -131,8 +132,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     latestAnnouncementMs !== null &&
     (!announcementsSeenAt || latestAnnouncementMs > announcementsSeenAt.toMillis());
 
-  // ログイン状態の確認が終わるまでは、案内の画面もアプリ本体も出さない(一瞬の点滅を避ける)。
-  if (isLoading) return <div className="app-shell" />;
+  // ログイン状態の確認(ホームのログインの受け取りを含む)が終わるまでは、案内の画面もアプリ本体も出さない(一瞬の点滅を避ける)。
+  // 文字は出さず、長引いたときだけ待ちの絵をそっと出す(依頼366 仕事3)
+  if (isLoading) {
+    return (
+      <div className="app-shell">
+        <QuietWaiting fill />
+      </div>
+    );
+  }
 
   // 未ログイン: ヘッダー・タブ・ベル・本文は出さず、案内の画面だけを出す。
   // ただしメニューは、規約などを読めるよう、ログイン前でも見られる(ベルとタブは付けない)。
