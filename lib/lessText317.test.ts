@@ -71,23 +71,19 @@ test("② 登録・編集: 補足は「くわしく見る」へ。読み取り�
   assert.ok(src.lastIndexOf("<MoreDetails>") < src.indexOf("{REMINDER_SECTION_LABEL}"));
 });
 
-test("見せる段階を分ける: 表示名を保存してあれば、名前と「変更する」だけ。開いたら、説明・入力の欄・「保存」「キャンセル」", () => {
+test("呼び名は、ホームの1か所だけで変える(依頼366 仕事1): メニューは今の呼び名と、ホームの「アカウント」へのつなぎだけ", () => {
   const src = read("../components/AccountSettings.tsx");
-  has(src, "const showForm = editing || savedName === \"\";");
-  has(src, "onClick={() => setEditing(true)}");
-  has(src, "変更する");
-  has(src, "キャンセル");
-  // 1段目には、説明・入力の欄・「保存」が無い(2段目の枝の中だけ)
-  const first = src.slice(src.indexOf("{!showForm ? ("), src.indexOf(") : ("));
-  lacks(first, "<input");
-  lacks(first, "本名ではなく");
-  lacks(first, '"保存"');
-  // 2段目: 名前を入れるときは、いつも本名でなくてよい案内を出す
-  const second = src.slice(src.indexOf(") : ("));
-  has(second, "個人の情報を少なくするため、本名ではなく、ニックネームや家族の中での呼び名がおすすめです。");
-  has(second, "<input");
-  // 保存したら1段目に戻し、「保存しました」を出す
-  assert.ok(/setSavedName\(trimmed\);\s*setEditing\(false\);\s*setDoneMessage\("保存しました"\);/.test(src));
-  // 「ログイン状態は「ホーム」と共通です。」は外した(依頼345 の決定3。メニューの「アカウント（ホーム）」の行へ)
+  // 入力の欄・「変更する」・「保存」・「キャンセル」は無い。このアプリからは書かない
+  lacks(src, "<input");
+  lacks(src, "変更する");
+  lacks(src, '"保存"');
+  lacks(src, "キャンセル");
+  lacks(src, "setDoc");
+  lacks(src, "authFetch(");
+  // 今の呼び名(読むだけ)と、ホームの「アカウント」へのつなぎ
+  has(src, "ownNameText(");
+  has(src, "呼び名:");
+  has(src, "href={HUB_ACCOUNT_URL}");
+  // 「ログイン状態は「ホーム」と共通です。」は外した(依頼345 の決定3)
   lacks(src, "ログイン状態は");
 });

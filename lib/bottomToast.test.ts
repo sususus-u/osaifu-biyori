@@ -56,7 +56,6 @@ test("短い知らせは、どの画面も BottomToast を使う。上に出す�
   for (const f of [
     "../components/AccountList.tsx",
     "../app/notifications/page.tsx",
-    "../components/AccountSettings.tsx",
     "../components/QuickUpdate.tsx",
     "../components/ScanPhysicalUpload.tsx",
     "../components/ScanUpload.tsx",

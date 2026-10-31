@@ -150,11 +150,10 @@ test("待ちの文: 直すときは「更新中…」、新しく作るときは
   assert.ok(physical.includes('{isSaving ? "更新中…" : "置き換える"}'));
   assert.ok(physical.includes('{isSaving ? "更新中…" : "今回の分を追加する"}'));
   assert.ok(physical.includes('{isSaving ? "登録中…" : stampMode'));
+  // 呼び名の保存は、ホームへ移した(依頼366 仕事1)。このアプリの画面には「保存中…」が無い
   for (const f of SCREENS) {
-    if (f.endsWith("AccountSettings.tsx")) continue;
     assert.ok(!read(f).includes("保存中…"), f + ": 「保存中…」");
   }
-  assert.ok(read("../components/AccountSettings.tsx").includes('"保存中…" : "保存"'));
 });
 
 test("お知らせの非表示は削除ではないので、赤ではなくサービスの色(依頼257)", () => {
@@ -228,7 +227,8 @@ test("失敗の文: 直すときは「更新に失敗しました。」、新し
   assert.ok(read("../components/QuickUpdate.tsx").includes('"更新に失敗しました。もう一度お試しください。"'));
   assert.ok(read("../components/ScanUpload.tsx").includes('"更新に失敗しました。もう一度お試しください。"'));
   assert.ok(read("../components/ScanPhysicalUpload.tsx").includes('matchedAccountId ? "更新に失敗しました。もう一度お試しください。" : "登録に失敗しました。もう一度お試しください。"'));
-  assert.ok(read("../components/AccountSettings.tsx").includes("保存に失敗しました。"));
+  // 呼び名の保存は、ホームへ移した(依頼366 仕事1)
+  assert.ok(!read("../components/AccountSettings.tsx").includes("保存に失敗"));
 });
 
 test("切手の額面ごとの保存の失敗は「登録・更新に失敗しました。何も保存されていません。もう一度お試しください。」(足す分と作る分が混ざるため。依頼260・依頼262)", () => {

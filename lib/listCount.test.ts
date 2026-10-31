@@ -158,7 +158,6 @@ test("選択のバーの端の線と、白い地のボタンの線(依頼272): �
   assert.ok(read("../components/NotificationSetup.tsx").includes("border border-[var(--list-frame-border)]"));
   // 入力の欄と区切りの線は、そのまま
   assert.match(css, /\.field input,\s*\.field select \{[^}]*border: 1px solid #ddd;/);
-  assert.ok(read("../components/AccountSettings.tsx").includes('border: "1px solid #ddd",'));
   assert.ok(read("../components/AccountRow.tsx").includes('borderTop: "0.5px solid #f0f0f0",'));
   // コントラスト: 画面の地・バー・ボタンの中(#fff)、見出しの帯(#faf8f6)、読み取りのボタンの中(#fef8f5)
   const m = css.match(/--list-frame-border: (#[0-9a-f]{6});/);

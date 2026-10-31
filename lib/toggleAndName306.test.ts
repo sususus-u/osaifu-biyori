@@ -4,10 +4,12 @@ import { readFileSync } from "node:fs";
 
 const read = (p: string) => readFileSync(new URL(p, import.meta.url), "utf8");
 
-test("表示名の欄: ニックネームをすすめる案内と、ニックネームの例(依頼306。4つ共通)", () => {
+test("ニックネームをすすめる案内と例は、ホームの呼び名の欄にだけ(依頼366 仕事1。このアプリには入力の欄が無い)", () => {
   const src = read("../components/AccountSettings.tsx");
-  assert.ok(src.includes("個人の情報を少なくするため、本名ではなく、ニックネームや家族の中での呼び名がおすすめです。"));
-  assert.ok(src.includes('placeholder="例:すずちゃん、パパ"'));
+  assert.ok(!src.includes("ニックネーム"));
+  assert.ok(!src.includes("例:すずちゃん、パパ"));
+  // 前の中継(/api/user-name)は、画面からは呼ばない(窓口は、本番に出すときに消す)
+  assert.ok(!src.includes('authFetch("/api/user-name")'));
 });
 
 test("開け閉めの印「+」「−」は 24px、押せる所は高さ44px以上(依頼306。4つ共通)", () => {
