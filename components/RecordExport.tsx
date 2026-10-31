@@ -1,11 +1,12 @@
 "use client";
 
-// メニュー「アカウント」の「記録を書き出す(表の形)」(依頼369。依頼341 の決定7)。
+// メニュー「実績・データ」の「記録を書き出す（表の形）」(依頼369。依頼341 の決定7。依頼366 仕事2 で「アカウント」から移した)。
 // 押すと確かめを出し、「書き出す」で、自分のポイント・残高・残高の履歴・使いきった・失効した記録を
 // CSV のファイルにして保存する。無料(プランに関係なく使える)。
 // 読むのは、自分の記録だけ(ownerId が自分のもの。ルールでも本人だけが読める)。表は端末の中で作り、サーバーには送らない。
 
 import { useState } from "react";
+import { ChevronRight, Download } from "lucide-react";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthProvider";
@@ -98,27 +99,33 @@ export default function RecordExport() {
     }
   }
 
+  // メニューの「実績・データ」の1行(依頼366 仕事2。ほかの行と同じ形)。押すと確かめを出す
   return (
-    <div style={{ marginTop: 12 }}>
+    <div style={{ borderTop: "0.5px solid #eee" }}>
       <button
         type="button"
         onClick={() => setOpen(true)}
         disabled={!uid}
         style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          width: "100%",
           minHeight: 44,
-          background: "#fff",
-          color: "var(--brand)",
-          border: "1px solid var(--brand)",
-          borderRadius: 100,
-          padding: "0 16px",
-          fontSize: 13,
-          fontWeight: 500,
+          padding: "14px",
+          background: "none",
+          border: "none",
+          textAlign: "left",
+          color: "inherit",
+          fontFamily: "inherit",
           opacity: uid ? 1 : 0.5,
         }}
       >
-        記録を書き出す(表の形)
+        <Download size={18} color="var(--brand)" />
+        <span style={{ flex: 1, fontSize: 14, fontWeight: 500 }}>記録を書き出す（表の形）</span>
+        <ChevronRight size={16} color="#ccc" />
       </button>
-      {message && <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>{message}</p>}
+      {message && <p style={{ fontSize: 12, color: "var(--text-muted)", padding: "0 14px 12px" }}>{message}</p>}
       {open && (
         <ConfirmSheet
           title="記録を書き出しますか？"

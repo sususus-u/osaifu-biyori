@@ -1,24 +1,24 @@
 "use client";
 
-// メニュー画面「設定」→「アカウント」の呼び名(依頼366 仕事1)。
-// 呼び名は、おきづきびより(ホーム)の1か所だけで決める。このアプリでは、今の呼び名を見せるだけ(入力の欄・保存は置かない)。
+// メニュー「設定」→「アカウント」の、ただ1つの行「おきづきびよりのアカウント」(依頼366 仕事1・2)。
+// 呼び名・プラン・ログアウトは、この行からホーム(HUB_ACCOUNT_URL)へ。このアプリには、呼び名の入力の欄・保存を置かない。
+// - 行の下に小さく、今の呼び名(読むだけ)と、呼び名はホームで変えられること(HUB_NAME_LINK_TEXT)を添える
 // - 自分の呼び名: users/{uid}.username(ホームが保存する)。無ければ、古い users/{uid}.displayName(lib/ownName.ts)
 // - Firestore の users/{uid} を直接読む(この画面が前に呼んでいた中継 app/api/user-name は、もう呼ばない)
-// - 変えるときは、ホームの「アカウント」へ(HUB_ACCOUNT_URL)。本名でなくてよい案内も、ホームの入力の欄にだけ出す
 
 import { useEffect, useState } from "react";
+import { ExternalLink, User } from "lucide-react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthProvider";
-import { HUB_ACCOUNT_URL } from "@/lib/login-handoff";
+import { HUB_ACCOUNT_MENU_LABEL, HUB_ACCOUNT_URL, HUB_NAME_LINK_TEXT } from "@/lib/login-handoff";
 import { ownNameText } from "@/lib/ownName";
 
-/** 呼び名を変える所へのつなぎの文(ホームの「アカウント」へ) */
-const NAME_LINK_TEXT = "呼び名は、ホームの「アカウント」で変えられます";
+const CAPTION = { fontSize: 12, color: "var(--text-muted)", lineHeight: 1.5, overflowWrap: "anywhere" } as const;
 
 export default function AccountSettings() {
   const { uid } = useAuth();
-  // 読み終わるまでは null(名前の欄を出さない)
+  // 読み終わるまでは null(呼び名の行を出さない)
   const [name, setName] = useState<string | null>(null);
 
   useEffect(() => {
@@ -29,7 +29,7 @@ export default function AccountSettings() {
         if (!cancelled) setName(ownNameText(snap.exists() ? snap.data() : null));
       })
       .catch(() => {
-        // 読めなかったときは、名前の欄を出さない(つなぎの文だけ)
+        // 読めなかったときは、呼び名の行を出さない
       });
     return () => {
       cancelled = true;
@@ -37,26 +37,25 @@ export default function AccountSettings() {
   }, [uid]);
 
   return (
-    <div>
-      {name !== null && (
-        <p style={{ fontSize: 14, overflowWrap: "anywhere", marginBottom: 2 }}>
-          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>呼び名:</span>
-          {name}
-        </p>
-      )}
-      <a
-        href={HUB_ACCOUNT_URL}
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          minHeight: 44,
-          fontSize: 13,
-          color: "var(--brand)",
-          textDecoration: "underline",
-        }}
-      >
-        {NAME_LINK_TEXT}
-      </a>
-    </div>
+    <a
+      href={HUB_ACCOUNT_URL}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        minHeight: 44,
+        padding: "14px",
+        textDecoration: "none",
+        color: "inherit",
+      }}
+    >
+      <User size={18} color="var(--brand)" style={{ flexShrink: 0 }} />
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: "block", fontSize: 14, fontWeight: 500 }}>{HUB_ACCOUNT_MENU_LABEL}</span>
+        {name !== null && <span style={{ ...CAPTION, display: "block", marginTop: 2 }}>呼び名:{name}</span>}
+        <span style={{ ...CAPTION, display: "block" }}>{HUB_NAME_LINK_TEXT}</span>
+      </span>
+      <ExternalLink size={16} color="#ccc" style={{ flexShrink: 0 }} />
+    </a>
   );
 }

@@ -1,5 +1,5 @@
 // 写し(手で書き換えない)。正本: ハブ(okizukibiyori-hub)の src/lib/login-handoff.ts
-// 正本の版: 1a2c03f6586bb9cd / 写しの中身の版: 1a2c03f6586bb9cd
+// 正本の版: 7b12efcfeae1378f / 写しの中身の版: 7b12efcfeae1378f
 // 正本を直したら、ハブで node scripts/login-handoff-copy.mjs を実行して写し直す(依頼347 仕事2)。
 // ホーム(おきづきびより)のログインを、サービスが受け取る部品(依頼347 仕事2。依頼345 の決定7)。ハブが正本。
 // 3つのサービスへ写す(scripts/login-handoff-copy.mjs。写しの頭に、正本の版を書く。plan-resolve と同じ仕組み)。
@@ -29,9 +29,12 @@
 
 export const HUB_ORIGIN = "https://okizukibiyori.com";
 export const HUB_LOGIN_URL = `${HUB_ORIGIN}/login`;
-/** サービスのメニューの「アカウント（ホーム）」の行のつなぎ先(ホームのメニューの、アカウントの欄を開いた形) */
+/** サービスのメニューの「おきづきびよりのアカウント」の行のつなぎ先(ホームのメニューの、アカウントの欄を開いた形) */
 export const HUB_ACCOUNT_URL = `${HUB_ORIGIN}/account?open=account`;
-export const HUB_ACCOUNT_MENU_LABEL = "アカウント（ホーム）";
+/** サービスのメニューの「アカウント」の欄の、ただ1つの行(呼び名・プラン・ログアウトは、ここからホームへ。依頼366 仕事2) */
+export const HUB_ACCOUNT_MENU_LABEL = "おきづきびよりのアカウント";
+/** サービスの中で、呼び名の代わりに置く、ホームへのつなぎの文(依頼366 仕事1) */
+export const HUB_NAME_LINK_TEXT = "呼び名は、ホームの「アカウント」で変えられます";
 export const STATE_MARK_URL = `${HUB_ORIGIN}/api/auth-state-mark`;
 
 /** ログインのボタンの言葉(BRAND.md 3章。依頼345 の決定1) */
@@ -511,7 +514,8 @@ async function signOutHere(env: Pick<HandoffEnv, "signOut" | "clearUserData">): 
 
 /**
  * 開いたときに1回だけ呼ぶ(Firebase の初期化のすぐあと。ログイン状態の判定は、この結果を待ってから)。
- * - ?entry=home(トークンなし): ログイン済みで有効なら、そのまま。していない・取り消されていたら、ホームのログインへ。
+ * - ?entry=home(トークンなし): この端末にログインが残っていれば、そのまま(通信を待たない。取り消しは startSessionWatch が見る)。
+ *   ログインしていなければ、ホームのログインへ。
  * - #authToken=: 合言葉を照合して、合えばログイン。合言葉がなければ使わず、ログインしていなければホームのログインへ。
  * どの場合も、authToken・state・entry はアドレスから取り除く(ホームへ移るときを除く)。
  */
@@ -519,9 +523,15 @@ export async function receiveLogin(env: HandoffEnv): Promise<ReceiveResult> {
   const read = readHandoff(env.href);
 
   if (read.entryHome && !read.hasToken) {
-    const decision = decideSession(await currentSession(env));
-    if (decision !== "keep") {
-      if (decision === "signOutThenToHub") await signOutHere(env);
+    // 依頼366 仕事3: この端末にログインが残っていれば、通信で確かめるのを待たずに、すぐ一覧を出す(ホームを通らない)。
+    // 取り消されていたかは、開いたときの確かめ(startSessionWatch → recheckSession)が、画面を出したあとで見る。
+    try {
+      await env.authStateReady();
+    } catch {
+      // 読み込みに失敗しても、今のログインを見て進む
+    }
+    const user = env.getUser();
+    if (!user || user.isAnonymous) {
       if (goToHubLoginFromEntry(env)) return { kind: "navigating" };
     }
   }

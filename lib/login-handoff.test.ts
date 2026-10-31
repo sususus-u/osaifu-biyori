@@ -9,6 +9,7 @@ import {
   handoffFailedMessage,
   HUB_ACCOUNT_MENU_LABEL,
   HUB_ACCOUNT_URL,
+  HUB_NAME_LINK_TEXT,
   LOGIN_HANDOFF_PRESETS,
   receiveLogin,
   recheckSession,
@@ -43,9 +44,10 @@ test("おさいふびよりのキーは、写す前の値のまま(往復の途�
   assert.equal(OSAIFU.markService, "tamari-biyori");
 });
 
-test("言葉: 失敗の文と、メニューの「アカウント（ホーム）」のつなぎ先", () => {
+test("言葉: 失敗の文と、メニューの「おきづきびよりのアカウント」のつなぎ先、呼び名のつなぎの文(依頼366)", () => {
   assert.equal(handoffFailedMessage(OSAIFU.serviceName), "ログインを引き継げませんでした。おさいふびよりを閉じて、もう一度開いてください");
-  assert.equal(HUB_ACCOUNT_MENU_LABEL, "アカウント（ホーム）");
+  assert.equal(HUB_ACCOUNT_MENU_LABEL, "おきづきびよりのアカウント");
+  assert.equal(HUB_NAME_LINK_TEXT, "呼び名は、ホームの「アカウント」で変えられます");
   assert.equal(HUB_ACCOUNT_URL, "https://okizukibiyori.com/account?open=account");
 });
 

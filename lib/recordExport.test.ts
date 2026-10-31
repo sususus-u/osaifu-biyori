@@ -76,11 +76,11 @@ test("ファイルの名前は、日本時間の今日", () => {
   assert.equal(exportFileName(new Date("2026-10-31T15:00:00Z")), "osaifu-biyori-records-20261101.csv");
 });
 
-test("メニューのアカウントの中に、確かめの文つきで置いてある", () => {
+test("メニューの「実績・データ」の中に、確かめの文つきで置いてある(依頼366 仕事2 で「アカウント」から移した)", () => {
   const menu = readFileSync(new URL("../app/menu/page.tsx", import.meta.url), "utf8");
   assert.match(menu, /<RecordExport \/>/);
   const comp = readFileSync(new URL("../components/RecordExport.tsx", import.meta.url), "utf8");
-  assert.match(comp, /記録を書き出す\(表の形\)/);
+  assert.match(comp, /記録を書き出す（表の形）/);
   assert.match(comp, /EXPORT_CONFIRM_TEXT/);
   assert.equal(
     EXPORT_CONFIRM_TEXT,

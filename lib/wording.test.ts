@@ -243,10 +243,12 @@ test("ホームは「ホーム」と呼ぶ(「おきづきびより ホーム」
   }
 });
 
-test("ログイン・ログアウトはホームでだけ(依頼345 の決定1・3)。メニューは「アカウント（ホーム）」の1行だけ", () => {
+test("ログイン・ログアウトはホームでだけ(依頼345 の決定1・3)。メニューは「おきづきびよりのアカウント」の1行だけ(依頼366)", () => {
   const menu = read("../app/menu/page.tsx");
-  assert.ok(menu.includes("href={HUB_ACCOUNT_URL}"));
-  assert.ok(menu.includes("{HUB_ACCOUNT_MENU_LABEL}"));
+  const row = read("../components/AccountSettings.tsx");
+  assert.ok(menu.includes("<AccountSettings />"));
+  assert.ok(row.includes("href={HUB_ACCOUNT_URL}"));
+  assert.ok(row.includes("{HUB_ACCOUNT_MENU_LABEL}"));
   assert.ok(!menu.includes("LogoutButton"));
   assert.ok(!read("../components/AccountSettings.tsx").includes("ログイン状態は「ホーム」と共通です。"));
   // 案内の画面に「ログイン」のボタンを置かない。失敗の文は部品の handoffFailedMessage
